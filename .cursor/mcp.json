@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "HelloWorldServer": {
+      "command": "npx",
+      "args": ["ts-node", "C:\\Users\\dfull\\Documents\\code\\mcp-raytracer\\src\\index.ts"],
+      "env": {}
+    }
+  }
+} 
