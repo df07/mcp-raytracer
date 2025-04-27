@@ -1,6 +1,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Helper to get the root directory (assuming index.ts is in src)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename); // Gets the directory of the current module (src)
+const projectRoot = path.resolve(__dirname, '..'); // Go up one level from src
 
 const server = new McpServer({
   name: "HelloWorldServer",
@@ -13,27 +21,52 @@ const server = new McpServer({
   },
 });
 
-server.resource(
-  "hello",
-  "hello://world",
-  async (uri) => {
-    console.error(`[Resource:hello] Request for ${uri.href}`);
-    return {
-      contents: [{
-        uri: uri.href,
-        text: "Hello, World from MCP Server!",
-        mimeType: "text/plain"
-      }]
+server.tool(
+  "greet",
+  { name: z.string().describe("The name of the person to greet") },
+  async ({ name }, exchange) => {
+    // Revert to simple text greeting
+    console.error(`[Tool:greet] Request with name: ${name}. Returning text.`);
+    return { 
+      content: [{ type: "text", text: `Hi there, ${name}!` }] 
     };
   }
 );
 
 server.tool(
-  "greet",
-  { name: z.string().describe("The name of the person to greet") },
-  async ({ name }, exchange) => {
-    console.error(`[Tool:greet] Request with name: ${name}`);
-    return { content: [{ type: "text", text: `Hi there, ${name}!` }] };
+  "showRedCircle", 
+  "Displays a red circle image.", // Provide description directly
+  async (/* No args expected */) => { // Simpler handler signature
+    console.error(`[Tool:showRedCircle] Request received. Reading and returning image file.`);
+    try {
+      const imagePath = path.join(projectRoot, 'assets', 'red-circle.png');
+      console.error(`[Tool:showRedCircle] Reading image from: ${imagePath}`);
+      const imageBuffer = await fs.readFile(imagePath);
+      const base64Data = imageBuffer.toString('base64');
+
+      // Return value structure
+      return {
+        content: [
+          {
+            type: "image",
+            data: base64Data,
+            mimeType: "image/png",
+          },
+        ],
+      };
+    } catch (error) {
+      console.error(`[Tool:showRedCircle] Error reading or encoding image:`, error);
+      // Error return value structure
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error processing image for showRedCircle tool: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true, 
+      };
+    }
   }
 );
 
