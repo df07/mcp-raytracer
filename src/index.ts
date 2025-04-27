@@ -1,3 +1,5 @@
+/* Specs: mcp-server.md */
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -34,13 +36,13 @@ server.tool(
 );
 
 server.tool(
-  "showRedCircle", 
+  "showImage", 
   "Displays a red circle image.", // Provide description directly
   async (/* No args expected */) => { // Simpler handler signature
-    console.error(`[Tool:showRedCircle] Request received. Reading and returning image file.`);
+    console.error(`[Tool:showImage] Request received. Reading and returning image file.`);
     try {
       const imagePath = path.join(projectRoot, 'assets', 'red-circle.png');
-      console.error(`[Tool:showRedCircle] Reading image from: ${imagePath}`);
+      console.error(`[Tool:showImage] Reading image from: ${imagePath}`);
       const imageBuffer = await fs.readFile(imagePath);
       const base64Data = imageBuffer.toString('base64');
 
@@ -55,13 +57,13 @@ server.tool(
         ],
       };
     } catch (error) {
-      console.error(`[Tool:showRedCircle] Error reading or encoding image:`, error);
+      console.error(`[Tool:showImage] Error reading or encoding image:`, error);
       // Error return value structure
       return {
         content: [
           {
             type: "text",
-            text: `Error processing image for showRedCircle tool: ${error instanceof Error ? error.message : String(error)}`,
+            text: `Error processing image for showImage tool: ${error instanceof Error ? error.message : String(error)}`,
           },
         ],
         isError: true, 

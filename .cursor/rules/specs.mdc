@@ -1,0 +1,105 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Specification Management Rules
+
+<rule>
+name: spec_location_and_format
+description: Ensures Markdown spec files are located correctly and suggests formatting guidelines.
+filters:
+  # Target Markdown files
+  - type: file_extension
+    pattern: "\.md$"
+actions:
+  # Reject .md files outside the specs/ directory
+  - type: reject
+    conditions:
+      # Check if the file path does NOT start with specs/
+      - pattern: "^(?!specs\/).*\.md$"
+        message: "Specification files (.md) must be placed inside the 'specs/' directory."
+    metadata:
+      priority: high
+
+  # Suggest formatting for .md files inside the specs/ directory
+  - type: suggest
+    conditions:
+      # Check if the file path DOES start with specs/
+      - pattern: "^specs\/.*\.md$"
+        message: |
+          Guidance for writing specs (`specs/*.md`):
+          1.  Keep specs concise and focused. Each file should ideally cover one distinct feature or component.
+          2.  Prefer bullet points and lists over long prose.
+          3.  Include concrete examples (e.g., code snippets, API request/response) where appropriate.
+    metadata:
+      priority: medium
+</rule>
+
+<rule>
+name: spec_reference_in_code
+description: Suggests adding references to relevant spec files in TypeScript code.
+filters:
+  # Target TypeScript files
+  - type: file_extension
+    pattern: "\.ts$"
+actions:
+  # Suggest adding a spec reference comment if one isn't found
+  - type: suggest
+    conditions:
+      # Check if the file content does NOT contain the spec comment pattern
+      # Looks for "/* Specs:" potentially followed by anything until "*/"
+      - type: content
+        pattern: "(?s)(?!.*\/\*\s*Specs:.*?\*\/)"
+        # Note: Negative lookahead `(?!...)` asserts the pattern doesn't exist anywhere.
+        # `(?s)` allows `.` to match newlines.
+    message: |
+      Consider adding a reference to the relevant spec file(s) near the top of this TypeScript file.
+      The spec filename should be relative to the 'specs/' directory.
+      Example format:
+      ```typescript
+      /* Specs: my-feature.md, related-component.md */
+
+      // ... rest of the code
+      ```
+    metadata:
+      priority: low
+</rule>
+
+examples:
+  - input: |
+      // Creating a file outside the specs folder
+      // File: features/new-button.md
+      # New Button Feature
+      ...
+    output: "Reject: Specification files (.md) must be placed inside the 'specs/' directory."
+
+  - input: |
+      // Creating a spec file correctly
+      // File: specs/new-button.md
+      # New Button Feature
+      - Should be red.
+      - Should trigger action X on click.
+    output: "Suggest: Guidance for writing specs..." (Suggests formatting)
+
+  - input: |
+      // Creating a TypeScript file without a spec reference
+      // File: src/components/button.ts
+      export function createButton() {
+        // ... implementation ...
+      }
+    output: "Suggest: Consider adding a reference to the relevant spec file(s)..."
+
+  - input: |
+      // Creating a TypeScript file with a spec reference
+      // File: src/components/button.ts
+      /* Specs: new-button.md */
+      export function createButton() {
+        // ... implementation ...
+      }
+    output: "No action needed." # Rule conditions not met
+
+metadata:
+  version: 1.0
+
+
