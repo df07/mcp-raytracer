@@ -1,14 +1,16 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { startHttpServer } from "./mcpServer.js";
 
 const server = new McpServer({
   name: "HelloWorldServer",
   version: "0.0.1",
   displayName: "Hello World MCP Server",
-  description: "A basic MCP server example."
+  description: "A basic MCP server example.",
+  capabilities: {
+    resources: { listChanged: false },
+    tools: { listChanged: false },
+  },
 });
 
 server.resource(
@@ -29,38 +31,21 @@ server.resource(
 server.tool(
   "greet",
   { name: z.string().describe("The name of the person to greet") },
-  async ({ name }) => {
+  async ({ name }, exchange) => {
     console.error(`[Tool:greet] Request with name: ${name}`);
-    return {
-      content: [{ type: "text", text: `Greetings, ${name}!` }]
-    };
+    return { content: [{ type: "text", text: `Hi there, ${name}!` }] };
   }
 );
 
 async function runServer() {
-  // Determine transport mode from command line arguments
-  const args = process.argv.slice(2);
-  let transportMode = 'stdio';
-  const transportArgIndex = args.indexOf('--transport');
-  if (transportArgIndex !== -1 && args.length > transportArgIndex + 1) {
-    transportMode = args[transportArgIndex + 1].toLowerCase();
-  }
-
-  console.error(`Starting MCP Server in ${transportMode} mode (determined by args).`);
-
-  if (transportMode === 'http') {
-    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-    await startHttpServer(server, port);
-
-  } else {
-    try {
-      const transport = new StdioServerTransport();
-      await server.connect(transport);
-      console.error("[Stdio] MCP Server connected and listening on stdio.");
-    } catch (error) {
-      console.error("[Stdio] Failed to start MCP server:", error);
-      process.exit(1);
-    }
+  console.error(`Starting MCP Server in stdio mode.`);
+  try {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("[Stdio] MCP Server connected and listening on stdio.");
+  } catch (error) {
+    console.error("[Stdio] Failed to start MCP server:", error);
+    process.exit(1);
   }
 }
 
