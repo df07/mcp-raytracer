@@ -1,6 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { startHttpServer } from "./mcpServer.js";
 
 const server = new McpServer({
   name: "HelloWorldServer",
@@ -36,17 +38,32 @@ server.tool(
 );
 
 async function runServer() {
-  try {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("MCP Server connected and listening on stdio (stderr).");
-  } catch (error) {
-    console.error("Failed to start MCP server (stderr):", error);
-    process.exit(1);
+  // Determine transport mode from command line arguments
+  const args = process.argv.slice(2);
+  let transportMode = 'stdio';
+  const transportArgIndex = args.indexOf('--transport');
+  if (transportArgIndex !== -1 && args.length > transportArgIndex + 1) {
+    transportMode = args[transportArgIndex + 1].toLowerCase();
+  }
+
+  console.error(`Starting MCP Server in ${transportMode} mode (determined by args).`);
+
+  if (transportMode === 'http') {
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+    await startHttpServer(server, port);
+
+  } else {
+    try {
+      const transport = new StdioServerTransport();
+      await server.connect(transport);
+      console.error("[Stdio] MCP Server connected and listening on stdio.");
+    } catch (error) {
+      console.error("[Stdio] Failed to start MCP server:", error);
+      process.exit(1);
+    }
   }
 }
 
-// --- Global Error Handling ---
 process.on('uncaughtException', (error, origin) => {
   console.error(`
 ===== Uncaught Exception =====
@@ -65,6 +82,8 @@ Reason: ${reason instanceof Error ? reason.stack : reason}
 =============================
 `);
 });
-// --- End Global Error Handling ---
 
-runServer();
+runServer().catch(error => {
+  console.error("Error running server promise:", error);
+  process.exit(1);
+});
