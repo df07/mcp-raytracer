@@ -3,10 +3,6 @@ description:
 globs: 
 alwaysApply: false
 ---
----
-description: Cursor Rules Location
-globs: *.mdc
----
 # Cursor Rules Location
 
 Rules for placing and organizing Cursor rule files in the repository.
@@ -62,20 +58,4 @@ actions:
          - In the project root
          - In subdirectories outside .cursor/rules
          - In any other location
-
-examples:
-  - input: |
-      # Bad: Rule file in wrong location
-      rules/my-rule.mdc
-      my-rule.mdc
-      .rules/my-rule.mdc
-
-      # Good: Rule file in correct location
-      .cursor/rules/my-rule.mdc
-    output: "Correctly placed Cursor rule file"
-
-metadata:
-  priority: high
-  version: 1.0
-
 </rule>

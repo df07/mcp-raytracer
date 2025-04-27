@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Core Coding Checklist
+
+<rule>
+name: core_coding_checklist
+description: Core checklist reminder
+actions:
+  - type: suggest
+    message: |
+      CORE CHECKLIST:
+      1. Follow rules (`.cursor/rules/`) when writing code. Suggest updates to rules when needed.
+      2. Always have a spec (`specs/`). Review it before coding and keep it up to date.
+    metadata:
+      priority: critical
+
+</rule>

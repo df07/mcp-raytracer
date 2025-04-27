@@ -11,13 +11,13 @@ description: Ensures Markdown spec files are located correctly and suggests form
 filters:
   # Target Markdown files
   - type: file_extension
-    pattern: "\.md$"
+    pattern: "\\.md$"
 actions:
   # Reject .md files outside the specs/ directory
   - type: reject
     conditions:
       # Check if the file path does NOT start with specs/
-      - pattern: "^(?!specs\/).*\.md$"
+      - pattern: "^(?!specs\\/).*\\.md$"
         message: "Specification files (.md) must be placed inside the 'specs/' directory."
     metadata:
       priority: high
@@ -26,7 +26,7 @@ actions:
   - type: suggest
     conditions:
       # Check if the file path DOES start with specs/
-      - pattern: "^specs\/.*\.md$"
+      - pattern: "^specs\\/.*\\.md$"
         message: |
           Guidance for writing specs (`specs/*.md`):
           1.  Keep specs concise and focused. Each file should ideally cover one distinct feature or component.
@@ -42,7 +42,7 @@ description: Suggests adding references to relevant spec files in TypeScript cod
 filters:
   # Target TypeScript files
   - type: file_extension
-    pattern: "\.ts$"
+    pattern: "\\.ts$"
 actions:
   # Suggest adding a spec reference comment if one isn't found
   - type: suggest
@@ -50,7 +50,7 @@ actions:
       # Check if the file content does NOT contain the spec comment pattern
       # Looks for "/* Specs:" potentially followed by anything until "*/"
       - type: content
-        pattern: "(?s)(?!.*\/\*\s*Specs:.*?\*\/)"
+        pattern: "(?s)(?!.*\\/\\*\\s*Specs:.*?\\*\\/)"
         # Note: Negative lookahead `(?!...)` asserts the pattern doesn't exist anywhere.
         # `(?s)` allows `.` to match newlines.
     message: |
@@ -65,41 +65,5 @@ actions:
     metadata:
       priority: low
 </rule>
-
-examples:
-  - input: |
-      // Creating a file outside the specs folder
-      // File: features/new-button.md
-      # New Button Feature
-      ...
-    output: "Reject: Specification files (.md) must be placed inside the 'specs/' directory."
-
-  - input: |
-      // Creating a spec file correctly
-      // File: specs/new-button.md
-      # New Button Feature
-      - Should be red.
-      - Should trigger action X on click.
-    output: "Suggest: Guidance for writing specs..." (Suggests formatting)
-
-  - input: |
-      // Creating a TypeScript file without a spec reference
-      // File: src/components/button.ts
-      export function createButton() {
-        // ... implementation ...
-      }
-    output: "Suggest: Consider adding a reference to the relevant spec file(s)..."
-
-  - input: |
-      // Creating a TypeScript file with a spec reference
-      // File: src/components/button.ts
-      /* Specs: new-button.md */
-      export function createButton() {
-        // ... implementation ...
-      }
-    output: "No action needed." # Rule conditions not met
-
-metadata:
-  version: 1.0
 
 
