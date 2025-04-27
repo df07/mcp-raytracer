@@ -7,6 +7,9 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 
+// Import the raytracer function
+import { generateGradientPngBuffer } from "./raytracer.js";
+
 // Helper to get the root directory (assuming index.ts is in src)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename); // Gets the directory of the current module (src)
@@ -63,6 +66,37 @@ export const showImageToolHandler = async (/* No args expected */): Promise<any>
   }
 };
 
+// Define handler for the new raytrace tool
+export const raytraceToolHandler = async (/* No args for now */): Promise<any> => {
+  console.error(`[Tool:raytrace] Request received. Generating PNG gradient.`);
+  try {
+    // Generate the image using default dimensions
+    const pngBuffer = await generateGradientPngBuffer(); 
+    const base64Data = pngBuffer.toString('base64');
+
+    return {
+      content: [
+        {
+          type: "image",
+          data: base64Data,
+          mimeType: "image/png",
+        },
+      ],
+    };
+  } catch (error) {
+    console.error(`[Tool:raytrace] Error generating PNG:`, error);
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Error processing image for raytrace tool: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      ],
+      isError: true,
+    };
+  }
+};
+
 // Register tools using the exported handlers
 server.tool(
   "greet",
@@ -76,12 +110,21 @@ server.tool(
   showImageToolHandler // Use adjusted handler
 );
 
+// Register the new raytrace tool
+server.tool(
+  "raytrace",
+  "Generates a simple gradient PNG image using the raytracer.",
+  raytraceToolHandler
+);
+
 async function runServer() {
   console.error(`Starting MCP Server in stdio mode.`);
   try {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("[Stdio] MCP Server connected and listening on stdio.");
+    // Log expected tools upon successful connection 
+    // (Dynamic lookup failed or was unreliable)
+    console.error(`[Stdio] MCP Server connected. Tools: [greet, showImage, raytrace]`);
   } catch (error) {
     console.error("[Stdio] Failed to start MCP server:", error);
     process.exit(1);
