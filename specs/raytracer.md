@@ -34,9 +34,14 @@
 
 *   **Signature:** `function rayColor(r: ray): color`
 *   **Purpose:** Determines the color contribution for a given ray cast into the scene.
-*   **Current Behavior (Chapter 4 - Background):** 
+*   **Background color** 
     *   If the ray doesn't intersect any objects (always true for now), return a background color.
     *   The background color should be a vertical gradient, blending linearly from white (`1,1,1`) at the top to a light blue (`0.5, 0.7, 1.0`) at the bottom, based on the y-component of the ray's normalized direction vector.
+*   **Sphere intersection:**
+    *   Define a simple scene containing a single sphere (e.g., centered at `0,0,-1` with radius `0.5`).
+    *   For a given ray, determine if it intersects the sphere using a `hitSphere` function (see below).
+    *   If the ray hits the sphere, return a fixed color (e.g., red: `1,0,0`).
+    *   If the ray does *not* hit the sphere, return the background gradient color as described previously.
 
 ### 3. Color Writing Helper (`writeColorToBuffer`)
 
@@ -47,6 +52,19 @@
     *   Clamp the scaled values to ensure they fall within [0, 255].
     *   Write the resulting R, G, B byte values into the provided `pixelData` buffer at the specified `offset`.
     *   Return the next buffer offset.
+
+## Sphere Definition (`src/sphere.ts`)
+
+*   **Purpose:** Defines a sphere object and a method to check for ray intersection.
+*   **`Sphere` Class:**
+    *   Represents a sphere in 3D space.
+    *   **Constructor:** Takes `center: point3` and `radius: number`.
+    *   **Properties:** `center: point3`, `radius: number`.
+    *   **`hit` Method:**
+        *   **Signature:** `hit(r: ray): number`
+        *   **Purpose:** Checks if the given ray `r` intersects the sphere.
+        *   **Calculation:** Uses the quadratic formula derived from the ray-sphere intersection equation: `(P(t) - C) . (P(t) - C) = r^2`, where `P(t) = A + t*b` is the ray, `C` is the sphere center (`this.center`), and `r` is the radius (`this.radius`).
+        *   **Return Value:** Returns the `t` value of the *closest* intersection point if a hit occurs (discriminant >= 0 and `t > 0`), otherwise returns a value indicating no hit (e.g., -1.0).
 
 ## MCP Integration & Setup
 
@@ -79,8 +97,8 @@
 
 **Future Considerations:**
 
-*   Adding hittable objects to the scene (Chapter 5).
-*   Implementing surface normals and shading (Chapter 6).
+*   Implementing surface normals and shading (Chapter 6 - introducing `Hittable` and `HitRecord`).
+*   Adding more hittable objects and managing a list of them (Chapter 7).
 *   Adding spheres and other geometric primitives.
 *   Refactoring camera logic into its own class/module.
 *   Adapting the output format for better display via MCP.

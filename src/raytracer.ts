@@ -1,6 +1,8 @@
 import sharp from 'sharp';
 import { vec3, color, point3, unitVector } from './vec3.js'; // Added point3, unitVector
 import { ray } from './ray.js'; // Added ray
+import { Sphere } from './sphere.js'; // Chapter 5: Use Sphere class
+/* Specs: vec3.md, ray.md, sphere.ts, raytracer.md */ // Updated spec references
 
 /**
  * Writes the RGB components of a color vector to a buffer.
@@ -34,12 +36,22 @@ function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: color
  * @returns The calculated color.
  */
 function rayColor(r: ray): color {
+    // Chapter 5: Define a sphere and check for intersection
+    const testSphere = new Sphere(new vec3(0, 0, -1), 0.5);
+
+    const t = testSphere.hit(r); // Call hit method on the instance
+    if (t > 0.0) {
+        // Ray hit the sphere, return red
+        return new vec3(1, 0, 0);
+    }
+
+    // If no hit, return the background gradient
     const unitDirection = unitVector(r.direction());
-    const t = 0.5 * (unitDirection.y() + 1.0); // Scale y-component to [0, 1]
+    const gradientT = 0.5 * (unitDirection.y() + 1.0); // Scale y-component to [0, 1]
     // Linear blend (lerp): blendedValue = (1 - t) * startValue + t * endValue
     const white = new vec3(1.0, 1.0, 1.0);
     const lightBlue = new vec3(0.5, 0.7, 1.0);
-    return white.multiply(1.0 - t).add(lightBlue.multiply(t));
+    return white.multiply(1.0 - gradientT).add(lightBlue.multiply(gradientT));
 }
 
 /**

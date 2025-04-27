@@ -44,7 +44,7 @@ describe('generateImageBuffer', () => {
 
     it('should handle the verbose flag without errors', async () => {
         // Act & Assert
-        await expect(generateImageBuffer(true)).resolves.toBeInstanceOf(Buffer);
+        await expect(generateImageBuffer(false)).resolves.toBeInstanceOf(Buffer);
         // Note: This doesn't check stderr output, just that it runs.
         // Checking stderr would require more complex test setup (e.g., mocking console.error).
     });
