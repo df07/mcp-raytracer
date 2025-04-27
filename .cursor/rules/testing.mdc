@@ -1,0 +1,77 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Testing Guidelines
+
+<rule>
+name: testing_guidelines
+description: Best practices and conventions for writing tests using Jest.
+actions:
+  - type: suggest
+    message: |
+      # Testing Rules
+
+      This document outlines the testing framework, conventions, and best practices for this project.
+
+      ## Framework
+
+      We use **Jest** as our primary testing framework for unit and integration tests.
+
+      ## File Naming and Location
+
+      -   Test files should be located in a `__tests__` directory within the module/component they are testing, or in a top-level `tests` directory for broader integration/e2e tests.
+      -   Test files should be named using the pattern `[filename].test.ts` or `[filename].spec.ts`. Prefer `*.test.ts`.
+          -   Example: For `src/utils/math.ts`, the test file would be `src/utils/__tests__/math.test.ts`.
+
+      ## Writing Tests
+
+      -   **Structure:** Use `describe`, `it` (or `test`), and `expect` blocks to structure tests clearly.
+          ```typescript
+          describe('MyComponent', () => {
+            // Setup logic if needed (beforeEach, etc.)
+
+            it('should do something correctly', () => {
+              // Arrange
+              const input = /* ... */;
+              // Act
+              const result = myFunction(input);
+              // Assert
+              expect(result).toEqual(/* expected output */);
+            });
+
+            it('should handle edge cases', () => {
+              // ... test logic ...
+              expect(/* ... */).toBe(/* ... */);
+            });
+          });
+          ```
+      -   **AAA Pattern:** Follow the Arrange-Act-Assert pattern within each test case for clarity.
+      -   **Specificity:** Each `it`/`test` block should ideally test one specific thing or behavior. Keep test descriptions clear and concise.
+      -   **Independence:** Tests should be independent and runnable in any order. Avoid dependencies between tests. Use `beforeEach` / `afterEach` for setup/teardown needed for multiple tests within a `describe` block.
+      -   **Assertions:** Use the most specific Jest matcher possible (e.g., use `toBeNull()` instead of `toBe(null)`, `toHaveBeenCalledWith()` instead of just `toHaveBeenCalled()`).
+      -   **Mocks:** Use Jest's built-in mocking capabilities (`jest.fn()`, `jest.spyOn()`, `jest.mock()`) to isolate the unit under test from its dependencies.
+          -   Mock modules or functions, not entire classes unless necessary.
+          -   Keep mocks simple and focused on the interaction being tested.
+          -   Clear mocks between tests using `jest.clearAllMocks()` or specific mock clearing functions in `afterEach` if mocks are shared via `beforeEach`.
+      -   **Async Tests:** Use `async/await` for asynchronous tests. Ensure Promises are handled correctly (e.g., `await expect(...).resolves...` or `await expect(...).rejects...`).
+      -   **Avoid Logic in Tests:** Tests should primarily consist of setup, execution, and assertions. Avoid complex logic, loops, or conditionals within test cases themselves. If complex setup is needed, encapsulate it in helper functions.
+      -   **Coverage:** Aim for meaningful test coverage, focusing on critical paths, business logic, and potential edge cases. Don't solely chase high percentage numbers; focus on quality over quantity.
+
+      ## Running Tests
+
+      -   Tests can be run using the `npm test` or `yarn test` script (which should invoke `jest`).
+      -   Configure Jest via `jest.config.js` or the `jest` section in `package.json`.
+
+      ## When to Test
+
+      -   Write tests alongside new features or bug fixes.
+      -   Ensure all critical functionality and complex logic is covered by tests.
+      -   Add tests for regressions when fixing bugs.
+    metadata:
+      priority: medium
+</rule>
+
+
+

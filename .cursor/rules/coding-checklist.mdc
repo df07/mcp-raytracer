@@ -14,6 +14,7 @@ actions:
       CORE CHECKLIST:
       1. Follow rules (`.cursor/rules/`) when writing code. Suggest updates to rules when needed.
       2. Always have a spec (`specs/`). Review it before coding and keep it up to date.
+      3. Follow testing guidelines (`.cursor/rules/testing.mdc`) and ensure adequate test coverage.
     metadata:
       priority: critical
 

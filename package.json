@@ -11,7 +11,8 @@
     "dev": "tsc -w & node --watch dist/index.js",
     "watch:build": "tsc -w",
     "dev:http:run": "nodemon --watch dist dist/index.js --transport http",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +28,9 @@
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.0.0",
     "nodemon": "^3.1.10",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.5",
+    "@types/jest": "^29.5.12"
   }
 }

@@ -4,12 +4,12 @@
     "module": "NodeNext",                                /* Specify what module code is generated. */
     "moduleResolution": "NodeNext",
     "outDir": "./dist",                                   /* Specify an output folder for all emitted files. */
-    "rootDir": "./src",                                   /* Specify the root folder within your source files. */
     "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
     "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
     "strict": true,                                      /* Enable all strict type-checking options. */
-    "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
+    "skipLibCheck": true,                                /* Skip type checking all .d.ts files. */
+    "isolatedModules": true                            /* Recommended by ts-jest for NodeNext module */
   },
-  "include": ["src/**/*"],                                /* Specifies an array of filenames or patterns to include in the program. */
-  "exclude": ["node_modules", "**/*.spec.ts"]             /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
+  "include": ["src/**/*", "tests/**/*"],                 /* Updated include */
+  "exclude": ["node_modules"]                         /* Updated exclude */
 } 
