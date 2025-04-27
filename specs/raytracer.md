@@ -1,62 +1,88 @@
-# Spec: Raytracer MCP Tool (Chapter 2)
+# Spec: Raytracer MCP Tool
 
-**Reference:** ["Ray Tracing in One Weekend" - Chapter 2](https://raytracing.github.io/books/RayTracingInOneWeekend.html#outputanimage)
-**Related Specs:** `specs/vec3.md`
+**Reference:** ["Ray Tracing in One Weekend"](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
 
-**Goal:** Implement the initial MCP tool (`raytrace`) to generate a simple gradient image based on Chapter 2 ("Output an image") of the reference book.
+**Related Specs:** `specs/vec3.md`, `specs/ray.md`
 
-**Motivation:** To establish the basic framework for the raytracer, integrate it with the MCP server for visual output, and implement progress reporting.
+**Goal:** Implement the MCP tool (`raytrace`) to generate an image based on the principles outlined in "Ray Tracing in One Weekend".
+**Motivation:** Establish the basic framework for the raytracer, integrate it with the MCP server for visual output, and implement progress reporting.
 
-**Requirements:**
+## Core Raytracing Logic (`src/raytracer.ts`)
 
-1.  **New MCP Tool:**
-    *   **Name:** `raytrace` (defined in `src/index.ts`)
-    *   **Purpose:** Triggers the generation and return of the raytraced image.
-    *   **Parameters:**
-        *   `verbose: boolean` (optional, default: `false`) - Enables progress logging to `stderr`.
-2.  **Image Generation (`generateGradientPngBuffer` in `src/raytracer.ts`):**
-    *   Generate an image with default dimensions (e.g., 256x256 pixels).
-    *   The image should represent a color gradient.
-    *   Pixel colors should vary based on their position (x, y coordinates), using the `color` type (see `specs/color.md`) for representation.
-        *   Red component varies from 0.0 to 1.0 (left to right).
-        *   Green component varies from 1.0 to 0.0 (top to bottom).
-        *   Blue component is fixed (e.g., 0.25).
-    *   Use the `writeColorToBuffer` helper (see `specs/color.md`) to write scaled pixel colors to a raw buffer.
+**Dependencies:** Utilizes `vec3`, `point3`, `color` types/classes from `src/vec3.ts` and the `ray` class from `src/ray.ts`.
 
-4.  **Color Writing Helper (`writeColorToBuffer` in `src/raytracer.ts`):**
-    *   **Signature:** `function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: color): number`
-    *   **Purpose:** Takes a `color` (vec3) object, scales components [0,1] to integers [0, 255], clamps them, and writes RGB to the `pixelData` buffer at `offset`.
-    *   **Scaling/Clamping:** Use `Math.max(0, Math.min(255, Math.floor(255.999 * component)))`.
-    *   **Return:** The updated buffer `offset`.
+### 1. Image Generation (`generateImageBuffer`)
 
-5.  **Output Format:**
-    *   The `raytrace` tool should return the generated image data encoded as a PNG.
-    *   Utilize the `sharp` library to convert the raw pixel buffer to a PNG buffer.
-    *   The MCP response content should be of type `image`.
-    *   The `data` field should contain the base64-encoded PNG data.
-    *   The `mimeType` field should be `image/png`.
-6.  **Language:**
-    *   All implementation code must be in Typescript.
-7.  **Progress Reporting:**
-    *   If the `verbose` parameter is `true`, log progress to `stderr` (using `console.error`) within `generateGradientPngBuffer`.
-    *   Log the start of generation.
-    *   Log scanlines remaining approximately every 10% completion.
-    *   Log the final "0 remaining" scanline.
-    *   Log completion.
-    *   If `verbose` is `false`, no progress messages should be logged.
+*   **Purpose:** Orchestrates the image generation process based on ray tracing principles.
+*   **Image Dimensions:** 
+    *   Calculate image height based on a fixed `imageWidth` (e.g., 400 pixels) and a standard `aspectRatio` (e.g., 16:9).
+*   **Camera Setup:**
+    *   Define a virtual camera positioned at the origin (`0,0,0`).
+    *   Define a virtual viewport positioned in front of the camera along the negative z-axis, based on a specified `focalLength` and `viewportHeight`.
+    *   Calculate the viewport's width based on the image's aspect ratio.
+    *   Determine the vectors representing the viewport's horizontal (`viewport_u`) and vertical (`viewport_v`) edges.
+    *   Calculate the vectors representing the horizontal and vertical distance between adjacent pixel centers (`pixelDelta_u`, `pixelDelta_v`).
+    *   Determine the 3D location corresponding to the center of the top-left pixel (`pixel00_loc`).
+*   **Pixel Iteration:** Iterate through each pixel location `(j, i)` of the image.
+    *   For each pixel, calculate the 3D location of the pixel's center in the viewport.
+    *   Calculate the direction vector from the `cameraCenter` to the pixel's center.
+    *   Construct a `ray` originating from the `cameraCenter` with the calculated direction.
+    *   Determine the color for the current pixel by calling the `rayColor` function with the constructed `ray`.
+    *   Write the determined `pixelColor` to the output image buffer using the `writeColorToBuffer` helper.
 
-**Implementation Plan:**
+### 2. Ray Color Calculation (`rayColor`)
 
-1.  Define the `raytrace` tool signature and handler in `src/index.ts`, including the optional `verbose` parameter.
-2.  Implement the `generateGradientPngBuffer` function in `src/raytracer.ts`.
-    *   Calculate pixel colors using the `color` type (requires `vec3` from `specs/vec3.md`).
-    *   Use the `writeColorToBuffer` function specified above to populate a raw pixel buffer.
-    *   Add conditional `stderr` logging based on the `verbose` parameter.
-3.  Use the `sharp` library within `generateGradientPngBuffer` to encode the raw pixel buffer into a PNG buffer.
-4.  Ensure the `raytraceToolHandler` calls `generateGradientPngBuffer` (passing `verbose`) and returns the PNG buffer in the correct MCP `image` content format (base64 encoded).
+*   **Signature:** `function rayColor(r: ray): color`
+*   **Purpose:** Determines the color contribution for a given ray cast into the scene.
+*   **Current Behavior (Chapter 4 - Background):** 
+    *   If the ray doesn't intersect any objects (always true for now), return a background color.
+    *   The background color should be a vertical gradient, blending linearly from white (`1,1,1`) at the top to a light blue (`0.5, 0.7, 1.0`) at the bottom, based on the y-component of the ray's normalized direction vector.
+
+### 3. Color Writing Helper (`writeColorToBuffer`)
+
+*   **Signature:** `function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: color): number`
+*   **Purpose:** Translates a calculated `color` (represented as `vec3` with components in [0,1]) into RGB byte values and writes them to a raw image buffer.
+*   **Functionality:** 
+    *   Scale each color component (R, G, B) from the [0,1] range to the [0, 255] integer range.
+    *   Clamp the scaled values to ensure they fall within [0, 255].
+    *   Write the resulting R, G, B byte values into the provided `pixelData` buffer at the specified `offset`.
+    *   Return the next buffer offset.
+
+## MCP Integration & Setup
+
+### 1. MCP Tool Definition (`src/index.ts`)
+
+*   **Name:** `raytrace`
+*   **Purpose:** Provides an MCP interface to trigger the raytracing process defined in `generateImageBuffer`.
+*   **Parameters:**
+    *   `verbose: boolean` (optional, default: `false`) - If true, enables progress logging during image generation.
+
+### 2. Output Format
+
+*   The `raytrace` tool must return the generated image data.
+*   **Encoding:** Use the `sharp` library within `generateImageBuffer` to encode the raw pixel data buffer into a standard PNG format.
+*   **MCP Response:** The tool's response must be an MCP `content` object with:
+    *   `type: 'image'`
+    *   `data`: The base64-encoded string of the PNG image buffer.
+    *   `mimeType: 'image/png'`.
+
+### 3. Progress Reporting
+
+*   **Location:** Implemented within the `generateImageBuffer` function.
+*   **Condition:** Progress messages should only be logged if the `verbose` parameter provided to the `raytrace` tool is `true`.
+*   **Destination:** All progress messages must be written to `stderr` (e.g., using `console.error`) to avoid interfering with MCP communication over `stdout`.
+*   **Content:** Log messages indicating the start of generation, the approximate number of scanlines remaining (updated periodically, e.g., every 10%), and the completion of the process.
+
+### 4. Language
+
+*   All implementation code must be in Typescript.
 
 **Future Considerations:**
 
+*   Adding hittable objects to the scene (Chapter 5).
+*   Implementing surface normals and shading (Chapter 6).
+*   Adding spheres and other geometric primitives.
+*   Refactoring camera logic into its own class/module.
 *   Adapting the output format for better display via MCP.
 *   Adding parameters to the `raytrace` tool (e.g., image dimensions, scene selection).
 *   Implementing subsequent chapters of the raytracing guide (rays, objects, materials, etc.). 

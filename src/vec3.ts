@@ -65,6 +65,10 @@ export class vec3 {
 export type point3 = vec3;
 export type color = vec3;
 
+// NOTE: point3 and color are type aliases for vec3.
+// Always use the 'new vec3(...)' constructor for instantiation.
+// These aliases provide semantic clarity in function signatures and variables.
+
 // vec3 Utility Functions
 
 export function dot(u: vec3, v: vec3): number {

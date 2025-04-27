@@ -1,5 +1,6 @@
 import sharp from 'sharp';
-import { vec3, color } from './vec3.js'; // Import vec3 and color
+import { vec3, color, point3, unitVector } from './vec3.js'; // Added point3, unitVector
+import { ray } from './ray.js'; // Added ray
 
 /**
  * Writes the RGB components of a color vector to a buffer.
@@ -26,39 +27,84 @@ function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: color
 }
 
 /**
- * Generates a PNG image buffer representing a color gradient using vec3 for color.
+ * Determines the color seen along a given ray.
+ * For now, returns a background gradient.
  *
- * @param imageWidth The width of the image in pixels.
- * @param imageHeight The height of the image in pixels.
+ * @param r The ray being cast.
+ * @returns The calculated color.
+ */
+function rayColor(r: ray): color {
+    const unitDirection = unitVector(r.direction());
+    const t = 0.5 * (unitDirection.y() + 1.0); // Scale y-component to [0, 1]
+    // Linear blend (lerp): blendedValue = (1 - t) * startValue + t * endValue
+    const white = new vec3(1.0, 1.0, 1.0);
+    const lightBlue = new vec3(0.5, 0.7, 1.0);
+    return white.multiply(1.0 - t).add(lightBlue.multiply(t));
+}
+
+/**
+ * Generates a PNG image buffer by tracing rays through a virtual camera.
+ *
+ * @param verbose Log progress to stderr if true.
  * @returns A Promise resolving to a Buffer containing the PNG image data.
  */
-export async function generateGradientPngBuffer(
-    imageWidth: number = 256, 
-    imageHeight: number = 256, 
+export async function generateImageBuffer(
     verbose: boolean = false
 ): Promise<Buffer> {
-    // Create a flat buffer for raw pixel data (RGB)
+    // Image Dimensions
+    const aspectRatio = 16.0 / 9.0;
+    const imageWidth = 400;
+    const imageHeight = Math.max(1, Math.floor(imageWidth / aspectRatio));
+
+    // Camera Setup
+    const focalLength = 1.0;
+    const viewportHeight = 2.0;
+    const viewportWidth = viewportHeight * (imageWidth / imageHeight); // Use actual ratio
+    const cameraCenter = new vec3(0, 0, 0);
+
+    // Calculate viewport vectors
+    const viewport_u = new vec3(viewportWidth, 0, 0);
+    const viewport_v = new vec3(0, -viewportHeight, 0); // Viewport goes down from top-left
+
+    // Calculate pixel delta vectors
+    const pixelDelta_u = viewport_u.divide(imageWidth);
+    const pixelDelta_v = viewport_v.divide(imageHeight);
+
+    // Calculate the location of the upper-left pixel center
+    // Start at camera, move to viewport plane, move to top-left corner, move to pixel center
+    const viewportUpperLeft = cameraCenter
+        .subtract(new vec3(0, 0, focalLength)) // Move to viewport plane
+        .subtract(viewport_u.divide(2))      // Move to left edge
+        .subtract(viewport_v.divide(2));     // Move to top edge (remember v points down)
+    const pixel00_loc = viewportUpperLeft.add(pixelDelta_u.add(pixelDelta_v).multiply(0.5));
+
+    // Rendering
     const pixelData = Buffer.alloc(imageWidth * imageHeight * 3);
     let offset = 0;
-    const logInterval = Math.max(1, Math.floor(imageHeight / 10)); // Log roughly 10 times + first/last
+    const logInterval = Math.max(1, Math.floor(imageHeight / 10));
 
     if (verbose) console.error(`Generating ${imageWidth}x${imageHeight} image...`);
-    for (let j = imageHeight - 1; j >= 0; --j) {
-        // Log progress every logInterval scanlines or for the last line (j=0)
-        if (verbose && (j % logInterval === 0 || j === 0)) {
-            console.error(`Scanlines remaining: ${j}`);
+
+    // Iterate pixels Left-to-Right, Top-to-Bottom (j=row, i=column)
+    for (let j = 0; j < imageHeight; ++j) { 
+        if (verbose && (j % logInterval === 0)) {
+            // Log scanlines completed (more intuitive than remaining)
+            console.error(`Scanlines completed: ${j} / ${imageHeight}`); 
         }
         for (let i = 0; i < imageWidth; ++i) {
-            const r = i / (imageWidth - 1);  // Varies from 0.0 to 1.0 left-to-right
-            const g = j / (imageHeight - 1); // Varies from 1.0 to 0.0 top-to-bottom
-            const b = 0.25;                  // Fixed blue component
+            const pixelCenter = pixel00_loc
+                .add(pixelDelta_u.multiply(i)) // Move right by i pixels
+                .add(pixelDelta_v.multiply(j)); // Move down by j pixels
+            
+            const rayDirection = pixelCenter.subtract(cameraCenter);
+            const r = new ray(cameraCenter, rayDirection);
 
-            const pixelColor = new vec3(r, g, b); // Use vec3 constructor
-
-            offset = writeColorToBuffer(pixelData, offset, pixelColor); // Write color using helper
+            const pixelColor = rayColor(r);
+            offset = writeColorToBuffer(pixelData, offset, pixelColor);
         }
     }
-    if (verbose) console.error("Done generating image.");
+
+    if (verbose) console.error(`Done generating image. Encoding to PNG...`);
 
     // Use sharp to create a PNG buffer from the raw pixel data
     const pngBuffer = await sharp(pixelData, {
@@ -70,6 +116,8 @@ export async function generateGradientPngBuffer(
     })
     .png() // Specify PNG output format
     .toBuffer();
+
+    if (verbose) console.error("PNG encoding complete.");
 
     return pngBuffer;
 } 

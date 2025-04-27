@@ -8,7 +8,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 // Import the raytracer function
-import { generateGradientPngBuffer } from "./raytracer.js";
+import { generateImageBuffer } from "./raytracer.js";
 
 // Helper to get the root directory (assuming index.ts is in src)
 const __filename = fileURLToPath(import.meta.url);
@@ -68,10 +68,10 @@ export const showImageToolHandler = async (/* No args expected */): Promise<any>
 
 // Define handler for the new raytrace tool
 export const raytraceToolHandler = async ({ verbose = false }: { verbose?: boolean }): Promise<any> => {
-  console.error(`[Tool:raytrace] Request received. Generating PNG gradient. Verbose: ${verbose}`);
+  console.error(`[Tool:raytrace] Request received. Generating PNG via ray tracing. Verbose: ${verbose}`);
   try {
-    // Generate the image using default dimensions, passing verbose flag
-    const pngBuffer = await generateGradientPngBuffer(undefined, undefined, verbose);
+    // Generate the image using the refactored function
+    const pngBuffer = await generateImageBuffer(verbose);
     const base64Data = pngBuffer.toString('base64');
 
     return {
@@ -117,7 +117,7 @@ const raytraceInputSchema = z.object({
 
 server.tool(
   "raytrace",
-  "Generates a simple gradient PNG image using the raytracer.",
+  "Generates a PNG image using a simple raytracer.",
   raytraceInputSchema.shape,
   raytraceToolHandler
 );

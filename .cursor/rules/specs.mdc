@@ -32,6 +32,7 @@ actions:
           1.  Keep specs concise and focused. Each file should ideally cover one distinct feature or component.
           2.  Prefer bullet points and lists over long prose.
           3.  Include concrete examples (e.g., code snippets, API request/response) where appropriate.
+          4.  Write like a Product Manager: Focus on *what* needs to be built and *why* (functional requirements, goals, motivation), targeting the spec towards the implementing engineer. Leave *how* (specific algorithms, formulas, implementation details) to the engineer, unless critical to the requirement.
     metadata:
       priority: medium
 </rule>
