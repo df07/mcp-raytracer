@@ -67,11 +67,11 @@ export const showImageToolHandler = async (/* No args expected */): Promise<any>
 };
 
 // Define handler for the new raytrace tool
-export const raytraceToolHandler = async (/* No args for now */): Promise<any> => {
-  console.error(`[Tool:raytrace] Request received. Generating PNG gradient.`);
+export const raytraceToolHandler = async ({ verbose = false }: { verbose?: boolean }): Promise<any> => {
+  console.error(`[Tool:raytrace] Request received. Generating PNG gradient. Verbose: ${verbose}`);
   try {
-    // Generate the image using default dimensions
-    const pngBuffer = await generateGradientPngBuffer(); 
+    // Generate the image using default dimensions, passing verbose flag
+    const pngBuffer = await generateGradientPngBuffer(undefined, undefined, verbose);
     const base64Data = pngBuffer.toString('base64');
 
     return {
@@ -111,9 +111,14 @@ server.tool(
 );
 
 // Register the new raytrace tool
+const raytraceInputSchema = z.object({
+  verbose: z.boolean().optional().default(false).describe("Log progress to stderr during generation")
+});
+
 server.tool(
   "raytrace",
   "Generates a simple gradient PNG image using the raytracer.",
+  raytraceInputSchema.shape,
   raytraceToolHandler
 );
 

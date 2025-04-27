@@ -7,12 +7,22 @@ import sharp from 'sharp';
  * @param imageHeight The height of the image in pixels.
  * @returns A Promise resolving to a Buffer containing the PNG image data.
  */
-export async function generateGradientPngBuffer(imageWidth: number = 256, imageHeight: number = 256): Promise<Buffer> {
+export async function generateGradientPngBuffer(
+    imageWidth: number = 256, 
+    imageHeight: number = 256, 
+    verbose: boolean = false
+): Promise<Buffer> {
     // Create a flat buffer for raw pixel data (RGB)
     const pixelData = Buffer.alloc(imageWidth * imageHeight * 3);
     let offset = 0;
+    const logInterval = Math.max(1, Math.floor(imageHeight / 10)); // Log roughly 10 times + first/last
 
+    if (verbose) console.error(`Generating ${imageWidth}x${imageHeight} image...`);
     for (let j = imageHeight - 1; j >= 0; --j) {
+        // Log progress every logInterval scanlines or for the last line (j=0)
+        if (verbose && (j % logInterval === 0 || j === 0)) {
+            console.error(`Scanlines remaining: ${j}`);
+        }
         for (let i = 0; i < imageWidth; ++i) {
             const r = i / (imageWidth - 1);  // Varies from 0.0 to 1.0 left-to-right
             const g = j / (imageHeight - 1); // Varies from 1.0 to 0.0 top-to-bottom
@@ -27,6 +37,7 @@ export async function generateGradientPngBuffer(imageWidth: number = 256, imageH
             pixelData[offset++] = ib;
         }
     }
+    if (verbose) console.error("Done generating image.");
 
     // Use sharp to create a PNG buffer from the raw pixel data
     const pngBuffer = await sharp(pixelData, {
