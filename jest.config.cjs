@@ -19,8 +19,12 @@ module.exports = {
     ],
   },
   // Specify test files pattern
-  testMatch: [
-    '**/tests/**/*.test.ts'
+  // testMatch: [
+  //   '**/tests/**/*.test.ts'
+  // ],
+  roots: [
+    // "<rootDir>/src", // Remove src from roots
+    "<rootDir>/tests"
   ],
   // Optional: If you want coverage reports
   // collectCoverage: true,

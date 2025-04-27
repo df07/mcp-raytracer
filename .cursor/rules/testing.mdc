@@ -22,8 +22,11 @@ actions:
       ## File Naming and Location
 
       -   Test files should be located in a `__tests__` directory within the module/component they are testing, or in a top-level `tests` directory for broader integration/e2e tests.
+      -   **All test files MUST be located within the top-level `/tests` directory.**
+      -   Maintain a directory structure within `/tests` that mirrors the `src` directory structure where appropriate (e.g., `tests/utils/math.test.ts` for `src/utils/math.ts`).
       -   Test files should be named using the pattern `[filename].test.ts` or `[filename].spec.ts`. Prefer `*.test.ts`.
           -   Example: For `src/utils/math.ts`, the test file would be `src/utils/__tests__/math.test.ts`.
+          -   Example: For `src/vec3.ts`, the test file should be `tests/vec3.test.ts`.
 
       ## Writing Tests
 
@@ -72,6 +75,7 @@ actions:
     metadata:
       priority: medium
 </rule>
+
 
 
 

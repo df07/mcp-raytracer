@@ -1,7 +1,32 @@
 import sharp from 'sharp';
+import { vec3, color } from './vec3.js'; // Import vec3 and color
 
 /**
- * Generates a PNG image buffer representing a color gradient.
+ * Writes the RGB components of a color vector to a buffer.
+ *
+ * @param pixelData The buffer to write to.
+ * @param offset The starting offset in the buffer.
+ * @param pixelColor The color vector (components expected in [0, 1]).
+ * @returns The new offset after writing the color.
+ */
+function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: color): number {
+    let r = pixelColor.x();
+    let g = pixelColor.y();
+    let b = pixelColor.z();
+
+    // Scale color components to [0, 255]
+    const ir = Math.max(0, Math.min(255, Math.floor(255.999 * r)));
+    const ig = Math.max(0, Math.min(255, Math.floor(255.999 * g)));
+    const ib = Math.max(0, Math.min(255, Math.floor(255.999 * b)));
+
+    pixelData[offset++] = ir;
+    pixelData[offset++] = ig;
+    pixelData[offset++] = ib;
+    return offset;
+}
+
+/**
+ * Generates a PNG image buffer representing a color gradient using vec3 for color.
  *
  * @param imageWidth The width of the image in pixels.
  * @param imageHeight The height of the image in pixels.
@@ -28,13 +53,9 @@ export async function generateGradientPngBuffer(
             const g = j / (imageHeight - 1); // Varies from 1.0 to 0.0 top-to-bottom
             const b = 0.25;                  // Fixed blue component
 
-            const ir = Math.floor(255.999 * r);
-            const ig = Math.floor(255.999 * g);
-            const ib = Math.floor(255.999 * b);
+            const pixelColor = new vec3(r, g, b); // Use vec3 constructor
 
-            pixelData[offset++] = ir;
-            pixelData[offset++] = ig;
-            pixelData[offset++] = ib;
+            offset = writeColorToBuffer(pixelData, offset, pixelColor); // Write color using helper
         }
     }
     if (verbose) console.error("Done generating image.");
