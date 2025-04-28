@@ -1,10 +1,10 @@
 import sharp from 'sharp';
-import { vec3, color, point3, unitVector } from './vec3.js'; // Added point3, unitVector
-import { ray } from './ray.js'; // Added ray
-import { Sphere } from './sphere.js'; // Chapter 5: Use Sphere class
+import { Vec3, Color, Point3 } from './vec3.js'; // Updated imports and names
+import { Ray } from './ray.js'; // Updated import
+import { Sphere } from './sphere.js';
 import { HitRecord, Hittable } from './hittable.js';
-import { HittableList } from './hittable_list.js';
-/* Specs: vec3.md, ray.md, sphere.ts, raytracer.md */ // Updated spec references
+import { HittableList } from './hittableList.js'; // Updated path to camelCase
+/* Specs: vec3.md, ray.md, sphere.md, hittable.md, raytracer.md */
 
 /**
  * Writes the RGB components of a color vector to a buffer.
@@ -14,16 +14,14 @@ import { HittableList } from './hittable_list.js';
  * @param pixelColor The color vector (components expected in [0, 1]).
  * @returns The new offset after writing the color.
  */
-function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: color): number {
-    let r = pixelColor.x();
-    let g = pixelColor.y();
-    let b = pixelColor.z();
-
-    // Scale color components to [0, 255]
+function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: Color): number {
+    // Use accessors
+    let r = pixelColor.x;
+    let g = pixelColor.y;
+    let b = pixelColor.z;
     const ir = Math.max(0, Math.min(255, Math.floor(255.999 * r)));
     const ig = Math.max(0, Math.min(255, Math.floor(255.999 * g)));
     const ib = Math.max(0, Math.min(255, Math.floor(255.999 * b)));
-
     pixelData[offset++] = ir;
     pixelData[offset++] = ig;
     pixelData[offset++] = ib;
@@ -37,20 +35,21 @@ function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: color
  * @param world The HittableList representing the scene.
  * @returns The calculated color.
  */
-function rayColor(r: ray, world: Hittable): color {
-    const rec = new HitRecord();
+function rayColor(r: Ray, world: Hittable): Color {
+    const hitRec = world.hit(r, 0.001, Infinity);
 
-    // Check for hits against the world object
-    if (world.hit(r, 0.001, Infinity, rec)) {
-        const normalColor = rec.normal.add(new vec3(1, 1, 1)).multiply(0.5);
+    if (hitRec !== null) {
+        // Use accessor hitRec.normal
+        const normalColor = hitRec.normal.add(new Vec3(1, 1, 1)).multiply(0.5);
         return normalColor;
     }
 
-    // If no hit, return the background gradient
-    const unitDirection = r.direction().unitVector();
-    const gradientT = 0.5 * (unitDirection.y() + 1.0);
-    const white = new vec3(1.0, 1.0, 1.0);
-    const lightBlue = new vec3(0.5, 0.7, 1.0);
+    // Use accessor r.direction
+    const unitDirection = r.direction.unitVector();
+    // Use accessor unitDirection.y
+    const gradientT = 0.5 * (unitDirection.y + 1.0);
+    const white = new Vec3(1.0, 1.0, 1.0);
+    const lightBlue = new Vec3(0.5, 0.7, 1.0);
     return white.multiply(1.0 - gradientT).add(lightBlue.multiply(gradientT));
 }
 
@@ -71,30 +70,30 @@ export async function generateImageBuffer(
     // World Setup (Chapter 6)
     const world = new HittableList();
     // Add two spheres to the world
-    world.add(new Sphere(new vec3(0, 0, -1), 0.5)); // Sphere in front - Use vec3 constructor
-    world.add(new Sphere(new vec3(0, -100.5, -1), 100)); // Large sphere below - Use vec3 constructor
+    world.add(new Sphere(new Vec3(0, 0, -1), 0.5)); // Sphere in front - Use vec3 constructor
+    world.add(new Sphere(new Vec3(0, -100.5, -1), 100)); // Large sphere below - Use vec3 constructor
 
     // Camera Setup
     const focalLength = 1.0;
     const viewportHeight = 2.0;
     const viewportWidth = viewportHeight * (imageWidth / imageHeight); // Use actual ratio
-    const cameraCenter = new vec3(0, 0, 0); // Use vec3 constructor
+    const cameraCenter = new Vec3(0, 0, 0); // Use vec3 constructor
 
     // Calculate viewport vectors
-    const viewport_u = new vec3(viewportWidth, 0, 0);
-    const viewport_v = new vec3(0, -viewportHeight, 0); // Viewport goes down from top-left
+    const viewportU = new Vec3(viewportWidth, 0, 0);
+    const viewportV = new Vec3(0, -viewportHeight, 0); // Viewport goes down from top-left
 
     // Calculate pixel delta vectors
-    const pixelDelta_u = viewport_u.divide(imageWidth);
-    const pixelDelta_v = viewport_v.divide(imageHeight);
+    const pixelDeltaU = viewportU.divide(imageWidth);
+    const pixelDeltaV = viewportV.divide(imageHeight);
 
     // Calculate the location of the upper-left pixel center
     // Start at camera, move to viewport plane, move to top-left corner, move to pixel center
     const viewportUpperLeft = cameraCenter
-        .subtract(new vec3(0, 0, focalLength)) // Move to viewport plane
-        .subtract(viewport_u.divide(2))      // Move to left edge
-        .subtract(viewport_v.divide(2));     // Move to top edge (remember v points down)
-    const pixel00_loc = viewportUpperLeft.add(pixelDelta_u.add(pixelDelta_v).multiply(0.5));
+        .subtract(new Vec3(0, 0, focalLength)) // Move to viewport plane
+        .subtract(viewportU.divide(2))      // Move to left edge
+        .subtract(viewportV.divide(2));     // Move to top edge (remember v points down)
+    const pixel00Loc = viewportUpperLeft.add(pixelDeltaU.add(pixelDeltaV).multiply(0.5));
 
     // Rendering
     const pixelData = Buffer.alloc(imageWidth * imageHeight * 3);
@@ -104,18 +103,18 @@ export async function generateImageBuffer(
     if (verbose) console.error(`Generating ${imageWidth}x${imageHeight} image...`);
 
     // Iterate pixels Left-to-Right, Top-to-Bottom (j=row, i=column)
-    for (let j = 0; j < imageHeight; ++j) { 
-        if (verbose && (j % logInterval === 0)) {
+    for (let row = 0; row < imageHeight; ++row) { 
+        if (verbose && (row % logInterval === 0)) {
             // Log scanlines completed (more intuitive than remaining)
-            console.error(`Scanlines completed: ${j} / ${imageHeight}`); 
+            console.error(`Scanlines completed: ${row} / ${imageHeight}`); 
         }
-        for (let i = 0; i < imageWidth; ++i) {
-            const pixelCenter = pixel00_loc
-                .add(pixelDelta_u.multiply(i)) // Move right by i pixels
-                .add(pixelDelta_v.multiply(j)); // Move down by j pixels
+        for (let col = 0; col < imageWidth; ++col) {
+            const pixelCenter = pixel00Loc
+                .add(pixelDeltaU.multiply(col)) // Move right by i pixels
+                .add(pixelDeltaV.multiply(row)); // Move down by j pixels
             
             const rayDirection = pixelCenter.subtract(cameraCenter);
-            const r = new ray(cameraCenter, rayDirection);
+            const r = new Ray(cameraCenter, rayDirection);
 
             // Pass the world object to rayColor
             const pixelColor = rayColor(r, world);

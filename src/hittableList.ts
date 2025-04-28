@@ -1,7 +1,7 @@
 /* Specs: hittable.md */
 
 import { HitRecord, Hittable } from './hittable.js';
-import { ray } from './ray.js';
+import { Ray } from './ray.js';
 
 /**
  * Represents a list of Hittable objects.
@@ -9,7 +9,7 @@ import { ray } from './ray.js';
  * against all objects in the list.
  */
 export class HittableList implements Hittable {
-  objects: Hittable[] = [];
+  private objects: Hittable[] = [];
 
   /**
    * Creates an empty HittableList or initializes it with a single object.
@@ -38,27 +38,25 @@ export class HittableList implements Hittable {
 
   /**
    * Checks if the ray hits any object in the list within the given interval.
-   * Updates the HitRecord with the closest hit found.
+   * Finds the closest hit point across all objects.
    * @param r The incident ray.
    * @param tMin The minimum acceptable parameter value.
    * @param tMax The maximum acceptable parameter value.
-   * @param rec The HitRecord to update with the closest hit details.
-   * @returns True if any object in the list was hit, false otherwise.
+   * @returns The HitRecord of the closest hit found within the interval, or null if no hit.
    */
-  public hit(r: ray, tMin: number, tMax: number, rec: HitRecord): boolean {
-    let hitAnything = false;
+  public hit(r: Ray, tMin: number, tMax: number): HitRecord | null {
+    let closestHitRecord: HitRecord | null = null;
     let closestSoFar = tMax;
-    const tempRec = new HitRecord(); // Use a temporary record for intermediate hits
 
     for (const object of this.objects) {
-      if (object.hit(r, tMin, closestSoFar, tempRec)) {
-        hitAnything = true;
-        closestSoFar = tempRec.t;
-        // Copy the data from the temporary record to the main record
-        rec.copyFrom(tempRec);
+      const hitResult = object.hit(r, tMin, closestSoFar);
+      
+      if (hitResult !== null) {
+        closestSoFar = hitResult.t;
+        closestHitRecord = hitResult;
       }
     }
 
-    return hitAnything;
+    return closestHitRecord;
   }
 } 

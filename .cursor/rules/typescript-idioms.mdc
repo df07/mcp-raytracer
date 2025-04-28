@@ -1,0 +1,45 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# TypeScript Idioms and Style Guide
+
+<rule>
+name: typescript_idioms
+description: Guidelines for writing idiomatic TypeScript code.
+filters:
+  # Target TypeScript files
+  - type: file_extension
+    pattern: "\\.ts$"
+actions:
+  - type: suggest
+    message: |
+      TypeScript Idioms Checklist:
+
+      1.  **Naming Conventions:**
+          *   Use `PascalCase` for classes, interfaces, type aliases, and enums (e.g., `MyClass`, `Point3`, `Color`).
+          *   Use `camelCase` for variables, functions, methods, and properties (e.g., `myVariable`, `calculateValue`, `hitRecord`).
+
+      2.  **Accessors vs. Methods:**
+          *   Prefer `get` accessors over `getX()` style methods for simple property retrieval (e.g., `get origin(): Point3` instead of `origin(): Point3`).
+
+      3.  **Visibility & Encapsulation:**
+          *   Mark internal implementation details as `private` (e.g., `private elements: number[]`).
+          *   Use `readonly` for properties that should not change after object construction (e.g., `readonly center: Point3`).
+          *   Default visibility is `public`. Explicitly use `public` only if needed for clarity.
+
+      4.  **Method Signatures (Avoid Out Parameters):**
+          *   Avoid functions/methods that mutate arguments passed as "out parameters" (like the old `hit(..., rec: HitRecord)`).
+          *   Prefer returning new data structures or `null`/`undefined` to indicate success/failure or absence of data (e.g., `hit(...): HitRecord | null`).
+          *   *Exception:* If performance is critical (e.g., inner loops, frequent allocations), mutating a passed-in object *can* be a deliberate optimization, but document it clearly.
+
+      5.  **Immutability:**
+          *   Favor methods that return *new* instances rather than modifying the object itself, especially for data structures like vectors or points (e.g., `vec3.add()` returns a new `Vec3`).
+
+      6.  **Type Aliases:**
+          *   Use type aliases (`type Point3 = Vec3`) to improve semantic clarity when a base type (like `Vec3`) serves multiple roles (point, color, vector).
+    metadata:
+      priority: medium
+</rule>
+
