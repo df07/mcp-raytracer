@@ -58,7 +58,32 @@ export class vec3 {
         return Math.sqrt(this.lengthSquared());
     }
 
-    // Static utility functions will be added here or exported separately...
+    /**
+     * Computes the dot product of this vector with another vector.
+     * @param v The other vector.
+     * @returns The dot product.
+     */
+    dot(v: vec3): number {
+        return dot(this, v); // Calls the standalone dot function
+    }
+
+    /**
+     * Computes the cross product of this vector with another vector.
+     * @param v The other vector.
+     * @returns The cross product vector.
+     */
+    cross(v: vec3): vec3 {
+        return cross(this, v); // Calls the standalone cross function
+    }
+
+    /**
+     * Returns a unit vector in the same direction as this vector.
+     */
+    unitVector(): vec3 {
+        return unitVector(this); // Calls the standalone unitVector function
+    }
+
+    // No need for copyFrom if direct assignment/construction is sufficient
 }
 
 // Type aliases

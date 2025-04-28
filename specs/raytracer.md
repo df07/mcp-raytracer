@@ -2,14 +2,14 @@
 
 **Reference:** ["Ray Tracing in One Weekend"](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
 
-**Related Specs:** `specs/vec3.md`, `specs/ray.md`
+**Related Specs:** `specs/vec3.md`, `specs/ray.md`, `specs/hittable.md`, `specs/sphere.md`
 
 **Goal:** Implement the MCP tool (`raytrace`) to generate an image based on the principles outlined in "Ray Tracing in One Weekend".
 **Motivation:** Establish the basic framework for the raytracer, integrate it with the MCP server for visual output, and implement progress reporting.
 
 ## Core Raytracing Logic (`src/raytracer.ts`)
 
-**Dependencies:** Utilizes `vec3`, `point3`, `color` types/classes from `src/vec3.ts` and the `ray` class from `src/ray.ts`.
+**Dependencies:** Utilizes `vec3`, `point3`, `color` types/classes from `src/vec3.ts`, the `ray` class from `src/ray.ts`, `Hittable`, `HitRecord`, `HittableList` from `src/hittable.ts`, and `Sphere` from `src/sphere.ts`.
 
 ### 1. Image Generation (`generateImageBuffer`)
 
@@ -27,21 +27,29 @@
     *   For each pixel, calculate the 3D location of the pixel's center in the viewport.
     *   Calculate the direction vector from the `cameraCenter` to the pixel's center.
     *   Construct a `ray` originating from the `cameraCenter` with the calculated direction.
-    *   Determine the color for the current pixel by calling the `rayColor` function with the constructed `ray`.
+    *   Determine the color for the current pixel by calling the `rayColor` function with the constructed `ray` and the scene's `world` object.
     *   Write the determined `pixelColor` to the output image buffer using the `writeColorToBuffer` helper.
 
 ### 2. Ray Color Calculation (`rayColor`)
 
-*   **Signature:** `function rayColor(r: ray): color`
+*   **Signature:** `function rayColor(r: ray, world: Hittable): color`
 *   **Purpose:** Determines the color contribution for a given ray cast into the scene.
+*   **Object Intersection:**
+    *   Check if the ray `r` hits any object in the `world` (a `HittableList`) within a valid range (e.g., `t_min = 0`, `t_max = infinity`).
+    *   Use the `hit` method of the `world` object (defined in `specs/hittable.md`).
+    *   If the ray hits an object:
+        *   Get the `HitRecord` containing the intersection details (point `p`, normal vector `N`, and parameter `t`).
+        *   Calculate a color based on the surface normal. A simple mapping could be `0.5 * (N + vec3(1, 1, 1))`, which maps the normal's components (typically in [-1, 1]) to RGB colors ([0, 1]).
+    *   If the ray does *not* hit any object:
+        *   Return the background gradient color (linear blend from white to light blue based on the ray's y-direction) as previously defined.
 *   **Background color** 
-    *   If the ray doesn't intersect any objects (always true for now), return a background color.
-    *   The background color should be a vertical gradient, blending linearly from white (`1,1,1`) at the top to a light blue (`0.5, 0.7, 1.0`) at the bottom, based on the y-component of the ray's normalized direction vector.
-*   **Sphere intersection:**
-    *   Define a simple scene containing a single sphere (e.g., centered at `0,0,-1` with radius `0.5`).
-    *   For a given ray, determine if it intersects the sphere using a `hitSphere` function (see below).
-    *   If the ray hits the sphere, return a fixed color (e.g., red: `1,0,0`).
-    *   If the ray does *not* hit the sphere, return the background gradient color as described previously.
+    *   ~~If the ray doesn't intersect any objects (always true for now), return a background color.~~
+    *   ~~The background color should be a vertical gradient, blending linearly from white (`1,1,1`) at the top to a light blue (`0.5, 0.7, 1.0`) at the bottom, based on the y-component of the ray's normalized direction vector.~~
+    *   ~~Sphere intersection:~~
+    *   ~~Define a simple scene containing a single sphere (e.g., centered at `0,0,-1` with radius `0.5`).~~
+    *   ~~For a given ray, determine if it intersects the sphere using a `hitSphere` function (see below).~~
+    *   ~~If the ray hits the sphere, return a fixed color (e.g., red: `1,0,0`).~~
+    *   ~~If the ray does *not* hit the sphere, return the background gradient color as described previously.~~
 
 ### 3. Color Writing Helper (`writeColorToBuffer`)
 
@@ -52,19 +60,6 @@
     *   Clamp the scaled values to ensure they fall within [0, 255].
     *   Write the resulting R, G, B byte values into the provided `pixelData` buffer at the specified `offset`.
     *   Return the next buffer offset.
-
-## Sphere Definition (`src/sphere.ts`)
-
-*   **Purpose:** Defines a sphere object and a method to check for ray intersection.
-*   **`Sphere` Class:**
-    *   Represents a sphere in 3D space.
-    *   **Constructor:** Takes `center: point3` and `radius: number`.
-    *   **Properties:** `center: point3`, `radius: number`.
-    *   **`hit` Method:**
-        *   **Signature:** `hit(r: ray): number`
-        *   **Purpose:** Checks if the given ray `r` intersects the sphere.
-        *   **Calculation:** Uses the quadratic formula derived from the ray-sphere intersection equation: `(P(t) - C) . (P(t) - C) = r^2`, where `P(t) = A + t*b` is the ray, `C` is the sphere center (`this.center`), and `r` is the radius (`this.radius`).
-        *   **Return Value:** Returns the `t` value of the *closest* intersection point if a hit occurs (discriminant >= 0 and `t > 0`), otherwise returns a value indicating no hit (e.g., -1.0).
 
 ## MCP Integration & Setup
 
@@ -97,9 +92,14 @@
 
 **Future Considerations:**
 
-*   Implementing surface normals and shading (Chapter 6 - introducing `Hittable` and `HitRecord`).
 *   Adding more hittable objects and managing a list of them (Chapter 7).
-*   Adding spheres and other geometric primitives.
+*   Add other geometric primitives (implementing `Hittable` interface).
+*   Refactoring camera logic into its own class/module.
+*   Adapting the output format for better display via MCP.
+*   Adding parameters to the `raytrace` tool (e.g., image dimensions, scene selection).
+*   Implementing subsequent chapters of the raytracing guide (e.g., materials, diffuse reflection).
+
+*   Implementing surface normals and shading (Chapter 6 - introducing `Hittable` and `HitRecord`).
 *   Refactoring camera logic into its own class/module.
 *   Adapting the output format for better display via MCP.
 *   Adding parameters to the `raytrace` tool (e.g., image dimensions, scene selection).

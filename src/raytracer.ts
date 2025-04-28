@@ -2,6 +2,8 @@ import sharp from 'sharp';
 import { vec3, color, point3, unitVector } from './vec3.js'; // Added point3, unitVector
 import { ray } from './ray.js'; // Added ray
 import { Sphere } from './sphere.js'; // Chapter 5: Use Sphere class
+import { HitRecord, Hittable } from './hittable.js';
+import { HittableList } from './hittable_list.js';
 /* Specs: vec3.md, ray.md, sphere.ts, raytracer.md */ // Updated spec references
 
 /**
@@ -29,26 +31,24 @@ function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: color
 }
 
 /**
- * Determines the color seen along a given ray.
- * For now, returns a background gradient.
+ * Determines the color seen along a given ray by checking intersections with the world.
  *
  * @param r The ray being cast.
+ * @param world The HittableList representing the scene.
  * @returns The calculated color.
  */
-function rayColor(r: ray): color {
-    // Chapter 5: Define a sphere and check for intersection
-    const testSphere = new Sphere(new vec3(0, 0, -1), 0.5);
+function rayColor(r: ray, world: Hittable): color {
+    const rec = new HitRecord();
 
-    const t = testSphere.hit(r); // Call hit method on the instance
-    if (t > 0.0) {
-        // Ray hit the sphere, return red
-        return new vec3(1, 0, 0);
+    // Check for hits against the world object
+    if (world.hit(r, 0.001, Infinity, rec)) {
+        const normalColor = rec.normal.add(new vec3(1, 1, 1)).multiply(0.5);
+        return normalColor;
     }
 
     // If no hit, return the background gradient
-    const unitDirection = unitVector(r.direction());
-    const gradientT = 0.5 * (unitDirection.y() + 1.0); // Scale y-component to [0, 1]
-    // Linear blend (lerp): blendedValue = (1 - t) * startValue + t * endValue
+    const unitDirection = r.direction().unitVector();
+    const gradientT = 0.5 * (unitDirection.y() + 1.0);
     const white = new vec3(1.0, 1.0, 1.0);
     const lightBlue = new vec3(0.5, 0.7, 1.0);
     return white.multiply(1.0 - gradientT).add(lightBlue.multiply(gradientT));
@@ -68,11 +68,17 @@ export async function generateImageBuffer(
     const imageWidth = 400;
     const imageHeight = Math.max(1, Math.floor(imageWidth / aspectRatio));
 
+    // World Setup (Chapter 6)
+    const world = new HittableList();
+    // Add two spheres to the world
+    world.add(new Sphere(new vec3(0, 0, -1), 0.5)); // Sphere in front - Use vec3 constructor
+    world.add(new Sphere(new vec3(0, -100.5, -1), 100)); // Large sphere below - Use vec3 constructor
+
     // Camera Setup
     const focalLength = 1.0;
     const viewportHeight = 2.0;
     const viewportWidth = viewportHeight * (imageWidth / imageHeight); // Use actual ratio
-    const cameraCenter = new vec3(0, 0, 0);
+    const cameraCenter = new vec3(0, 0, 0); // Use vec3 constructor
 
     // Calculate viewport vectors
     const viewport_u = new vec3(viewportWidth, 0, 0);
@@ -111,7 +117,8 @@ export async function generateImageBuffer(
             const rayDirection = pixelCenter.subtract(cameraCenter);
             const r = new ray(cameraCenter, rayDirection);
 
-            const pixelColor = rayColor(r);
+            // Pass the world object to rayColor
+            const pixelColor = rayColor(r, world);
             offset = writeColorToBuffer(pixelData, offset, pixelColor);
         }
     }
