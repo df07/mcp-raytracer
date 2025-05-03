@@ -71,7 +71,7 @@ export const raytraceToolHandler = async ({ verbose = false }: { verbose?: boole
   console.error(`[Tool:raytrace] Request received. Generating PNG via ray tracing. Verbose: ${verbose}`);
   try {
     // Generate the image using the refactored function
-    const pngBuffer = await generateImageBuffer(verbose);
+    const pngBuffer = await generateImageBuffer(400, verbose);
     const base64Data = pngBuffer.toString('base64');
 
     return {
