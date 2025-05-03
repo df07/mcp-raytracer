@@ -10,12 +10,10 @@ name: mcp_server_logging
 description: Guidelines for logging within the MCP server.
 actions:
   - type: suggest
+    priority: critical
     message: |
       MCP SERVER LOGGING:
       1. **Use `stderr` for Logs:** When using `StdioServerTransport`, all informational or debug logging within tool handlers or server logic MUST be written to `stderr` (e.g., using `console.error`).
       2. **Avoid `stdout`:** Writing to `stdout` (e.g., using `console.log`) will interfere with the MCP JSON-RPC communication over stdio and break the connection.
-    metadata:
-      priority: critical
-      area: mcp-server
 </rule>
 

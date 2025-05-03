@@ -12,18 +12,17 @@ filters:
   # Target Markdown files
   - type: file_extension
     pattern: "\\.md$"
-actions:
-  # Reject .md files outside the specs/ directory
+actions:  # Reject .md files outside the specs/ directory
   - type: reject
+    priority: high
     conditions:
       # Check if the file path does NOT start with specs/
       - pattern: "^(?!specs\\/).*\\.md$"
         message: "Specification files (.md) must be placed inside the 'specs/' directory."
-    metadata:
-      priority: high
 
   # Suggest formatting for .md files inside the specs/ directory
   - type: suggest
+    priority: medium
     conditions:
       # Check if the file path DOES start with specs/
       - pattern: "^specs\\/.*\\.md$"
@@ -33,8 +32,6 @@ actions:
           2.  Prefer bullet points and lists over long prose.
           3.  Include concrete examples (e.g., code snippets, API request/response) where appropriate.
           4.  Write like a Product Manager: Focus on *what* needs to be built and *why* (functional requirements, goals, motivation), targeting the spec towards the implementing engineer. Leave *how* (specific algorithms, formulas, implementation details) to the engineer, unless critical to the requirement.
-    metadata:
-      priority: medium
 </rule>
 
 <rule>
@@ -44,9 +41,9 @@ filters:
   # Target TypeScript files
   - type: file_extension
     pattern: "\\.ts$"
-actions:
-  # Suggest adding a spec reference comment if one isn't found
+actions:  # Suggest adding a spec reference comment if one isn't found
   - type: suggest
+    priority: low
     conditions:
       # Check if the file content does NOT contain the spec comment pattern
       # Looks for "/* Specs:" potentially followed by anything until "*/"
@@ -57,14 +54,11 @@ actions:
     message: |
       Consider adding a reference to the relevant spec file(s) near the top of this TypeScript file.
       The spec filename should be relative to the 'specs/' directory.
-      Example format:
-      ```typescript
+      Example format:      ```typescript
       /* Specs: my-feature.md, related-component.md */
 
       // ... rest of the code
       ```
-    metadata:
-      priority: low
 </rule>
 
 

@@ -10,6 +10,7 @@ name: testing_guidelines
 description: Best practices and conventions for writing tests using Jest.
 actions:
   - type: suggest
+    priority: medium
     message: |
       # Testing Rules
 
@@ -72,8 +73,6 @@ actions:
       -   Write tests alongside new features or bug fixes.
       -   Ensure all critical functionality and complex logic is covered by tests.
       -   Add tests for regressions when fixing bugs.
-    metadata:
-      priority: medium
 </rule>
 
 

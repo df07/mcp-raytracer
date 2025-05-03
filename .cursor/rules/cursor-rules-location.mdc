@@ -23,11 +23,13 @@ filters:
 
 actions:
   - type: reject
+    priority: high
     conditions:
       - pattern: "^(?!\\.\\/\\.cursor\\/rules\\/.*\\.mdc$)"
         message: "Cursor rule files (.mdc) must be placed in the .cursor/rules directory"
 
   - type: suggest
+    priority: medium
     message: |
       When creating Cursor rules:
 
