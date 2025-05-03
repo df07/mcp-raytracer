@@ -38,7 +38,7 @@ export const greetToolHandler = async ({ name }: { name: string }): Promise<any>
 export const showImageToolHandler = async (/* No args expected */): Promise<any> => { 
   console.error(`[Tool:showImage] Request received. Reading and returning image file.`);
   try {
-    const imagePath = path.join(projectRoot, 'assets', 'red-circle.png');
+    const imagePath = path.resolve(projectRoot, 'assets', 'red-circle.png');
     console.error(`[Tool:showImage] Reading image from: ${imagePath}`);
     const imageBuffer = await fs.readFile(imagePath);
     const base64Data = imageBuffer.toString('base64');

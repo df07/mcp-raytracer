@@ -5,7 +5,7 @@
   "main": "dist/src/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && xcopy assets dist\\assets /E /I",
     "start": "node dist/src/index.js",
     "start:server": "node dist/src/index.js",
     "dev": "tsc -w & node --watch dist/src/index.js",
