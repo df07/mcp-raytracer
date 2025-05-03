@@ -1,10 +1,10 @@
 import sharp from 'sharp';
-import { Vec3, Color, Point3 } from './vec3.js'; // Updated imports and names
-import { Ray } from './ray.js'; // Updated import
+import { Vec3, Color, Point3 } from './vec3.js';
+import { Ray } from './ray.js';
 import { Sphere } from './sphere.js';
-import { HitRecord, Hittable } from './hittable.js';
-import { HittableList } from './hittableList.js'; // Updated path to camelCase
-/* Specs: vec3.md, ray.md, sphere.md, hittable.md, raytracer.md */
+import { Hittable } from './hittable.js';
+import { HittableList } from './hittableList.js';
+import { Interval } from './interval.js';
 
 /**
  * Writes the RGB components of a color vector to a buffer.
@@ -29,113 +29,132 @@ function writeColorToBuffer(pixelData: Buffer, offset: number, pixelColor: Color
 }
 
 /**
- * Determines the color seen along a given ray by checking intersections with the world.
- *
- * @param r The ray being cast.
- * @param world The HittableList representing the scene.
- * @returns The calculated color.
+ * Calculates the color of a ray.
+ * If the ray hits an object, it computes the color based on the surface normal.
+ * Otherwise, it returns a background gradient color.
+ * @param r The ray.
+ * @param world The hittable world.
+ * @returns The color of the ray.
  */
-function rayColor(r: Ray, world: Hittable): Color {
-    const hitRec = world.hit(r, 0.001, Infinity);
+export function rayColor(r: Ray, world: Hittable): Color {
+  // Check if the ray hits any object in the world
+  const rec = world.hit(r, new Interval(0, Infinity));
 
-    if (hitRec !== null) {
-        // Use accessor hitRec.normal
-        const normalColor = hitRec.normal.add(new Vec3(1, 1, 1)).multiply(0.5);
-        return normalColor;
-    }
+  if (rec !== null) {
+    // If the ray hits an object, compute color based on the normal
+    // Map normal components to RGB values (ranging from -1 to 1, shifted to 0 to 1)
+    return rec.normal.add(new Vec3(1, 1, 1)).multiply(0.5);
+  }
 
-    // Use accessor r.direction
-    const unitDirection = r.direction.unitVector();
-    // Use accessor unitDirection.y
-    const gradientT = 0.5 * (unitDirection.y + 1.0);
-    const white = new Vec3(1.0, 1.0, 1.0);
-    const lightBlue = new Vec3(0.5, 0.7, 1.0);
-    return white.multiply(1.0 - gradientT).add(lightBlue.multiply(gradientT));
+  // If the ray doesn't hit anything, compute background gradient color
+  const unitDirection = r.direction.unitVector();
+  const a = 0.5 * (unitDirection.y + 1.0);
+  // Linear interpolation (lerp) between white and blue based on y-coordinate
+  return new Vec3(1.0, 1.0, 1.0).multiply(1.0 - a).add(new Vec3(0.5, 0.7, 1.0).multiply(a));
 }
 
 /**
- * Generates a PNG image buffer by tracing rays through a virtual camera.
+ * Core rendering logic: sets up camera, iterates through pixels, generates rays,
+ * calculates color, and writes the color to the pixel data buffer.
+ * Optionally logs progress to stderr.
  *
- * @param verbose Log progress to stderr if true.
- * @returns A Promise resolving to a Buffer containing the PNG image data.
+ * @param imageWidth Width of the image.
+ * @param imageHeight Height of the image.
+ * @param world The scene objects.
+ * @param pixelData The buffer to write pixel data into.
+ * @param verbose Whether to log progress to stderr.
  */
-export async function generateImageBuffer(
-    verbose: boolean = false
-): Promise<Buffer> {
-    // Image Dimensions
-    const aspectRatio = 16.0 / 9.0;
-    const imageWidth = 400;
-    const imageHeight = Math.max(1, Math.floor(imageWidth / aspectRatio));
-
-    // World Setup (Chapter 6)
-    const world = new HittableList();
-    // Add two spheres to the world
-    world.add(new Sphere(new Vec3(0, 0, -1), 0.5)); // Sphere in front - Use vec3 constructor
-    world.add(new Sphere(new Vec3(0, -100.5, -1), 100)); // Large sphere below - Use vec3 constructor
-
-    // Camera Setup
+function renderScene(
+    imageWidth: number,
+    imageHeight: number,
+    world: Hittable,
+    pixelData: Buffer,
+    verbose: boolean
+): void {
+    let offset = 0;
+    // Camera setup
     const focalLength = 1.0;
     const viewportHeight = 2.0;
-    const viewportWidth = viewportHeight * (imageWidth / imageHeight); // Use actual ratio
-    const cameraCenter = new Vec3(0, 0, 0); // Use vec3 constructor
+    const viewportWidth = viewportHeight * (imageWidth / imageHeight);
+    const cameraCenter: Point3 = new Vec3(0, 0, 0);
 
-    // Calculate viewport vectors
     const viewportU = new Vec3(viewportWidth, 0, 0);
-    const viewportV = new Vec3(0, -viewportHeight, 0); // Viewport goes down from top-left
+    const viewportV = new Vec3(0, -viewportHeight, 0); // Y points down
 
-    // Calculate pixel delta vectors
     const pixelDeltaU = viewportU.divide(imageWidth);
     const pixelDeltaV = viewportV.divide(imageHeight);
 
-    // Calculate the location of the upper-left pixel center
-    // Start at camera, move to viewport plane, move to top-left corner, move to pixel center
     const viewportUpperLeft = cameraCenter
-        .subtract(new Vec3(0, 0, focalLength)) // Move to viewport plane
-        .subtract(viewportU.divide(2))      // Move to left edge
-        .subtract(viewportV.divide(2));     // Move to top edge (remember v points down)
+        .subtract(new Vec3(0, 0, focalLength))
+        .subtract(viewportU.divide(2))
+        .subtract(viewportV.divide(2));
     const pixel00Loc = viewportUpperLeft.add(pixelDeltaU.add(pixelDeltaV).multiply(0.5));
 
-    // Rendering
-    const pixelData = Buffer.alloc(imageWidth * imageHeight * 3);
-    let offset = 0;
-    const logInterval = Math.max(1, Math.floor(imageHeight / 10));
-
-    if (verbose) console.error(`Generating ${imageWidth}x${imageHeight} image...`);
-
-    // Iterate pixels Left-to-Right, Top-to-Bottom (j=row, i=column)
-    for (let row = 0; row < imageHeight; ++row) { 
-        if (verbose && (row % logInterval === 0)) {
-            // Log scanlines completed (more intuitive than remaining)
-            console.error(`Scanlines completed: ${row} / ${imageHeight}`); 
+    // Render loop
+    for (let j = 0; j < imageHeight; ++j) {
+        // Log progress if verbose
+        if (verbose && j % 10 === 0) {
+            process.stderr.write(`\rScanlines remaining: ${imageHeight - j} `);
         }
-        for (let col = 0; col < imageWidth; ++col) {
+        for (let i = 0; i < imageWidth; ++i) {
             const pixelCenter = pixel00Loc
-                .add(pixelDeltaU.multiply(col)) // Move right by i pixels
-                .add(pixelDeltaV.multiply(row)); // Move down by j pixels
-            
+                .add(pixelDeltaU.multiply(i))
+                .add(pixelDeltaV.multiply(j));
             const rayDirection = pixelCenter.subtract(cameraCenter);
             const r = new Ray(cameraCenter, rayDirection);
 
-            // Pass the world object to rayColor
             const pixelColor = rayColor(r, world);
-            offset = writeColorToBuffer(pixelData, offset, pixelColor);
+            offset = writeColorToBuffer(pixelData, offset, pixelColor); // Write color directly
         }
     }
+}
 
-    if (verbose) console.error(`Done generating image. Encoding to PNG...`);
 
-    // Use sharp to create a PNG buffer from the raw pixel data
-    const pngBuffer = await sharp(pixelData, {
+/**
+ * Generates a PNG image buffer for the raytraced scene.
+ *
+ * @param imageWidth The desired width of the image.
+ * @param verbose Log progress to stderr during generation.
+ * @returns A Promise resolving to the PNG image buffer.
+ */
+export async function generateImageBuffer(
+    imageWidth: number = 400,
+    verbose: boolean = false
+): Promise<Buffer> {
+    // Image setup
+    const aspectRatio = 16.0 / 9.0;
+    const imageHeight = Math.max(1, Math.floor(imageWidth / aspectRatio));
+    const channels = 3; // RGB
+    const pixelData = Buffer.alloc(imageWidth * imageHeight * channels);
+
+    // World setup (can be customized)
+    const world = new HittableList();
+    world.add(new Sphere(new Vec3(0, 0, -1), 0.5));
+    world.add(new Sphere(new Vec3(0, -100.5, -1), 100));
+
+    if (verbose) {
+        console.error('Starting PNG render...');
+    }
+
+    // Run the core rendering logic
+    renderScene(imageWidth, imageHeight, world, pixelData, verbose); // Pass pixelData and verbose flag
+
+    if (verbose) {
+        console.error('\nRender complete. Generating PNG...');
+    }
+
+    if (pixelData.length === 0) {
+        throw new Error('Generated pixelData buffer is empty before calling sharp.');
+    }
+
+    // Create PNG using sharp
+    return sharp(pixelData, {
         raw: {
             width: imageWidth,
             height: imageHeight,
-            channels: 3, // RGB
+            channels: channels,
         },
     })
-    .png() // Specify PNG output format
+    .png()
     .toBuffer();
-
-    if (verbose) console.error("PNG encoding complete.");
-
-    return pngBuffer;
-} 
+}

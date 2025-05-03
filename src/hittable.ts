@@ -2,7 +2,7 @@
 
 import { Ray } from './ray.js';
 import { Point3, Vec3 } from './vec3.js';
-// ... existing code ...
+import { Interval } from './interval.js'; // Added import
 
 /**
  * Stores information about a ray-object intersection.
@@ -28,7 +28,8 @@ export class HitRecord {
    * @param outwardNormal The outward surface normal at the intersection point.
    */
   public setFaceNormal(r: Ray, outwardNormal: Vec3): void {
-    this.frontFace = r.direction.dot(outwardNormal) < 0;
+    // If the dot product is non-positive, the ray hits from the outside (or tangentially).
+    this.frontFace = r.direction.dot(outwardNormal) <= 0;
     this.normal = this.frontFace ? outwardNormal : outwardNormal.negate();
   }
 }
@@ -38,11 +39,15 @@ export class HitRecord {
  */
 export interface Hittable {
   /**
-   * Determines if the ray intersects the object within the valid interval [tMin, tMax].
-   * @param r The incident ray.
-   * @param tMin The minimum acceptable parameter value for intersection.
-   * @param tMax The maximum acceptable parameter value for intersection.
-   * @returns A HitRecord object if a hit occurs within the interval, null otherwise.
+   * Determines if the ray intersects the object within the valid interval rayT.
+   *
+   * NOTE: This deviates from the "Ray Tracing in One Weekend" tutorial (which uses
+   * an out parameter for the HitRecord) to favor returning a value or null,
+   * adhering to a more common TypeScript idiom. Do not revert this change.
+   *
+   * @param r The ray to check for intersection.
+   * @param rayT The interval of valid t values along the ray.
+   * @returns A HitRecord if an intersection occurs within the interval, null otherwise.
    */
-  hit(r: Ray, tMin: number, tMax: number): HitRecord | null;
+  hit(r: Ray, rayT: Interval): HitRecord | null;
 }

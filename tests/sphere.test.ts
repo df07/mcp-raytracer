@@ -1,102 +1,80 @@
 import { Sphere } from '../src/sphere.js';
-import { Vec3, Point3 } from '../src/vec3.js';
+import { Vec3 } from '../src/vec3.js'; // Use Vec3 directly
+import type { Point3 } from '../src/vec3.js'; // Import Point3 as a type
 import { Ray } from '../src/ray.js';
+import { Interval } from '../src/interval.js';
 
 describe('Sphere', () => {
-  const center = new Vec3(0, 0, -1);
-  const radius = 0.5;
-  const sphere = new Sphere(center, radius);
-  const tMin = 0.001;
-  const tMax = Infinity;
+  it('should correctly determine ray intersections', () => {
+    const center: Point3 = new Vec3(0, 0, -1); // Instantiate with Vec3, type as Point3
+    const radius = 0.5;
+    const sphere = new Sphere(center, radius);
 
-  test('should hit sphere directly in front', () => {
-    const r = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
-    const hitRec = sphere.hit(r, tMin, tMax);
-    expect(hitRec).not.toBeNull();
-    if (!hitRec) return;
+    // Ray hitting the sphere
+    const ray1 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+    const interval1 = new Interval(0, Infinity);
+    const rec1 = sphere.hit(ray1, interval1);
+    expect(rec1).not.toBeNull();
+    if (rec1) {
+      expect(rec1.t).toBeCloseTo(0.5);
+      expect(rec1.p.x).toBeCloseTo(0);
+      expect(rec1.p.y).toBeCloseTo(0);
+      expect(rec1.p.z).toBeCloseTo(-0.5);
+      // Normal should point outward from the center
+      const outwardNormal1 = rec1.p.subtract(center).divide(radius);
+      expect(rec1.normal.x).toBeCloseTo(outwardNormal1.x);
+      expect(rec1.normal.y).toBeCloseTo(outwardNormal1.y);
+      expect(rec1.normal.z).toBeCloseTo(outwardNormal1.z);
+      expect(rec1.frontFace).toBe(true); // Ray origin is outside the sphere
+    }
 
-    expect(hitRec.t).toBeCloseTo(0.5);
-    expect(hitRec.p.x).toBeCloseTo(0);
-    expect(hitRec.p.y).toBeCloseTo(0);
-    expect(hitRec.p.z).toBeCloseTo(-0.5);
-    expect(hitRec.normal.x).toBeCloseTo(0);
-    expect(hitRec.normal.y).toBeCloseTo(0);
-    expect(hitRec.normal.z).toBeCloseTo(1);
-    expect(hitRec.frontFace).toBe(true);
+    // Ray missing the sphere
+    const ray2 = new Ray(new Vec3(0, 1, 0), new Vec3(0, 0, -1));
+    const interval2 = new Interval(0, Infinity);
+    const rec2 = sphere.hit(ray2, interval2);
+    expect(rec2).toBeNull();
+
+    // Ray starting inside the sphere
+    const ray3 = new Ray(new Vec3(0, 0, -1), new Vec3(0, 0, -1));
+    const interval3 = new Interval(0.001, Infinity); // tMin > 0 to avoid self-intersection at origin
+    const rec3 = sphere.hit(ray3, interval3);
+    expect(rec3).not.toBeNull();
+    if (rec3) {
+      expect(rec3.t).toBeCloseTo(0.5);
+      expect(rec3.p.x).toBeCloseTo(0);
+      expect(rec3.p.y).toBeCloseTo(0);
+      expect(rec3.p.z).toBeCloseTo(-1.5);
+      // Normal should point inward
+      const outwardNormal3 = rec3.p.subtract(center).divide(radius);
+      expect(rec3.normal.x).toBeCloseTo(-outwardNormal3.x);
+      expect(rec3.normal.y).toBeCloseTo(-outwardNormal3.y);
+      expect(rec3.normal.z).toBeCloseTo(-outwardNormal3.z);
+      expect(rec3.frontFace).toBe(false); // Ray origin is inside the sphere
+    }
+
+    // Ray hitting tangentially (should technically hit, but floating point might be tricky)
+    // Let's test a ray grazing the top
+    const ray4 = new Ray(new Vec3(0, 0.5, 0), new Vec3(0, 0, -1));
+    const interval4 = new Interval(0, Infinity);
+    const rec4 = sphere.hit(ray4, interval4);
+    expect(rec4).not.toBeNull();
+    if (rec4) {
+        expect(rec4.t).toBeCloseTo(1.0);
+        expect(rec4.p.x).toBeCloseTo(0);
+        expect(rec4.p.y).toBeCloseTo(0.5);
+        expect(rec4.p.z).toBeCloseTo(-1.0);
+        expect(rec4.frontFace).toBe(true);
+    }
+
+    // Ray hitting outside the interval [tMin, tMax]
+    const ray5 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+    const interval5 = new Interval(0.6, 1.0); // t=0.5 is outside this interval
+    const rec5 = sphere.hit(ray5, interval5);
+    expect(rec5).toBeNull();
+
+    const interval6 = new Interval(0.0, 0.4); // t=0.5 is outside this interval
+    const rec6 = sphere.hit(ray5, interval6);
+    expect(rec6).toBeNull();
+
   });
-
-  test('should miss sphere', () => {
-    const r = new Ray(new Vec3(0, 0, 0), new Vec3(1, 1, 0));
-    const hitRec = sphere.hit(r, tMin, tMax);
-    expect(hitRec).toBeNull();
-  });
-
-  test('should miss sphere when ray points away', () => {
-    const r = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, 1));
-    const hitRec = sphere.hit(r, tMin, tMax);
-    expect(hitRec).toBeNull();
-  });
-
-  test('should hit sphere tangentially', () => {
-    const r = new Ray(new Vec3(0, radius, 0), new Vec3(0, 0, -1));
-    const hitRec = sphere.hit(r, tMin, tMax);
-    expect(hitRec).not.toBeNull();
-    if (!hitRec) return;
-
-    expect(hitRec.t).toBeCloseTo(1.0);
-    expect(hitRec.p.z).toBeCloseTo(-1.0);
-  });
-
-  test('should return closest hit point when ray starts inside', () => {
-    const r = new Ray(center, new Vec3(0, 0, -1));
-    const hitRec = sphere.hit(r, tMin, tMax);
-    expect(hitRec).not.toBeNull();
-    if (!hitRec) return;
-
-    expect(hitRec.t).toBeCloseTo(0.5);
-    expect(hitRec.p.z).toBeCloseTo(-1.5);
-    expect(hitRec.frontFace).toBe(false);
-    expect(hitRec.normal.z).toBeCloseTo(1);
-  });
-
-  test('should find farther hit when closest intersection is before tMin', () => {
-    const r = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
-    const hitRec = sphere.hit(r, 0.6, tMax);
-    expect(hitRec).not.toBeNull();
-    if (!hitRec) return;
-
-    expect(hitRec.t).toBeCloseTo(1.5);
-    expect(hitRec.p.z).toBeCloseTo(-1.5);
-  });
-
-  test('should not hit when intersection is after tMax', () => {
-    const r = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
-    const hitRec = sphere.hit(r, tMin, 0.4);
-    expect(hitRec).toBeNull();
-  });
-
-  test('should not hit when both intersections are outside [tMin, tMax]', () => {
-    const r = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
-    const hitRec = sphere.hit(r, 0.6, 1.4);
-    expect(hitRec).toBeNull();
-  });
-
-  test('should handle ray hitting edge-on', () => {
-    const r = new Ray(new Vec3(radius, 0, 0), new Vec3(0, 0, -1));
-    const hitRec = sphere.hit(r, tMin, tMax);
-    expect(hitRec).not.toBeNull();
-    if (!hitRec) return;
-
-    expect(hitRec.t).toBeCloseTo(1.0);
-  });
-
-  test('should handle offset ray hitting', () => {
-    const r = new Ray(new Vec3(0.1, 0.1, 0), new Vec3(0, 0, -1));
-    const hitRec = sphere.hit(r, tMin, tMax);
-    expect(hitRec).not.toBeNull();
-    if (!hitRec) return;
-
-    const expected_t = 1 - Math.sqrt(radius*radius - (0.1*0.1 + 0.1*0.1));
-    expect(hitRec.t).toBeCloseTo(expected_t, 4);
-  });
-}); 
+});

@@ -2,6 +2,7 @@
 
 import { HitRecord, Hittable } from './hittable.js';
 import { Ray } from './ray.js';
+import { Interval } from './interval.js'; // Added import
 
 /**
  * Represents a list of Hittable objects.
@@ -39,24 +40,30 @@ export class HittableList implements Hittable {
   /**
    * Checks if the ray hits any object in the list within the given interval.
    * Finds the closest hit point across all objects.
-   * @param r The incident ray.
-   * @param tMin The minimum acceptable parameter value.
-   * @param tMax The maximum acceptable parameter value.
-   * @returns The HitRecord of the closest hit found within the interval, or null if no hit.
+   *
+   * NOTE: This deviates from the "Ray Tracing in One Weekend" tutorial (which uses
+   * an out parameter for the HitRecord) to favor returning a value or null,
+   * adhering to a more common TypeScript idiom. Do not revert this change.
+   *
+   * @param r The ray to check for intersection.
+   * @param rayT The interval of valid t values along the ray.
+   * @returns The HitRecord for the closest hit found within the interval, or null if no object was hit.
    */
-  public hit(r: Ray, tMin: number, tMax: number): HitRecord | null {
+  public hit(r: Ray, rayT: Interval): HitRecord | null {
     let closestHitRecord: HitRecord | null = null;
-    let closestSoFar = tMax;
+    let closestSoFar = rayT.max; // Start with the max of the interval
 
     for (const object of this.objects) {
-      const hitResult = object.hit(r, tMin, closestSoFar);
-      
-      if (hitResult !== null) {
-        closestSoFar = hitResult.t;
-        closestHitRecord = hitResult;
+      // Pass a narrowed interval [rayT.min, closestSoFar] to each object's hit method.
+      // This ensures we only consider hits closer than the closest one found so far.
+      const currentHitRecord = object.hit(r, new Interval(rayT.min, closestSoFar));
+
+      if (currentHitRecord) {
+        closestSoFar = currentHitRecord.t; // Update the upper bound for the next check
+        closestHitRecord = currentHitRecord; // Store the record of the closest hit found so far
       }
     }
 
     return closestHitRecord;
   }
-} 
+}
