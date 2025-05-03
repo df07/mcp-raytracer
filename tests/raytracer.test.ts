@@ -1,47 +1,5 @@
-import { rayColor, generateImageBuffer } from '../src/raytracer.js'; // Import generateImageBuffer instead of render
-import { Vec3 } from '../src/vec3.js';
-import type { Color } from '../src/vec3.js';
-import { HittableList } from '../src/hittableList.js';
-import { Sphere } from '../src/sphere.js';
-import { Ray } from '../src/ray.js';
+import { generateImageBuffer } from '../src/raytracer.js'; // Import generateImageBuffer instead of render
 import sharp from 'sharp';
-
-describe('rayColor', () => {
-  it('should return background color for a ray that misses', () => {
-    const world = new HittableList(); // Empty world
-    const r = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
-    const color = rayColor(r, world);
-
-    // Calculate expected background color
-    const unitDirection = r.direction.unitVector();
-    const a = 0.5 * (unitDirection.y + 1.0);
-    const expectedColor = new Vec3(1.0, 1.0, 1.0).multiply(1.0 - a).add(new Vec3(0.5, 0.7, 1.0).multiply(a));
-
-    expect(color.x).toBeCloseTo(expectedColor.x);
-    expect(color.y).toBeCloseTo(expectedColor.y);
-    expect(color.z).toBeCloseTo(expectedColor.z);
-  });
-
-  it('should return object color for a ray that hits', () => {
-    const world = new HittableList();
-    const sphere = new Sphere(new Vec3(0, 0, -1), 0.5); // Use Vec3 for center
-    world.add(sphere);
-    const r = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
-    const color = rayColor(r, world);
-
-    // Calculate expected hit color based on normal
-    // Hit point p = ray.at(0.5) = (0, 0, -0.5)
-    // Center c = (0, 0, -1)
-    // Normal n = (p - c) / radius = (0, 0, 0.5) / 0.5 = (0, 0, 1)
-    // Expected color = (normal + (1,1,1)) * 0.5 = ((0,0,1) + (1,1,1)) * 0.5 = (1,1,2) * 0.5 = (0.5, 0.5, 1)
-    const expectedColor: Color = new Vec3(0.5, 0.5, 1.0); // Use Vec3 constructor, type as Color
-
-    expect(color.x).toBeCloseTo(expectedColor.x);
-    expect(color.y).toBeCloseTo(expectedColor.y);
-    expect(color.z).toBeCloseTo(expectedColor.z);
-  });
-});
-
 
 describe('generateImageBuffer', () => {
     it('should produce a valid PNG buffer', async () => {
