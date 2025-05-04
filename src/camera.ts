@@ -16,12 +16,23 @@ export class Camera {
     private readonly w: Vec3;
     private readonly world: Hittable;
     private readonly maxDepth: number = 50; // Maximum recursion depth for ray bounces
+    private readonly samplesPerPixel: number; // Number of samples per pixel for anti-aliasing
 
-    constructor(imageWidth: number, imageHeight: number, vfovDegrees: number, lookfrom: Point3, lookat: Point3, vup: Vec3, world: Hittable) {
+    constructor(
+        imageWidth: number, 
+        imageHeight: number, 
+        vfovDegrees: number, 
+        lookfrom: Point3, 
+        lookat: Point3, 
+        vup: Vec3, 
+        world: Hittable,
+        samplesPerPixel: number = 1 // Default to 1 sample per pixel (no anti-aliasing)
+    ) {
         this.imageWidth = imageWidth;
         this.imageHeight = imageHeight;
         this.center = lookfrom;
         this.world = world; // Store world
+        this.samplesPerPixel = samplesPerPixel;
 
         // Determine viewport dimensions.
         const focalLength = 1.0; // Fixed focal length
@@ -53,14 +64,33 @@ export class Camera {
         const halfViewportV = viewportV.divide(2);
         const viewportUpperLeft = this.center.subtract(this.w).subtract(halfViewportU).subtract(halfViewportV);
         this.pixel00Loc = viewportUpperLeft.add(this.pixelDeltaU.add(this.pixelDeltaV).multiply(0.5));
-    }
-
-    getRay(i: number, j: number): Ray {
-        // Get a camera ray for the pixel at location i,j.
-
-        // Use vec3 methods instead of standalone functions
+    }    /**
+     * Gets a camera ray for the pixel at location i,j.
+     * If anti-aliasing is enabled, generates rays with random offsets within the pixel.
+     * @param i The horizontal pixel coordinate.
+     * @param j The vertical pixel coordinate.
+     * @param s The sample index (used for random offset calculation).
+     * @returns A ray originating from the camera through the specified pixel.
+     */
+    getRay(i: number, j: number, s: number = 0): Ray {
+        // Calculate pixel center
         const pixelCenter = this.pixel00Loc.add(this.pixelDeltaU.multiply(i)).add(this.pixelDeltaV.multiply(j));
-        const rayDirection = pixelCenter.subtract(this.center);
+        
+        // For anti-aliasing, add a random offset within the pixel
+        // If samplesPerPixel is 1, we'll use the pixel center (no randomization)
+        let pixelSample = pixelCenter;
+        
+        if (this.samplesPerPixel > 1) {
+            // Calculate random offset within the pixel
+            const px = -0.5 + Math.random(); // Random between -0.5 and 0.5
+            const py = -0.5 + Math.random(); 
+            
+            // Apply the offset scaled by the pixel delta vectors
+            pixelSample = pixelCenter.add(this.pixelDeltaU.multiply(px)).add(this.pixelDeltaV.multiply(py));
+        }
+        
+        // Calculate ray direction from camera center to the sample point
+        const rayDirection = pixelSample.subtract(this.center);
 
         return new Ray(this.center, rayDirection);
     }
@@ -124,8 +154,16 @@ export class Camera {
                 process.stderr.write(`\rScanlines remaining: ${this.imageHeight - j} `);
             }
             for (let i = 0; i < this.imageWidth; ++i) {
-                const r = this.getRay(i, j);
-                const pixelColor = this.rayColor(r, this.maxDepth);
+                let pixelColor = new Vec3(0, 0, 0);
+
+                // Anti-aliasing: average multiple samples per pixel
+                for (let s = 0; s < this.samplesPerPixel; ++s) {
+                    const r = this.getRay(i + Math.random(), j + Math.random());
+                    pixelColor = pixelColor.add(this.rayColor(r, this.maxDepth));
+                }
+
+                // Divide accumulated color by number of samples and apply gamma correction
+                pixelColor = pixelColor.divide(this.samplesPerPixel);
                 writeColorToBuffer(pixelData, offset, pixelColor);
                 offset += 3; // Move to the next pixel (RGB)
             }

@@ -34,15 +34,14 @@ export async function generateImageBuffer(
     
     // Create spheres with materials
     world.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter));
-    world.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround));
-
-    // Camera setup
+    world.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround));    // Camera setup
     const vfov = 90; // Vertical field-of-view in degrees
     const lookfrom: Point3 = new Vec3(0, 0, 0); // Camera position
     const lookat: Point3 = new Vec3(0, 0, -1); // Point camera is looking at
     const vup = new Vec3(0, 1, 0); // Camera-relative "up" direction
+    const samplesPerPixel = 100; // Samples per pixel for anti-aliasing
 
-    const camera = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, world);
+    const camera = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, world, samplesPerPixel);
 
 
     if (verbose) {
