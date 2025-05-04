@@ -14,11 +14,13 @@ import { Metal } from './materials/metal.js';
  *
  * @param imageWidth The desired width of the image.
  * @param verbose Log progress to stderr during generation.
+ * @param samplesPerPixel Number of samples per pixel for anti-aliasing (higher = better quality but slower).
  * @returns A Promise resolving to the PNG image buffer.
  */
 export async function generateImageBuffer(
     imageWidth: number = 400,
-    verbose: boolean = false
+    verbose: boolean = false,
+    samplesPerPixel: number = 100
 ): Promise<Buffer> {
     // Image setup
     const aspectRatio = 16.0 / 9.0;
@@ -43,7 +45,6 @@ export async function generateImageBuffer(
     const lookfrom: Point3 = new Vec3(0, 0, 0); // Camera position
     const lookat: Point3 = new Vec3(0, 0, -1); // Point camera is looking at
     const vup = new Vec3(0, 1, 0); // Camera-relative "up" direction
-    const samplesPerPixel = 100; // Samples per pixel for anti-aliasing
 
     const camera = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, world, samplesPerPixel);
 

@@ -6,8 +6,6 @@ import { z } from "zod";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-
-// Import the raytracer function
 import { generateImageBuffer } from "./raytracer.js";
 
 // Helper to get the root directory (assuming index.ts is in src)
@@ -67,11 +65,13 @@ export const showImageToolHandler = async (/* No args expected */): Promise<any>
 };
 
 // Define handler for the new raytrace tool
-export const raytraceToolHandler = async ({ verbose = false }: { verbose?: boolean }): Promise<any> => {
-  console.error(`[Tool:raytrace] Request received. Generating PNG via ray tracing. Verbose: ${verbose}`);
+export const raytraceToolHandler = async ({ verbose = false, width = 400, samples = 100 }: 
+  { verbose?: boolean, width?: number, samples?: number }): Promise<any> => {
+  console.error(`[Tool:raytrace] Request received. Generating PNG via ray tracing. Width: ${width}, Samples: ${samples}, Verbose: ${verbose}`);
   try {
-    // Generate the image using the refactored function
-    const pngBuffer = await generateImageBuffer(400, verbose);
+    // First update samplesPerPixel in the Camera constructor
+    // Generate the image using the refactored function with custom width and samples
+    const pngBuffer = await generateImageBuffer(width, verbose, samples);
     const base64Data = pngBuffer.toString('base64');
 
     return {
@@ -112,7 +112,9 @@ server.tool(
 
 // Register the new raytrace tool
 const raytraceInputSchema = z.object({
-  verbose: z.boolean().optional().default(false).describe("Log progress to stderr during generation")
+  verbose: z.boolean().optional().default(false).describe("Log progress to stderr during generation"),
+  width: z.number().optional().default(400).describe("Width of the generated image"),
+  samples: z.number().optional().default(100).describe("Number of samples per pixel (higher = better quality but slower)")
 });
 
 server.tool(
@@ -123,7 +125,7 @@ server.tool(
 );
 
 async function runServer() {
-  console.error(`Starting MCP Server in stdio mode.`);
+  console.error(`Starting MCP Server in stdio mode. Current working directory: ${process.cwd()}`);
   try {
     const transport = new StdioServerTransport();
     await server.connect(transport);
