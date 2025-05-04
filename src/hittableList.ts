@@ -36,6 +36,13 @@ export class HittableList implements Hittable {
   public clear(): void {
     this.objects = [];
   }
+  
+  /**
+   * Returns the number of objects in the hittable list.
+   */
+  public get count(): number {
+    return this.objects.length;
+  }
 
   /**
    * Checks if the ray hits any object in the list within the given interval.

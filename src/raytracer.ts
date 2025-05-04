@@ -47,7 +47,7 @@ export async function generateImageBuffer(
 
     const camera = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, world, samplesPerPixel);
 
-
+    let startTime = Date.now();;
     if (verbose) {
         console.error('Starting PNG render with Camera class...');
     }
@@ -56,8 +56,8 @@ export async function generateImageBuffer(
     camera.render(pixelData, verbose); // Pass pixelData and verbose flag
 
     if (verbose) {
-        // The camera.render method already prints the final progress line
-        console.error('Render complete via Camera. Generating PNG...');
+        const duration = Date.now() - startTime;
+        console.error(`Rendered ${imageWidth}x${imageHeight} image with ${world.count} objects in ${duration}ms`);
     }
 
     if (pixelData.length === 0) {
