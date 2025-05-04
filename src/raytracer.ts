@@ -5,9 +5,9 @@ import { Sphere } from './sphere.js';
 // Hittable import is no longer needed here
 import { HittableList } from './hittableList.js';
 // Interval import is no longer needed here
-import { Camera } from './camera.js'; // Import the new Camera class
-import { Lambertian } from './material.js'; // Import the Lambertian material
-
+import { Camera } from './camera.js';
+import { Lambertian } from './materials/lambertian.js';
+import { Metal } from './materials/metal.js';
 
 /**
  * Generates a PNG image buffer for the raytraced scene using the Camera class.
@@ -29,12 +29,16 @@ export async function generateImageBuffer(
     const world = new HittableList();
     
     // Create materials
-    const materialCenter = new Lambertian(new Vec3(0.7, 0.3, 0.3)); // Reddish
-    const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0)); // Yellow-ish
+    const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0));  // Yellow-ish ground
+    const materialCenter = new Lambertian(new Vec3(0.7, 0.3, 0.3));  // Reddish center
+    const materialLeft = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0);    // Shiny silver (no fuzz)
+    const materialRight = new Metal(new Vec3(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
     
     // Create spheres with materials
-    world.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter));
-    world.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround));    // Camera setup
+    world.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround)); // Ground sphere
+    world.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter));      // Center sphere
+    world.add(new Sphere(new Vec3(-1, 0, -1), 0.5, materialLeft));       // Left sphere (metal)
+    world.add(new Sphere(new Vec3(1, 0, -1), 0.5, materialRight));       // Right sphere (fuzzy metal)// Camera setup
     const vfov = 90; // Vertical field-of-view in degrees
     const lookfrom: Point3 = new Vec3(0, 0, 0); // Camera position
     const lookat: Point3 = new Vec3(0, 0, -1); // Point camera is looking at

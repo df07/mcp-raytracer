@@ -3,7 +3,7 @@ import { Vec3 } from '../src/vec3.js'; // Use Vec3 directly
 import type { Point3 } from '../src/vec3.js'; // Import Point3 as a type
 import { Ray } from '../src/ray.js';
 import { Interval } from '../src/interval.js';
-import { Lambertian } from '../src/material.js';
+import { Lambertian } from '../src/materials/lambertian.js';
 
 // Mock material for testing
 class MockMaterial extends Lambertian {

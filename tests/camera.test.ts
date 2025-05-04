@@ -3,7 +3,7 @@ import { Vec3, Point3, Color, unitVector } from '../src/vec3.js';
 import { Ray } from '../src/ray.js';
 import { Hittable, HitRecord } from '../src/hittable.js';
 import { Interval } from '../src/interval.js';
-import { Material } from '../src/material.js';
+import { Material } from '../src/materials/material.js';
 
 // Mock Material for testing
 class MockMaterial implements Material {

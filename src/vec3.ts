@@ -22,6 +22,17 @@ export class Vec3 {
         return this.elements[2];
     }
 
+    /**
+     * Checks if this vector is equal to another vector.
+     * @param v The vector to compare with.
+     * @returns True if the vectors are equal, false otherwise.
+     */
+    equals(v: Vec3): boolean {
+        return Math.abs(this.x - v.x) < 1e-8 && 
+               Math.abs(this.y - v.y) < 1e-8 && 
+               Math.abs(this.z - v.z) < 1e-8;
+    }
+
     negate(): Vec3 {
         // Ensure -0 becomes 0 for consistent equality checks
         const e0 = this.elements[0] === 0 ? 0 : -this.elements[0];
@@ -153,4 +164,14 @@ export function cross(u: Vec3, v: Vec3): Vec3 {
 
 export function unitVector(v: Vec3): Vec3 {
     return v.divide(v.length());
+}
+
+/**
+ * Calculates the reflection of a vector around a normal vector.
+ * @param v The incident vector to reflect (assumed to be pointing in).
+ * @param n The normal vector to reflect around (assumed to be unit length).
+ * @returns A new vector representing the reflection.
+ */
+export function reflect(v: Vec3, n: Vec3): Vec3 {
+    return v.subtract(n.multiply(2 * dot(v, n)));
 }

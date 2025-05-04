@@ -1,7 +1,7 @@
-import { Lambertian } from '../src/material.js';
-import { Ray } from '../src/ray.js';
-import { Vec3, Color } from '../src/vec3.js';
-import { HitRecord } from '../src/hittable.js';
+import { Lambertian } from '../../src/materials/lambertian.js';
+import { Ray } from '../../src/ray.js';
+import { Vec3 } from '../../src/vec3.js';
+import { HitRecord } from '../../src/hittable.js';
 
 describe('Lambertian Material', () => {
     test('should have correct albedo', () => {

@@ -2,9 +2,8 @@ import { HittableList } from '../src/hittableList.js';
 import { Sphere } from '../src/sphere.js';
 import { Ray } from '../src/ray.js';
 import { Vec3, Point3 } from '../src/vec3.js';
-import { HitRecord, Hittable } from '../src/hittable.js';
-import { Interval } from '../src/interval.js'; // Import Interval
-import { Lambertian } from '../src/material.js';
+import { Interval } from '../src/interval.js';
+import { Lambertian } from '../src/materials/lambertian.js';
 
 describe('HittableList', () => {  
   let list: HittableList;

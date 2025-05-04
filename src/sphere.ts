@@ -4,7 +4,7 @@ import { Point3, Vec3 } from './vec3.js'; // Updated imports, removed dot
 import { Ray } from './ray.js'; // Updated import
 import { HitRecord, Hittable } from './hittable.js';
 import { Interval } from './interval.js'; // Added import
-import { Material } from './material.js'; // Add import for Material
+import { Material } from './materials/material.js';
 
 /** Represents a sphere in 3D space that can be intersected by rays */
 export class Sphere implements Hittable {

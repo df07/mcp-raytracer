@@ -3,7 +3,7 @@
 import { Ray } from './ray.js';
 import { Point3, Vec3 } from './vec3.js';
 import { Interval } from './interval.js';
-import { Material } from './material.js'; // Add import for Material
+import { Material } from './materials/material.js';
 
 /**
  * Stores information about a ray-object intersection.
