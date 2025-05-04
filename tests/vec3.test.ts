@@ -110,6 +110,65 @@ describe('Vec3', () => {
             expect(unitV.length()).toBeCloseTo(1);
         });
     });
+
+    // --- New Random Vector Methods ---
+    describe('Random Vector Generation', () => {
+        it('should generate a random vector within specified range', () => {
+            const randomVec = Vec3.random(-1, 1);
+            expect(randomVec.x).toBeGreaterThanOrEqual(-1);
+            expect(randomVec.x).toBeLessThanOrEqual(1);
+            expect(randomVec.y).toBeGreaterThanOrEqual(-1);
+            expect(randomVec.y).toBeLessThanOrEqual(1);
+            expect(randomVec.z).toBeGreaterThanOrEqual(-1);
+            expect(randomVec.z).toBeLessThanOrEqual(1);
+        });
+
+        it('should generate random vectors in the unit sphere', () => {
+            // Test multiple times to reduce chance of false positives
+            for (let i = 0; i < 10; i++) {
+                const inSphereVec = Vec3.randomInUnitSphere();
+                // Vector should be inside the unit sphere
+                expect(inSphereVec.lengthSquared()).toBeLessThanOrEqual(1);
+            }
+        });
+        
+        it('should generate random unit vectors', () => {
+            // Test multiple times to reduce chance of false positives
+            for (let i = 0; i < 10; i++) {
+                const unitVec = Vec3.randomUnitVector();
+                // Should have length approximately 1
+                expect(unitVec.length()).toBeCloseTo(1);
+            }
+        });
+        
+        it('should generate random vectors in the hemisphere aligned with normal', () => {
+            const normal = new Vec3(0, 1, 0); // Normal pointing up
+            
+            // Test multiple times to reduce chance of false positives
+            for (let i = 0; i < 10; i++) {
+                const hemisphereVec = Vec3.randomInHemisphere(normal);
+                
+                // Vector should be inside the unit sphere
+                expect(hemisphereVec.lengthSquared()).toBeLessThanOrEqual(1);
+                
+                // Should be in the same hemisphere as the normal
+                // Dot product should be positive
+                expect(hemisphereVec.dot(normal)).toBeGreaterThanOrEqual(0);
+            }
+        });
+    });
+    
+    // --- Near Zero Vector Test ---
+    describe('Near Zero Vector Detection', () => {
+        it('should detect vectors close to zero', () => {
+            const almostZero = new Vec3(1e-9, -1e-9, 1e-9);
+            const definitelyNotZero = new Vec3(0.001, 0.001, 0.001);
+            
+            expect(almostZero.nearZero()).toBe(true);
+            expect(definitelyNotZero.nearZero()).toBe(false);
+            expect(new Vec3().nearZero()).toBe(true); // Zero vector should be near zero
+        });
+    });
 });
 
 // --- Utility Functions --- 
@@ -157,4 +216,4 @@ describe('Vec3 Utility Functions', () => {
         // const unitZero = unitVector(zeroVec); 
         // expect(isNaN(unitZero.x())).toBe(true);
     });
-}); 
+});

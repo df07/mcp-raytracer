@@ -6,6 +6,7 @@ import { Sphere } from './sphere.js';
 import { HittableList } from './hittableList.js';
 // Interval import is no longer needed here
 import { Camera } from './camera.js'; // Import the new Camera class
+import { Lambertian } from './material.js'; // Import the Lambertian material
 
 
 /**
@@ -24,12 +25,16 @@ export async function generateImageBuffer(
     const imageHeight = Math.max(1, Math.floor(imageWidth / aspectRatio));
     const channels = 3; // RGB - Camera.render uses 3 channels
     // Use Uint8ClampedArray as expected by Camera.render
-    const pixelData = new Uint8ClampedArray(imageWidth * imageHeight * channels);
-
-    // World setup
+    const pixelData = new Uint8ClampedArray(imageWidth * imageHeight * channels);    // World setup
     const world = new HittableList();
-    world.add(new Sphere(new Vec3(0, 0, -1), 0.5));
-    world.add(new Sphere(new Vec3(0, -100.5, -1), 100));
+    
+    // Create materials
+    const materialCenter = new Lambertian(new Vec3(0.7, 0.3, 0.3)); // Reddish
+    const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0)); // Yellow-ish
+    
+    // Create spheres with materials
+    world.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter));
+    world.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround));
 
     // Camera setup
     const vfov = 90; // Vertical field-of-view in degrees

@@ -3,12 +3,21 @@ import { Vec3 } from '../src/vec3.js'; // Use Vec3 directly
 import type { Point3 } from '../src/vec3.js'; // Import Point3 as a type
 import { Ray } from '../src/ray.js';
 import { Interval } from '../src/interval.js';
+import { Lambertian } from '../src/material.js';
+
+// Mock material for testing
+class MockMaterial extends Lambertian {
+  constructor() {
+    super(new Vec3(1, 1, 1));
+  }
+}
 
 describe('Sphere', () => {
   it('should correctly determine ray intersections', () => {
     const center: Point3 = new Vec3(0, 0, -1); // Instantiate with Vec3, type as Point3
     const radius = 0.5;
-    const sphere = new Sphere(center, radius);
+    const material = new MockMaterial();
+    const sphere = new Sphere(center, radius, material);
 
     // Ray hitting the sphere
     const ray1 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
@@ -26,6 +35,7 @@ describe('Sphere', () => {
       expect(rec1.normal.y).toBeCloseTo(outwardNormal1.y);
       expect(rec1.normal.z).toBeCloseTo(outwardNormal1.z);
       expect(rec1.frontFace).toBe(true); // Ray origin is outside the sphere
+      expect(rec1.material).toBe(material); // Material should be set
     }
 
     // Ray missing the sphere
@@ -50,6 +60,7 @@ describe('Sphere', () => {
       expect(rec3.normal.y).toBeCloseTo(-outwardNormal3.y);
       expect(rec3.normal.z).toBeCloseTo(-outwardNormal3.z);
       expect(rec3.frontFace).toBe(false); // Ray origin is inside the sphere
+      expect(rec3.material).toBe(material); // Material should be set
     }
 
     // Ray hitting tangentially (should technically hit, but floating point might be tricky)

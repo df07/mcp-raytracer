@@ -2,7 +2,8 @@
 
 import { Ray } from './ray.js';
 import { Point3, Vec3 } from './vec3.js';
-import { Interval } from './interval.js'; // Added import
+import { Interval } from './interval.js';
+import { Material } from './material.js'; // Add import for Material
 
 /**
  * Stores information about a ray-object intersection.
@@ -12,6 +13,7 @@ export class HitRecord {
   normal: Vec3;
   t: number;
   frontFace: boolean;
+  material: Material | null;
 
   constructor() {
     // Initialize with default values
@@ -19,6 +21,7 @@ export class HitRecord {
     this.normal = new Vec3(0, 0, 0);
     this.t = 0;
     this.frontFace = false;
+    this.material = null; // Initialize material to null
   }
 
   /**

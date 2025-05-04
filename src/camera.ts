@@ -15,6 +15,7 @@ export class Camera {
     private readonly v: Vec3;
     private readonly w: Vec3;
     private readonly world: Hittable;
+    private readonly maxDepth: number = 50; // Maximum recursion depth for ray bounces
 
     constructor(imageWidth: number, imageHeight: number, vfovDegrees: number, lookfrom: Point3, lookat: Point3, vup: Vec3, world: Hittable) {
         this.imageWidth = imageWidth;
@@ -66,19 +67,37 @@ export class Camera {
 
     /**
      * Calculates the color of a ray by tracing it into the world.
-     * If the ray hits an object, it computes the color based on the surface normal.
+     * If the ray hits an object, it recursively traces scattered rays up to max depth.
      * Otherwise, it returns a background gradient color.
      * @param r The ray.
+     * @param depth Maximum recursion depth.
      * @returns The color of the ray.
-     */
-    rayColor(r: Ray): Color {
+     */    
+    rayColor(r: Ray, depth: number = this.maxDepth): Color {
+        // If we've exceeded the ray bounce limit, no more light is gathered
+        if (depth <= 0) {
+            return new Vec3(0, 0, 0); // Return black (no light contribution)
+        }
+
         // Check if the ray hits any object in the world
-        // Use this.world instead of passing world as parameter
         // Use tMin = 0.001 to avoid shadow acne
         const rec = this.world.hit(r, new Interval(0.001, Infinity));
 
         if (rec !== null) {
-            // If the ray hits an object, compute color based on the normal
+            // If the ray hits an object with a material, compute scattered ray
+            if (rec.material) {
+                const scatterResult = rec.material.scatter(r, rec);
+                if (scatterResult) {
+                    // Recursively trace scattered ray and multiply by attenuation
+                    return scatterResult.attenuation.multiplyVec(
+                        this.rayColor(scatterResult.scattered, depth - 1)
+                    );
+                }                
+                // If no scattering occurs (material absorbed the ray), return black
+                return new Vec3(0, 0, 0);
+            }
+            
+            // Fallback for objects without material (should not happen in practice)
             // Map normal components to RGB values (ranging from -1 to 1, shifted to 0 to 1)
             return rec.normal.add(new Vec3(1, 1, 1)).multiply(0.5);
         }
@@ -106,7 +125,7 @@ export class Camera {
             }
             for (let i = 0; i < this.imageWidth; ++i) {
                 const r = this.getRay(i, j);
-                const pixelColor = this.rayColor(r);
+                const pixelColor = this.rayColor(r, this.maxDepth);
                 writeColorToBuffer(pixelData, offset, pixelColor);
                 offset += 3; // Move to the next pixel (RGB)
             }
@@ -120,6 +139,7 @@ export class Camera {
 
 /**
  * Writes the color components to the buffer at the specified offset.
+ * Applies gamma correction for a more accurate color representation.
  * @param buffer The buffer to write to.
  * @param offset The starting index in the buffer for the pixel.
  * @param pixelColor The color to write.
@@ -129,7 +149,13 @@ function writeColorToBuffer(
   offset: number,
   pixelColor: Color,
 ): void {
-    buffer[offset + 0] = Math.floor(255.999 * pixelColor.x); // R
-    buffer[offset + 1] = Math.floor(255.999 * pixelColor.y); // G
-    buffer[offset + 2] = Math.floor(255.999 * pixelColor.z); // B
+    // Apply gamma correction by taking the square root of each color component
+    const r = Math.sqrt(pixelColor.x);
+    const g = Math.sqrt(pixelColor.y);
+    const b = Math.sqrt(pixelColor.z);
+    
+    // Convert to 8-bit color
+    buffer[offset + 0] = Math.floor(255.999 * r); // R
+    buffer[offset + 1] = Math.floor(255.999 * g); // G
+    buffer[offset + 2] = Math.floor(255.999 * b); // B
 }

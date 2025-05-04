@@ -4,15 +4,18 @@ import { Point3, Vec3 } from './vec3.js'; // Updated imports, removed dot
 import { Ray } from './ray.js'; // Updated import
 import { HitRecord, Hittable } from './hittable.js';
 import { Interval } from './interval.js'; // Added import
+import { Material } from './material.js'; // Add import for Material
 
 /** Represents a sphere in 3D space that can be intersected by rays */
 export class Sphere implements Hittable {
   readonly center: Point3;
   readonly radius: number;
+  readonly material: Material;
 
-  constructor(center: Point3, radius: number) {
+  constructor(center: Point3, radius: number, material: Material) {
     this.center = center;
     this.radius = radius;
+    this.material = material;
   }
 
   /**
@@ -55,6 +58,7 @@ export class Sphere implements Hittable {
     rec.p = r.at(rec.t);
     const outwardNormal = rec.p.subtract(this.center).divide(this.radius);
     rec.setFaceNormal(r, outwardNormal);
+    rec.material = this.material; // Set the material in the hit record
 
     return rec;
   }
