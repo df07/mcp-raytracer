@@ -36,3 +36,4 @@ Thumbs.db
 
 # Output image
 image.ppm 
+/benchmark_results
