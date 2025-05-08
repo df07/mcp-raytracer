@@ -7,7 +7,6 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { generateImageBuffer } from "./raytracer.js";
-import { USE_GL_MATRIX } from "./vec3.js";
 
 // Helper to get the root directory (assuming index.ts is in src)
 const __filename = fileURLToPath(import.meta.url);
@@ -147,12 +146,10 @@ function isMainModule(importMetaUrl: string) {
 // New function to run performance testing from command line
 async function runRaytracerBenchmark() {
   // Parse command line arguments
-  const args = process.argv.slice(2);
-  const options: { [key: string]: any } = {
+  const args = process.argv.slice(2);  const options: { [key: string]: any } = {
     width: 400,
     samples: 100,
     verbose: true,
-    useGlMatrix: false,
     output: null,
     iterations: 1
   };
@@ -165,9 +162,6 @@ async function runRaytracerBenchmark() {
       options.width = parseInt(args[++i], 10);
     } else if (arg === '--samples' || arg === '-s') {
       options.samples = parseInt(args[++i], 10);
-    } else if (arg === '--gl-matrix') {
-      options.useGlMatrix = true;
-      process.env.USE_GL_MATRIX = 'true';
     } else if (arg === '--output' || arg === '-o') {
       options.output = args[++i];
     } else if (arg === '--iterations' || arg === '-i') {
@@ -181,7 +175,6 @@ Usage: node dist/src/index.js [options]
 Options:
   --width, -w <number>     Image width (default: 400)
   --samples, -s <number>   Samples per pixel (default: 100)
-  --gl-matrix              Use gl-matrix implementation
   --output, -o <file>      Output PNG file
   --iterations, -i <num>   Number of iterations to run (default: 1)
   --help, -h               Show this help
@@ -189,11 +182,9 @@ Options:
       process.exit(0);
     }
   }
-
   console.error(`Running raytracer with options:`);
   console.error(`  Width: ${options.width}`);
   console.error(`  Samples: ${options.samples}`);
-  console.error(`  GL-Matrix: ${options.useGlMatrix}`);
   console.error(`  Output: ${options.output || 'none (image discarded)'}`);
   console.error(`  Iterations: ${options.iterations}`);
 
@@ -233,9 +224,8 @@ Options:
   // Calculate and display stats
   const totalDuration = Date.now() - totalStartTime;
   const avgRenderTime = totalRenderTime / options.iterations;
-  
-  console.error(`\nPerformance Summary:`);
-  console.error(`  Implementation: ${options.useGlMatrix ? 'gl-matrix' : 'native'}`);
+    console.error(`\nPerformance Summary:`);
+  console.error(`  Implementation: gl-matrix`);
   console.error(`  Total time: ${totalDuration}ms`);
   console.error(`  Average render time: ${avgRenderTime.toFixed(2)}ms`);
   console.error(`  Iterations: ${options.iterations}`);

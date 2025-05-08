@@ -2,10 +2,7 @@
 
 import * as glMatrix from 'gl-matrix';
 
-// Configuration flag to choose the implementation
-export const USE_GL_MATRIX = process.env.USE_GL_MATRIX === 'true' || false;
-
-// Vector pool for gl-matrix to reduce object creation
+// Vector pool for reusing temporary vectors
 const VEC_POOL_SIZE = 100;
 const vecPool: glMatrix.vec3[] = [];
 let vecPoolIndex = 0;
@@ -36,38 +33,26 @@ function resetVecPool(): void {
 
 /**
  * Represents a 3-dimensional vector or point.
+ * Implementation uses gl-matrix for optimal performance.
  */
 export class Vec3 {
-    // In gl-matrix mode, we only use glVec and use elements only in native mode
-    private elements: [number, number, number] | null;
-    // Make glVec public so utility functions can access it directly
-    public glVec: glMatrix.vec3 | null;
+    // The internal gl-matrix vector
+    public glVec: glMatrix.vec3;
 
     constructor(e0: number = 0, e1: number = 0, e2: number = 0) {
-        if (USE_GL_MATRIX) {
-            this.elements = null;
-            this.glVec = glMatrix.vec3.fromValues(e0, e1, e2);
-        } else {
-            this.elements = [e0, e1, e2];
-            this.glVec = null;
-        }
-    }
-
-    // Getter to provide access to glVec for utility functions
-    getGlVec(): glMatrix.vec3 | null {
-        return this.glVec;
+        this.glVec = glMatrix.vec3.fromValues(e0, e1, e2);
     }
 
     get x(): number {
-        return USE_GL_MATRIX ? this.glVec![0] : this.elements![0];
+        return this.glVec[0];
     }
 
     get y(): number {
-        return USE_GL_MATRIX ? this.glVec![1] : this.elements![1];
+        return this.glVec[1];
     }
 
     get z(): number {
-        return USE_GL_MATRIX ? this.glVec![2] : this.elements![2];
+        return this.glVec[2];
     }
 
     /**
@@ -83,107 +68,54 @@ export class Vec3 {
     }
 
     negate(): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            glMatrix.vec3.negate(result.glVec!, this.glVec!);
-            // Ensure -0 becomes 0 for consistent equality checks
-            for (let i = 0; i < 3; i++) {
-                if (result.glVec![i] === 0) result.glVec![i] = 0;
-            }
-            return result;
-        } else {
-            // Ensure -0 becomes 0 for consistent equality checks
-            const e0 = this.elements![0] === 0 ? 0 : -this.elements![0];
-            const e1 = this.elements![1] === 0 ? 0 : -this.elements![1];
-            const e2 = this.elements![2] === 0 ? 0 : -this.elements![2];
-            return new Vec3(e0, e1, e2);
+        const result = new Vec3();
+        glMatrix.vec3.negate(result.glVec, this.glVec);
+        // Ensure -0 becomes 0 for consistent equality checks
+        for (let i = 0; i < 3; i++) {
+            if (result.glVec[i] === 0) result.glVec[i] = 0;
         }
+        return result;
     }
 
     add(v: Vec3): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            glMatrix.vec3.add(result.glVec!, this.glVec!, v.glVec!);
-            return result;
-        } else {
-            return new Vec3(
-                this.x + v.x, 
-                this.y + v.y, 
-                this.z + v.z
-            );
-        }
+        const result = new Vec3();
+        glMatrix.vec3.add(result.glVec, this.glVec, v.glVec);
+        return result;
     }
 
     subtract(v: Vec3): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            glMatrix.vec3.subtract(result.glVec!, this.glVec!, v.glVec!);
-            return result;
-        } else {
-            return new Vec3(
-                this.x - v.x, 
-                this.y - v.y, 
-                this.z - v.z
-            );
-        }
+        const result = new Vec3();
+        glMatrix.vec3.subtract(result.glVec, this.glVec, v.glVec);
+        return result;
     }
 
     multiply(t: number): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            glMatrix.vec3.scale(result.glVec!, this.glVec!, t);
-            return result;
-        } else {
-            return new Vec3(
-                this.x * t, 
-                this.y * t, 
-                this.z * t
-            );
-        }
+        const result = new Vec3();
+        glMatrix.vec3.scale(result.glVec, this.glVec, t);
+        return result;
     }
 
     multiplyVec(v: Vec3): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            glMatrix.vec3.multiply(result.glVec!, this.glVec!, v.glVec!);
-            return result;
-        } else {
-            return new Vec3(
-                this.x * v.x, 
-                this.y * v.y, 
-                this.z * v.z
-            );
-        }
+        const result = new Vec3();
+        glMatrix.vec3.multiply(result.glVec, this.glVec, v.glVec);
+        return result;
     }
 
     divide(t: number): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            // Use direct scale with 1/t for better performance
-            glMatrix.vec3.scale(result.glVec!, this.glVec!, 1/t);
-            return result;
-        } else {
-            return this.multiply(1 / t);
-        }
-    }    lengthSquared(): number {
-        if (USE_GL_MATRIX) {
-            // Inline the calculation instead of using gl-matrix function call
-            const v = this.glVec!;
-            return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-        } else {
-            return this.x * this.x + 
-                   this.y * this.y + 
-                   this.z * this.z;
-        }
+        const result = new Vec3();
+        // Use direct scale with 1/t for better performance
+        glMatrix.vec3.scale(result.glVec, this.glVec, 1/t);
+        return result;
+    }
+
+    lengthSquared(): number {
+        // Inline the calculation for better performance
+        const v = this.glVec;
+        return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
     }
 
     length(): number {
-        if (USE_GL_MATRIX) {
-            // Inline the calculation for better performance
-            return Math.sqrt(this.lengthSquared());
-        } else {
-            return Math.sqrt(this.lengthSquared());
-        }
+        return Math.sqrt(this.lengthSquared());
     }
 
     /**
@@ -192,14 +124,10 @@ export class Vec3 {
      * @returns The dot product.
      */
     dot(v: Vec3): number {
-        if (USE_GL_MATRIX) {
-            // Inline the calculation for better performance
-            const a = this.glVec!;
-            const b = v.glVec!;
-            return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-        } else {
-            return this.x * v.x + this.y * v.y + this.z * v.z;
-        }
+        // Inline the calculation for better performance
+        const a = this.glVec;
+        const b = v.glVec;
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     }
 
     /**
@@ -208,17 +136,9 @@ export class Vec3 {
      * @returns The cross product vector.
      */
     cross(v: Vec3): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            glMatrix.vec3.cross(result.glVec!, this.glVec!, v.glVec!);
-            return result;
-        } else {
-            return new Vec3(
-                this.y * v.z - this.z * v.y,
-                this.z * v.x - this.x * v.z,
-                this.x * v.y - this.y * v.x
-            );
-        }
+        const result = new Vec3();
+        glMatrix.vec3.cross(result.glVec, this.glVec, v.glVec);
+        return result;
     }
 
     /**
@@ -237,30 +157,18 @@ export class Vec3 {
      * Returns a unit vector in the same direction as this vector.
      */
     unitVector(): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            glMatrix.vec3.normalize(result.glVec!, this.glVec!);
-            return result;
-        } else {
-            return this.divide(this.length());
-        }
+        const result = new Vec3();
+        glMatrix.vec3.normalize(result.glVec, this.glVec);
+        return result;
     }
 
     // Static methods for random vector generation
     static random(min: number = 0, max: number = 1): Vec3 {
-        if (USE_GL_MATRIX) {
-            const result = new Vec3();
-            for (let i = 0; i < 3; i++) {
-                result.glVec![i] = min + (max - min) * Math.random();
-            }
-            return result;
-        } else {
-            return new Vec3(
-                min + (max - min) * Math.random(),
-                min + (max - min) * Math.random(),
-                min + (max - min) * Math.random()
-            );
+        const result = new Vec3();
+        for (let i = 0; i < 3; i++) {
+            result.glVec[i] = min + (max - min) * Math.random();
         }
+        return result;
     }
 
     static randomInUnitSphere(): Vec3 {
@@ -317,25 +225,21 @@ export function unitVector(v: Vec3): Vec3 {
  * @returns A new vector representing the reflection.
  */
 export function reflect(v: Vec3, n: Vec3): Vec3 {
-    if (USE_GL_MATRIX) {
-        // Use temporary vectors from the pool for intermediate calculations
-        const temp = getTempVec3();
-        const result = new Vec3();
-        
-        // Calculate dot product
-        const dotProduct = v.dot(n);
-        
-        // Calculate 2 * dot(v, n) * n
-        glMatrix.vec3.scale(temp, n.glVec!, 2 * dotProduct);
-        
-        // Subtract from v
-        glMatrix.vec3.subtract(result.glVec!, v.glVec!, temp);
-        
-        // Reset the vector pool for the next operations
-        resetVecPool();
-        
-        return result;
-    } else {
-        return v.subtract(n.multiply(2 * v.dot(n)));
-    }
+    // Use temporary vectors from the pool for intermediate calculations
+    const temp = getTempVec3();
+    const result = new Vec3();
+    
+    // Calculate dot product
+    const dotProduct = v.dot(n);
+    
+    // Calculate 2 * dot(v, n) * n
+    glMatrix.vec3.scale(temp, n.glVec, 2 * dotProduct);
+    
+    // Subtract from v
+    glMatrix.vec3.subtract(result.glVec, v.glVec, temp);
+    
+    // Reset the vector pool for the next operations
+    resetVecPool();
+    
+    return result;
 }
