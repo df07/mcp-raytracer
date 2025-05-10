@@ -1,5 +1,5 @@
 /* Specs: camera.md */
-import { Vec3, Point3, Color, cross, unitVector } from './vec3.js';
+import { Vec3, Point3, Color, cross } from './vec3.js';
 import { Ray } from './ray.js';
 import { Hittable } from './hittable.js';
 import { Interval } from './interval.js';
@@ -44,8 +44,8 @@ export class Camera {
 
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
         // Use vec3 methods instead of standalone functions
-        this.w = unitVector(lookfrom.subtract(lookat));
-        this.u = unitVector(cross(vup, this.w));
+        this.w = lookfrom.subtract(lookat).unitVector();
+        this.u = cross(vup, this.w).unitVector();
         this.v = cross(this.w, this.u);
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.

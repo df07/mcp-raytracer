@@ -1,4 +1,4 @@
-import { Vec3, Point3, Color, dot, cross, unitVector } from '../src/vec3.js';
+import { Vec3, Point3, Color, dot, cross } from '../src/vec3.js';
 
 describe('Vec3', () => {
     // --- Constructor and Accessors --- 
@@ -201,14 +201,14 @@ describe('Vec3 Utility Functions', () => {
     it('should calculate the unit vector correctly', () => {
         const v = new Vec3(3, 4, 0);
         const length = v.length(); // 5
-        const unitV = unitVector(v);
+        const unitV = v.unitVector();
         expect(unitV.x).toBeCloseTo(3 / length);
         expect(unitV.y).toBeCloseTo(4 / length);
         expect(unitV.z).toBeCloseTo(0 / length);
         expect(unitV.length()).toBeCloseTo(1);
 
         // Test unit vector of a unit vector
-        const unitI = unitVector(i);
+        const unitI = i.unitVector();
         expect(unitI).toEqual(i);
         expect(unitI.length()).toBeCloseTo(1);
 

@@ -135,6 +135,27 @@ export class Vec3 {
     }
 
     /**
+     * Calculates the reflection of a vector around a normal vector.
+     * @param n The normal vector to reflect around (assumed to be unit length).
+     * @param pool Optional vector pool to use for result allocation
+     * @returns A new vector representing the reflection.
+     */
+    reflect(n: Vec3, pool?: VectorPool): Vec3 {
+        const result = pool ? pool.get() : new Vec3();
+        
+        // Calculate dot product
+        const dotProduct = this.dot(n);
+        
+        // Use a pooled vector for the intermediate n*2*dot calculation
+        const scaledNormal = n.multiply(2 * dotProduct, pool);
+        
+        // Subtract from v and store in result
+        glMatrix.vec3.subtract(result.glVec, this.glVec, scaledNormal.glVec);
+        
+        return result;
+    }
+
+    /**
      * Checks if the vector is very close to zero in all dimensions.
      * Used to prevent degenerate scatter directions.
      */
@@ -144,7 +165,9 @@ export class Vec3 {
         return (Math.abs(this.x) < s) && 
                (Math.abs(this.y) < s) && 
                (Math.abs(this.z) < s);
-    }    /**
+    }    
+    
+    /**
      * Returns a unit vector in the same direction as this vector.
      * @param pool Optional vector pool to use for result allocation
      * @returns A unit vector with the same direction as this vector
@@ -153,7 +176,9 @@ export class Vec3 {
         const result = pool ? pool.get() : new Vec3();
         glMatrix.vec3.normalize(result.glVec, this.glVec);
         return result;
-    }    // Static methods for random vector generation
+    }    
+    
+    // Static methods for random vector generation
     /**
      * Creates a random vector with components in the given range.
      * @param min Minimum value for components (default 0)
@@ -229,32 +254,6 @@ export function dot(u: Vec3, v: Vec3): number {
 
 export function cross(u: Vec3, v: Vec3, pool?: VectorPool): Vec3 {
     return u.cross(v, pool);
-}
-
-export function unitVector(v: Vec3, pool?: VectorPool): Vec3 {
-    return v.unitVector(pool);
-}
-
-/**
- * Calculates the reflection of a vector around a normal vector.
- * @param v The incident vector to reflect (assumed to be pointing in).
- * @param n The normal vector to reflect around (assumed to be unit length).
- * @param pool Optional vector pool to use for result allocation
- * @returns A new vector representing the reflection.
- */
-export function reflect(v: Vec3, n: Vec3, pool?: VectorPool): Vec3 {
-    const result = pool ? pool.get() : new Vec3();
-    
-    // Calculate dot product
-    const dotProduct = v.dot(n);
-    
-    // Use a pooled vector for the intermediate n*2*dot calculation
-    const scaledNormal = n.multiply(2 * dotProduct, pool);
-    
-    // Subtract from v and store in result
-    glMatrix.vec3.subtract(result.glVec, v.glVec, scaledNormal.glVec);
-    
-    return result;
 }
 
 

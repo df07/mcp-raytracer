@@ -1,5 +1,5 @@
 import { Camera } from '../src/camera.js';
-import { Vec3, Point3, Color, unitVector } from '../src/vec3.js';
+import { Vec3, Point3, Color } from '../src/vec3.js';
 import { Ray } from '../src/ray.js';
 import { Hittable, HitRecord } from '../src/hittable.js';
 import { Interval } from '../src/interval.js';
@@ -138,7 +138,7 @@ describe('Camera', () => {
         const testRay = cameraHitScatter.getRay(i, j);
         // The ray for the center pixel should point directly along -w (towards lookat)
         // Need to normalize the direction vector for comparison as getRay doesn't guarantee unit vectors
-        const direction = unitVector(testRay.direction); // Use imported unitVector
+        const direction = testRay.direction.unitVector();
         expect(direction.x).toBeCloseTo(0); // Use getter property
         expect(direction.y).toBeCloseTo(0); // Use getter property
         expect(direction.z).toBeCloseTo(-1); // Use getter property, points towards -Z

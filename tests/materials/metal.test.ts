@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { Metal } from '../../src/materials/metal.js';
-import { Vec3, reflect, unitVector } from '../../src/vec3.js';
+import { Vec3 } from '../../src/vec3.js';
 import { Ray } from '../../src/ray.js';
 import { HitRecord } from '../../src/hittable.js';
 
@@ -72,7 +72,7 @@ describe('Metal Material', () => {
     // Create a simple mock implementation to test the core reflection logic
     class MockMetal extends Metal {
       testReflectionDirection(inDir: Vec3, normal: Vec3): boolean {
-        const reflected = reflect(unitVector(inDir), normal);
+        const reflected = inDir.unitVector().reflect(normal);
         // Return true if the reflection is valid (dot product > 0)
         return reflected.dot(normal) > 0;
       }
@@ -194,7 +194,7 @@ describe('Vec3 reflect function', () => {
     const n = new Vec3(0, 1, 0);  // Normal pointing up
     
     // Act
-    const reflected = reflect(v, n);
+    const reflected = v.reflect(n);
     
     // Assert
     // For this setup, the reflection should be 45 degrees up

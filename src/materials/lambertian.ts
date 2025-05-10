@@ -4,6 +4,7 @@ import { Ray } from '../ray.js';
 import { Color, Vec3 } from '../vec3.js';
 import { HitRecord } from '../hittable.js';
 import { Material } from './material.js';
+import { VectorPool } from '../vec3.js';
 
 /**
  * Lambertian (diffuse) material that scatters light in random directions.
@@ -11,8 +12,11 @@ import { Material } from './material.js';
 export class Lambertian implements Material {
   readonly albedo: Color;
 
+  private vectorPool: VectorPool;
+
   constructor(albedo: Color) {
     this.albedo = albedo;
+    this.vectorPool = new VectorPool();
   }
 
   /**
@@ -22,20 +26,20 @@ export class Lambertian implements Material {
    * @returns An object containing the scattered ray and albedo as attenuation.
    */
   scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
+    this.vectorPool.reset(); // Reset vector pool at the beginning of each scatter
+    const pool = this.vectorPool; // avoid repetition
+    
     // Calculate scatter direction: normal + random unit vector
-    let scatterDirection = rec.normal.add(Vec3.randomUnitVector());
+    let scatterDirection = rec.normal.add(Vec3.randomUnitVector(pool), pool);
 
     // Catch degenerate scatter direction (when random unit vector is exactly opposite to normal)
     if (scatterDirection.nearZero()) {
       scatterDirection = rec.normal;
     }
-
-    // Create scattered ray from hit point in the scatter direction
-    const scattered = new Ray(rec.p, scatterDirection);
     
     // Return scattered ray and albedo as attenuation
     return {
-      scattered,
+      scattered: new Ray(rec.p, Vec3.clone(scatterDirection)),
       attenuation: this.albedo
     };
   }
