@@ -144,7 +144,7 @@ export class Camera {
      * @param verbose Whether to log progress to stderr.
      */
     render(pixelData: Uint8ClampedArray, verbose: boolean = false): void {
-        const pool = new VectorPool(100); // Create a new vector pool for rendering
+        const pool = new VectorPool(1600); // Create a new vector pool for rendering
 
         let offset = 0;
 
@@ -166,7 +166,7 @@ export class Camera {
                     const r = this.getRay(i + Math.random(), j + Math.random());
                     const color = this.rayColor(r, this.maxDepth);
 
-                    Vec3.usePool(null); // Release the pool after use
+                    Vec3.usePool(null); // Release the pool after each ray
 
                     // Accumulate color for averaging
                     pixelColor = pixelColor.add(color); // don't use pool since the pixelColor vector escapes the loop

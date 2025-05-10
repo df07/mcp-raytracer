@@ -8,20 +8,22 @@ import { HittableList } from './hittableList.js';
 import { Camera } from './camera.js';
 import { Lambertian } from './materials/lambertian.js';
 import { Metal } from './materials/metal.js';
+import { generateRandomSphereScene, SceneConfig } from './sceneGenerator.js';
 
 /**
  * Generates a PNG image buffer for the raytraced scene using the Camera class.
  *
  * @param imageWidth The desired width of the image.
- * @param verbose Log progress to stderr during generation.
  * @param samplesPerPixel Number of samples per pixel for anti-aliasing (higher = better quality but slower).
+ * @param verbose Log progress to stderr during generation.
+ * @param sceneConfig Configuration for the scene to render.
  * @returns A Promise resolving to the PNG image buffer.
  */
 export async function generateImageBuffer(
     imageWidth: number = 400,
     samplesPerPixel: number = 100,
     verbose: boolean = false,
-    useDefaultScene: boolean = true
+    sceneConfig: SceneConfig = { type: 'default' }
 ): Promise<Buffer> {
     // Image setup
     const aspectRatio = 16.0 / 9.0;
@@ -29,9 +31,19 @@ export async function generateImageBuffer(
     const channels = 3; // RGB - Camera.render uses 3 channels
     // Use Uint8ClampedArray as expected by Camera.render
     const pixelData = new Uint8ClampedArray(imageWidth * imageHeight * channels);    // World setup
-    const world = new HittableList();
+    let world: HittableList;
 
-    if (useDefaultScene) {
+    // Create the scene based on configuration
+    if (sceneConfig.type === 'random') {
+        // Generate a random scene with the specified number of spheres
+        world = generateRandomSphereScene(sceneConfig.count, sceneConfig.options);
+        if (verbose) {
+            console.error(`Generated random scene with ${sceneConfig.count} spheres`);
+        }
+    } else {
+        // Default scene
+        world = new HittableList();
+        
         // Create materials
         const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0));  // Yellow-ish ground
         const materialCenter = new Lambertian(new Vec3(0.7, 0.3, 0.3));  // Reddish center
@@ -43,14 +55,14 @@ export async function generateImageBuffer(
         world.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter));      // Center sphere
         world.add(new Sphere(new Vec3(-1, 0, -1), 0.5, materialLeft));       // Left sphere (metal)
         world.add(new Sphere(new Vec3(1, 0, -1), 0.5, materialRight));       // Right sphere (fuzzy metal)
-    }
-
-    // Camera setup
+    }    // Camera setup - same for both default and random scenes
     
     const vfov = 90; // Vertical field-of-view in degrees
-    const lookfrom: Point3 = new Vec3(0, 0, 0); // Camera position
-    const lookat: Point3 = new Vec3(0, 0, -1); // Point camera is looking at
-    const vup = new Vec3(0, 1, 0); // Camera-relative "up" direction
+    
+    // Camera position and look direction - same for both scene types
+    const lookfrom = new Vec3(0, 0, 0); // Camera position at origin
+    const lookat = new Vec3(0, 0, -1);  // Looking down the negative z-axis
+    const vup = new Vec3(0, 1, 0);     // Camera-relative "up" direction
 
     const camera = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, world, samplesPerPixel);
 

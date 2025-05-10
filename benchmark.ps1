@@ -7,6 +7,8 @@ param (
     [int]$samples = 20,
     [int]$iterations = 1,
     [string]$outputDir = "benchmark_results",
+    [int]$sphereCount = 0,
+    [int]$seed = -1,
     [switch]$profile = $false # Parameter for enabling Node.js profiling (automatically processes the output)
 )
 
@@ -26,12 +28,26 @@ if ($profile) {
     Write-Host "`n====== Running with Node.js profiler enabled ======"
 }
 
-# Run raytracer benchmark
-$outputFile = Join-Path $outputDir "raytracing_${timestamp}.png"
-Write-Host "`n====== Running raytracer benchmark ======"
-Write-Host "Command: $nodeCmd dist/src/index.js --benchmark --width $width --samples $samples --iterations $iterations --output $outputFile"
+# Build the command with scene parameters
+$cmd = "$nodeCmd dist/src/index.js --benchmark --width $width --samples $samples --iterations $iterations"
 
-$benchmarkOutput = & Invoke-Expression "$nodeCmd dist/src/index.js --benchmark --width $width --samples $samples --iterations $iterations --output $outputFile 2>&1"
+# Add scene parameters if specified
+if ($sphereCount -gt 0) {
+    $cmd += " --spheres $sphereCount"
+}
+if ($seed -ne -1) {
+    $cmd += " --seed $seed"
+}
+
+# Add output file
+$outputFile = Join-Path $outputDir "raytracing_${timestamp}.png"
+$cmd += " --output $outputFile"
+
+# Run raytracer benchmark
+Write-Host "`n====== Running raytracer benchmark ======"
+Write-Host "Command: $cmd"
+
+$benchmarkOutput = & Invoke-Expression "$cmd 2>&1"
 
 # Log output to file
 "`n====== Raytracer Benchmark ======" | Out-File -FilePath $logFile -Append

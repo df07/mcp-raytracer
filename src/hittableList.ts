@@ -10,7 +10,7 @@ import { Interval } from './interval.js'; // Added import
  * against all objects in the list.
  */
 export class HittableList implements Hittable {
-  private objects: Hittable[] = [];
+  public objects: Hittable[] = [];
 
   /**
    * Creates an empty HittableList or initializes it with a single object.

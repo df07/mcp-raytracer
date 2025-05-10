@@ -283,7 +283,7 @@ export class VectorPool {
     private pool: Vec3[];
     private index: number;
     private initialSize: number;
-    private readonly maxSize: number = 10000; // Maximum pool size to prevent unbounded memory growth
+    private readonly maxSize: number = 640000; // Maximum pool size to prevent unbounded memory growth
     
     constructor(size: number = 100) {
         this.pool = [];

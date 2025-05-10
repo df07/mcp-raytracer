@@ -7,6 +7,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { generateImageBuffer } from "./raytracer.js";
+import { SceneConfig } from './sceneGenerator.js';
 
 // Helper to get the root directory (assuming index.ts is in src)
 const __filename = fileURLToPath(import.meta.url);
@@ -65,13 +66,21 @@ export const showImageToolHandler = async (/* No args expected */): Promise<any>
 };
 
 // Define handler for the new raytrace tool
-export const raytraceToolHandler = async ({ verbose = false, width = 400, samples = 100 }: 
-  { verbose?: boolean, width?: number, samples?: number }): Promise<any> => {
-  console.error(`[Tool:raytrace] Request received. Generating PNG via ray tracing. Width: ${width}, Samples: ${samples}, Verbose: ${verbose}`);
+export const raytraceToolHandler = async ({ 
+  verbose = false, 
+  width = 400, 
+  samples = 100,
+  scene = { type: 'default' as const },
+}: { 
+  verbose?: boolean, 
+  width?: number, 
+  samples?: number,
+  scene?: { type: 'default' } | { type: 'random', count: number, options?: any }
+}): Promise<any> => {
+  console.error(`[Tool:raytrace] Request received. Generating PNG via ray tracing. Width: ${width}, Samples: ${samples}, Verbose: ${verbose}, Scene: ${JSON.stringify(scene)}`);
   try {
-    // First update samplesPerPixel in the Camera constructor
-    // Generate the image using the refactored function with custom width and samples
-    const pngBuffer = await generateImageBuffer(width, samples, verbose, true);
+    // Generate the image using the refactored function with the specified scene config
+    const pngBuffer = await generateImageBuffer(width, samples, verbose, scene);
     const base64Data = pngBuffer.toString('base64');
 
     return {
@@ -114,7 +123,25 @@ server.tool(
 const raytraceInputSchema = z.object({
   verbose: z.boolean().optional().default(false).describe("Log progress to stderr during generation"),
   width: z.number().optional().default(400).describe("Width of the generated image"),
-  samples: z.number().optional().default(100).describe("Number of samples per pixel (higher = better quality but slower)")
+  samples: z.number().optional().default(100).describe("Number of samples per pixel (higher = better quality but slower)"),
+  scene: z.union([
+    z.object({
+      type: z.literal('default')
+    }).default({ type: 'default' }),
+    z.object({
+      type: z.literal('random'),
+      count: z.number().min(1).describe("Number of spheres to generate"),
+      options: z.object({
+        centerPoint: z.any().optional().describe("Center point for sphere distribution"),
+        radius: z.number().positive().optional().describe("Radius of the distribution area"),
+        minSphereRadius: z.number().positive().optional().describe("Minimum radius for generated spheres"),
+        maxSphereRadius: z.number().positive().optional().describe("Maximum radius for generated spheres"),
+        groundSphere: z.boolean().optional().describe("Whether to include a large ground sphere"),
+        groundY: z.number().optional().describe("Y-position of the ground sphere"),
+        groundRadius: z.number().positive().optional().describe("Radius of the ground sphere")
+      }).optional()
+    })
+  ]).optional().default({ type: 'default' }).describe("Scene configuration")
 });
 
 server.tool(
@@ -146,15 +173,15 @@ function isMainModule(importMetaUrl: string) {
 // New function to run performance testing from command line
 async function runRaytracerBenchmark() {
   // Parse command line arguments
-  const args = process.argv.slice(2);  
-  const options = {
+  const args = process.argv.slice(2);    const options = {
     width: 400,
     samples: 100,
     verbose: true,
     output: null as string | null,
-    iterations: 1
+    iterations: 1,
+    sphereCount: 0,
+    seed: -1
   };
-
   // Process args
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -164,9 +191,12 @@ async function runRaytracerBenchmark() {
     } else if (arg === '--samples' || arg === '-s') {
       options.samples = parseInt(args[++i], 10);
     } else if (arg === '--output' || arg === '-o') {
-      options.output = args[++i];
-    } else if (arg === '--iterations' || arg === '-i') {
+      options.output = args[++i];    } else if (arg === '--iterations' || arg === '-i') {
       options.iterations = parseInt(args[++i], 10);
+    } else if (arg === '--spheres') {
+      options.sphereCount = parseInt(args[++i], 10);
+    } else if (arg === '--seed') {
+      options.seed = parseInt(args[++i], 10);
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
 Raytracer Performance Benchmark
@@ -174,10 +204,12 @@ Raytracer Performance Benchmark
 Usage: node dist/src/index.js [options]
 
 Options:
-  --width, -w <number>     Image width (default: 400)
+  --width, -w <number>     Image width (default: 400)  
   --samples, -s <number>   Samples per pixel (default: 100)
   --output, -o <file>      Output PNG file
   --iterations, -i <num>   Number of iterations to run (default: 1)
+  --spheres <number>       Number of random spheres to generate (0 = default scene)
+  --seed <number>          Random seed for deterministic scene generation
   --help, -h               Show this help
       `);
       process.exit(0);
@@ -198,14 +230,22 @@ Options:
     
     // Measure time
     const iterStartTime = Date.now();
-    
-    try {
-      // Generate the image
+      try {
+      // Configure scene based on command line options
+      const sceneConfig = options.sphereCount > 0 
+        ? { 
+            type: 'random' as const, 
+            count: options.sphereCount, 
+            options: options.seed >= 0 ? { seed: options.seed } : undefined 
+          }
+        : { type: 'default' as const };
+
+      // Generate the image with the configured scene
       const pngBuffer = await generateImageBuffer(
-        options.width, 
+        options.width,
         options.samples,
-        options.verbose, 
-        true // Use default scene
+        options.verbose,
+        sceneConfig
       );
       
       const iterDuration = Date.now() - iterStartTime;
