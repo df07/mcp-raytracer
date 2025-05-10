@@ -13,16 +13,18 @@ describe('Lambertian Material', () => {
 
     test('should produce a scatter result', () => {
         const lambertian = new Lambertian(new Vec3(0.8, 0.2, 0.2));
-        const hitRecord = new HitRecord();
-        hitRecord.p = new Vec3(0, 0, 0);
-        hitRecord.normal = new Vec3(0, 1, 0);
-        hitRecord.t = 1.0;
-        hitRecord.frontFace = true;
-        
+        const hitRecord: HitRecord = {
+            p: new Vec3(0, 0, 0),
+            normal: new Vec3(0, 1, 0),
+            t: 1.0,
+            frontFace: true,
+            material: lambertian
+        };
+
         const incomingRay = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
-        
+
         const scatterResult = lambertian.scatter(incomingRay, hitRecord);
-        
+
         // Should always produce a scatter result (not null)
         expect(scatterResult).not.toBeNull();
         
@@ -41,14 +43,16 @@ describe('Lambertian Material', () => {
     });    test('should handle degenerate scatter direction', () => {
         // Set up the test objects
         const lambertian = new Lambertian(new Vec3(0.8, 0.2, 0.2));
-        const hitRecord = new HitRecord();
-        hitRecord.p = new Vec3(0, 0, 0);
-        hitRecord.normal = new Vec3(0, 1, 0);
-        hitRecord.t = 1.0;
-        hitRecord.frontFace = true;
-        
+        const hitRecord: HitRecord = {
+            p: new Vec3(0, 0, 0),
+            normal: new Vec3(0, 1, 0),
+            t: 1.0,
+            frontFace: true,
+            material: lambertian
+        };
+
         const incomingRay = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
-        
+
         // We can test near-zero behavior by modifying our Vec3 implementation temporarily
         const originalRandomUnitVector = Vec3.randomUnitVector;
         Vec3.randomUnitVector = () => new Vec3(0, -1, 0); // Return opposite of normal

@@ -117,21 +117,16 @@ export class Camera {
 
         if (rec !== null) {
             // If the ray hits an object with a material, compute scattered ray
-            if (rec.material) {
-                const scatterResult = rec.material.scatter(r, rec);
-                if (scatterResult) {
-                    // Recursively trace scattered ray and multiply by attenuation
-                    return scatterResult.attenuation.multiplyVec(
-                        this.rayColor(scatterResult.scattered, depth - 1)
-                    );
-                }                
-                // If no scattering occurs (material absorbed the ray), return black
-                return new Vec3(0, 0, 0);
-            }
-            
-            // Fallback for objects without material (should not happen in practice)
-            // Map normal components to RGB values (ranging from -1 to 1, shifted to 0 to 1)
-            return rec.normal.add(new Vec3(1, 1, 1)).multiply(0.5);
+        
+            const scatterResult = rec.material.scatter(r, rec);
+            if (scatterResult) {
+                // Recursively trace scattered ray and multiply by attenuation
+                return scatterResult.attenuation.multiplyVec(
+                    this.rayColor(scatterResult.scattered, depth - 1)
+                );
+            }                
+            // If no scattering occurs (material absorbed the ray), return black
+            return new Vec3(0, 0, 0);
         }
 
         // If the ray doesn't hit anything, compute background gradient color

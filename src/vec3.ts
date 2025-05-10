@@ -205,6 +205,12 @@ export class Vec3 {
             return inUnitSphere.negate(pool);
         }
     }
+
+    static clone(v: Vec3, pool?: VectorPool): Vec3 {
+        const result = pool ? pool.get() : new Vec3();
+        glMatrix.vec3.copy(result.glVec, v.glVec);
+        return result;
+    }
 }
 
 // Type aliases

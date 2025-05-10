@@ -38,13 +38,15 @@ describe('Metal Material', () => {
     
     const p = new Vec3(1, -1, 0); // Hit point
     const normal = new Vec3(0, 1, 0); // Straight up normal
-    
-    const hitRecord = new HitRecord();
-    hitRecord.p = p;
-    hitRecord.normal = normal;
-    hitRecord.t = 1.414; // √2
-    hitRecord.frontFace = true;
-    
+
+    const hitRecord: HitRecord = {
+      p: p,
+      normal: normal,
+      t: 1.414, // √2
+      frontFace: true,
+      material: metal
+    };
+
     // Act
     const scatterResult = metal.scatter(ray, hitRecord);
     
@@ -102,13 +104,15 @@ describe('Metal Material', () => {
     
     const p = new Vec3(0, 1, 0); // Hit point
     const normal = new Vec3(0, 1, 0); // Normal pointing up
-    
-    const hitRecord = new HitRecord();
-    hitRecord.p = p;
-    hitRecord.normal = normal;
-    hitRecord.t = 1.0;
-    hitRecord.frontFace = true;
-    
+
+    const hitRecord: HitRecord = {
+      p: p,
+      normal: normal,
+      t: 1.0,
+      frontFace: true,
+      material: metal
+    };
+
     // Act
     const scatterResult = metal.scatter(ray, hitRecord);
     
@@ -129,13 +133,15 @@ describe('Metal Material', () => {
     
     const p = new Vec3(0, -1, 0); // Hit point
     const normal = new Vec3(0, 1, 0); // Straight up normal
-    
-    const hitRecord = new HitRecord();
-    hitRecord.p = p;
-    hitRecord.normal = normal;
-    hitRecord.t = 1.0;
-    hitRecord.frontFace = true;
-    
+
+    const hitRecord: HitRecord = {
+      p: p,
+      normal: normal,
+      t: 1.0,
+      frontFace: true,
+      material: metal
+    };
+
     // Act - Run multiple scatter calculations to test fuzzy behavior
     const results: Ray[] = [];
     for (let i = 0; i < 10; i++) {

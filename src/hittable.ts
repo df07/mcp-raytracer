@@ -8,33 +8,12 @@ import { Material } from './materials/material.js';
 /**
  * Stores information about a ray-object intersection.
  */
-export class HitRecord {
+export interface HitRecord {
   p: Point3;
   normal: Vec3;
   t: number;
   frontFace: boolean;
-  material: Material | null;
-
-  constructor() {
-    // Initialize with default values
-    this.p = new Vec3(0, 0, 0);
-    this.normal = new Vec3(0, 0, 0);
-    this.t = 0;
-    this.frontFace = false;
-    this.material = null; // Initialize material to null
-  }
-  
-  /**
-   * Sets the hit record's normal vector.
-   * Ensures the normal always points against the incident ray.
-   * @param r The incident ray.
-   * @param outwardNormal The outward surface normal at the intersection point.
-   */
-  public setFaceNormal(r: Ray, outwardNormal: Vec3): void {
-    // If the dot product is non-positive, the ray hits from the outside (or tangentially).
-    this.frontFace = r.direction.dot(outwardNormal) <= 0;
-    this.normal = this.frontFace ? outwardNormal : outwardNormal.negate();
-  }
+  material: Material;
 }
 
 /**

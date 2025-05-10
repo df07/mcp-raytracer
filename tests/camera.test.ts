@@ -32,9 +32,9 @@ class MockMaterial implements Material {
 class MockHittable implements Hittable {
     shouldHit: boolean;
     hitNormal: Vec3;
-    material: Material | null;
+    material: Material;
 
-    constructor(shouldHit: boolean, hitNormal: Vec3 = new Vec3(0, 0, 0), material: Material | null = null) {
+    constructor(shouldHit: boolean, hitNormal: Vec3 = new Vec3(0, 0, 0), material: Material = new MockMaterial(new Vec3(1, 1, 1))) {
         this.shouldHit = shouldHit;
         this.hitNormal = hitNormal;
         this.material = material;
@@ -42,13 +42,13 @@ class MockHittable implements Hittable {
 
     hit(r: Ray, rayT: Interval): HitRecord | null {
         if (this.shouldHit && rayT.contains(1.0)) { // Assume hit at t=1 for simplicity
-            const rec = new HitRecord();
-            rec.t = 1.0;
-            rec.p = r.at(1.0);
-            // Simulate setting face normal - for this test, just use the provided normal
-            rec.normal = this.hitNormal;
-            rec.frontFace = true; // Assume front face hit
-            rec.material = this.material;
+            const rec: HitRecord = {
+                p: r.at(1.0),
+                normal: this.hitNormal,
+                t: 1.0,
+                frontFace: true,
+                material: this.material
+            };
             return rec;
         }
         return null;
@@ -75,7 +75,7 @@ describe('Camera', () => {
     const greenNoScatterMaterial = new MockMaterial(new Vec3(0, 1, 0), false);
 
     const mockWorldMiss = new MockHittable(false);
-    const mockWorldHitNoMaterial = new MockHittable(true, hitNormal, null);
+    const mockWorldHitNoMaterial = new MockHittable(true, hitNormal, new MockMaterial(new Vec3(1, 1, 1)));
     const mockWorldHitScatter = new MockHittable(true, hitNormal, redScatterMaterial);
     const mockWorldHitNoScatter = new MockHittable(true, hitNormal, greenNoScatterMaterial);
 
@@ -179,17 +179,6 @@ describe('Camera', () => {
         const unitDirection = backgroundRay.direction.unitVector();
         const a = 0.5 * (unitDirection.y + 1.0);
         const expectedColor = new Vec3(1.0, 1.0, 1.0).multiply(1.0 - a).add(new Vec3(0.5, 0.7, 1.0).multiply(a));
-
-        expect(colorResult.x).toBeCloseTo(expectedColor.x);
-        expect(colorResult.y).toBeCloseTo(expectedColor.y);
-        expect(colorResult.z).toBeCloseTo(expectedColor.z);
-    });
-
-    test('rayColor returns normal-based color when ray hits', () => {
-        // ... test using cameraHit ...
-        const colorResult = cameraHitNoMaterial.rayColor(hittingRay);
-        // Calculate expected color based on the mock hit normal
-        const expectedColor = hitNormal.add(new Vec3(1, 1, 1)).multiply(0.5);
 
         expect(colorResult.x).toBeCloseTo(expectedColor.x);
         expect(colorResult.y).toBeCloseTo(expectedColor.y);

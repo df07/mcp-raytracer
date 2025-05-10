@@ -35,8 +35,10 @@ export class Sphere implements Hittable {
    */
   public hit(r: Ray, rayT: Interval): HitRecord | null {
     // Reset vector pool at the beginning of each hit test
-    this.vectorPool.reset();    // Use vector pool for intermediate calculations
-    const oc: Vec3 = r.origin.subtract(this.center, this.vectorPool);
+    this.vectorPool.reset();
+    const pool = this.vectorPool; // avoid repetition    
+
+    const oc: Vec3 = r.origin.subtract(this.center, pool);
     const a = r.direction.lengthSquared();
     const halfB = oc.dot(r.direction);
     const c = oc.lengthSquared() - this.radius * this.radius;
@@ -55,24 +57,25 @@ export class Sphere implements Hittable {
       if (!rayT.surrounds(root)) {
         return null; // Both roots are outside the acceptable range
       }
-    }    // Root is valid, create and return a new HitRecord
-    const rec = new HitRecord();
-    rec.t = root;
-      // Use pooled vectors for intermediate calculations but create new vectors for the hit record
-    const pointAtT = r.at(rec.t, this.vectorPool);
-    rec.p = new Vec3(pointAtT.x, pointAtT.y, pointAtT.z); // Create a fresh Vec3 for the hit record
+    }    
+    
+    // Root is valid, calculate the hit record
+    const pointAtT = r.at(root, pool);
     
     // Calculate the outward normal using the vector pool
-    const tempNormal = rec.p.subtract(this.center, this.vectorPool)
-                         .divide(this.radius, this.vectorPool);
-
-    // Create a fresh outwardNormal vector
-    const outwardNormal = new Vec3(tempNormal.x, tempNormal.y, tempNormal.z);
+    let normal = pointAtT.subtract(this.center, pool)
+                         .divide(this.radius, pool);
     
-    // Use the standard setFaceNormal since we've created fresh vectors
-    rec.setFaceNormal(r, outwardNormal);
-    rec.material = this.material; // Set the material in the hit record
+    // If the ray hits from the inside, negate the normal
+    const frontFace = r.direction.dot(normal) <= 0;
+    if (!frontFace) normal = normal.negate(pool);
 
-    return rec;
+    return {
+      t: root,
+      p: Vec3.clone(pointAtT),    // Create a fresh Vec3, don't use pool
+      normal: Vec3.clone(normal), // Create a fresh Vec3, don't use pool
+      frontFace: frontFace,
+      material: this.material
+    };
   }
 }
