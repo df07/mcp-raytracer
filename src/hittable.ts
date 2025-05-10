@@ -1,7 +1,7 @@
 /* Specs: hittable.md */
 
 import { Ray } from './ray.js';
-import { Point3, Vec3 } from './vec3.js';
+import { Point3, Vec3, VectorPool } from './vec3.js';
 import { Interval } from './interval.js';
 import { Material } from './materials/material.js';
 
@@ -23,7 +23,7 @@ export class HitRecord {
     this.frontFace = false;
     this.material = null; // Initialize material to null
   }
-
+  
   /**
    * Sets the hit record's normal vector.
    * Ensures the normal always points against the incident ray.

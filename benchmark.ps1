@@ -34,38 +34,26 @@ Write-Host "Command: $nodeCmd dist/src/index.js --benchmark --width $width --sam
 $benchmarkOutput = & Invoke-Expression "$nodeCmd dist/src/index.js --benchmark --width $width --samples $samples --iterations $iterations --output $outputFile 2>&1"
 
 # Log output to file
-"`n====== GL-Matrix Raytracer Benchmark ======" | Out-File -FilePath $logFile -Append
+"`n====== Raytracer Benchmark ======" | Out-File -FilePath $logFile -Append
 $benchmarkOutput | Out-File -FilePath $logFile -Append
 
 # Display and extract results
 Write-Host "`nResults for raytracer:"
 $benchmarkAvgTime = -1
+$iteration = 1;
 foreach ($line in $benchmarkOutput) {
-    if ($line -match "Average render time: (\d+\.\d+)ms") {
+    if ($line -match "^  Render time: ([\d\.]+)ms") {
+        $renderTime = [double]$Matches[1]
+        Write-Host "  Render time (iteration $iteration): $renderTime ms"
+        $iteration++
+    }
+    if ($line -match "Average render time: ([\d\.]+)ms") {
         $benchmarkAvgTime = [double]$Matches[1]
         Write-Host "  Average render time: $benchmarkAvgTime ms"
-        break
     }
 }
 
-# Prepare node command for GL-Matrix implementation
-$glMatrixNodeCmd = "node"
-if ($profile) {
-    $glMatrixNodeCmd = "node --prof"
-}
-
-$glMatrixOutputFile = Join-Path $outputDir "gl_matrix_raytracing_${timestamp}.png"
-$glMatrixOutput = & Invoke-Expression "$glMatrixNodeCmd dist/src/index.js --benchmark --gl-matrix --width $width --samples $samples --iterations $iterations --output $glMatrixOutputFile 2>&1"
-
-# Log output to file
-"`n====== GL-Matrix Implementation Benchmark ======" | Out-File -FilePath $logFile -Append
-$glMatrixOutput | Out-File -FilePath $logFile -Append
-
-# Display and extract results
-Write-Host "`nResults for GL-Matrix implementation:"
 # Log benchmark results
-Write-Host "`n====== Benchmark Results Summary ======"
-Write-Host "Standard implementation: $benchmarkAvgTime ms"
 Write-Host "`nDetailed results saved to $logFile"
 Write-Host "Image saved to $outputFile"
 

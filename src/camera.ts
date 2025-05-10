@@ -64,7 +64,9 @@ export class Camera {
         const halfViewportV = viewportV.divide(2);
         const viewportUpperLeft = this.center.subtract(this.w).subtract(halfViewportU).subtract(halfViewportV);
         this.pixel00Loc = viewportUpperLeft.add(this.pixelDeltaU.add(this.pixelDeltaV).multiply(0.5));
-    }    /**
+    }    
+    
+    /**
      * Gets a camera ray for the pixel at location i,j.
      * If anti-aliasing is enabled, generates rays with random offsets within the pixel.
      * @param i The horizontal pixel coordinate.
