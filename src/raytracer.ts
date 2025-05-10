@@ -19,8 +19,9 @@ import { Metal } from './materials/metal.js';
  */
 export async function generateImageBuffer(
     imageWidth: number = 400,
+    samplesPerPixel: number = 100,
     verbose: boolean = false,
-    samplesPerPixel: number = 100
+    useDefaultScene: boolean = true
 ): Promise<Buffer> {
     // Image setup
     const aspectRatio = 16.0 / 9.0;
@@ -29,18 +30,23 @@ export async function generateImageBuffer(
     // Use Uint8ClampedArray as expected by Camera.render
     const pixelData = new Uint8ClampedArray(imageWidth * imageHeight * channels);    // World setup
     const world = new HittableList();
+
+    if (useDefaultScene) {
+        // Create materials
+        const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0));  // Yellow-ish ground
+        const materialCenter = new Lambertian(new Vec3(0.7, 0.3, 0.3));  // Reddish center
+        const materialLeft = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0);    // Shiny silver (no fuzz)
+        const materialRight = new Metal(new Vec3(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
+
+        // Create spheres with materials
+        world.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround)); // Ground sphere
+        world.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter));      // Center sphere
+        world.add(new Sphere(new Vec3(-1, 0, -1), 0.5, materialLeft));       // Left sphere (metal)
+        world.add(new Sphere(new Vec3(1, 0, -1), 0.5, materialRight));       // Right sphere (fuzzy metal)
+    }
+
+    // Camera setup
     
-    // Create materials
-    const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0));  // Yellow-ish ground
-    const materialCenter = new Lambertian(new Vec3(0.7, 0.3, 0.3));  // Reddish center
-    const materialLeft = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0);    // Shiny silver (no fuzz)
-    const materialRight = new Metal(new Vec3(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
-    
-    // Create spheres with materials
-    world.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround)); // Ground sphere
-    world.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter));      // Center sphere
-    world.add(new Sphere(new Vec3(-1, 0, -1), 0.5, materialLeft));       // Left sphere (metal)
-    world.add(new Sphere(new Vec3(1, 0, -1), 0.5, materialRight));       // Right sphere (fuzzy metal)// Camera setup
     const vfov = 90; // Vertical field-of-view in degrees
     const lookfrom: Point3 = new Vec3(0, 0, 0); // Camera position
     const lookat: Point3 = new Vec3(0, 0, -1); // Point camera is looking at
@@ -48,7 +54,7 @@ export async function generateImageBuffer(
 
     const camera = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, world, samplesPerPixel);
 
-    let startTime = Date.now();;
+    let startTime = Date.now();
     if (verbose) {
         console.error('Starting PNG render with Camera class...');
     }

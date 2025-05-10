@@ -71,7 +71,7 @@ export const raytraceToolHandler = async ({ verbose = false, width = 400, sample
   try {
     // First update samplesPerPixel in the Camera constructor
     // Generate the image using the refactored function with custom width and samples
-    const pngBuffer = await generateImageBuffer(width, verbose, samples);
+    const pngBuffer = await generateImageBuffer(width, samples, verbose, true);
     const base64Data = pngBuffer.toString('base64');
 
     return {
@@ -146,11 +146,12 @@ function isMainModule(importMetaUrl: string) {
 // New function to run performance testing from command line
 async function runRaytracerBenchmark() {
   // Parse command line arguments
-  const args = process.argv.slice(2);  const options: { [key: string]: any } = {
+  const args = process.argv.slice(2);  
+  const options = {
     width: 400,
     samples: 100,
     verbose: true,
-    output: null,
+    output: null as string | null,
     iterations: 1
   };
 
@@ -202,8 +203,9 @@ Options:
       // Generate the image
       const pngBuffer = await generateImageBuffer(
         options.width, 
+        options.samples,
         options.verbose, 
-        options.samples
+        true // Use default scene
       );
       
       const iterDuration = Date.now() - iterStartTime;

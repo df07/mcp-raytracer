@@ -1,4 +1,4 @@
-import { Vec3, Point3, Color, dot, cross } from '../src/vec3.js';
+import { Vec3, Point3, Color } from '../src/vec3.js';
 
 describe('Vec3', () => {
     // --- Constructor and Accessors --- 
@@ -181,21 +181,21 @@ describe('Vec3 Utility Functions', () => {
     const zeroVec = new Vec3(0, 0, 0);
 
     it('should calculate the dot product correctly', () => {
-        expect(dot(v1, v2)).toBe(1 * 4 + 2 * -5 + 3 * 6); // 4 - 10 + 18 = 12
-        expect(dot(v1, zeroVec)).toBe(0);
-        expect(dot(i, j)).toBe(0); // Orthogonal
-        expect(dot(i, i)).toBe(1); // Parallel unit vector
+        expect(v1.dot(v2)).toBe(1 * 4 + 2 * -5 + 3 * 6); // 4 - 10 + 18 = 12
+        expect(v1.dot(zeroVec)).toBe(0);
+        expect(i.dot(j)).toBe(0); // Orthogonal
+        expect(i.dot(i)).toBe(1); // Parallel unit vector
     });
 
     it('should calculate the cross product correctly', () => {
         // v1 x v2 = (2*6 - 3*(-5), 3*4 - 1*6, 1*(-5) - 2*4)
         //         = (12 - (-15), 12 - 6, -5 - 8)
         //         = (27, 6, -13)
-        expect(cross(v1, v2)).toEqual(new Vec3(27, 6, -13));
-        expect(cross(i, j)).toEqual(k); // i x j = k
-        expect(cross(j, i)).toEqual(k.negate()); // j x i = -k
-        expect(cross(v1, v1)).toEqual(zeroVec); // Vector crossed with itself is zero
-        expect(cross(v1, zeroVec)).toEqual(zeroVec);
+        expect(v1.cross(v2)).toEqual(new Vec3(27, 6, -13));
+        expect(i.cross(j)).toEqual(k); // i x j = k
+        expect(j.cross(i)).toEqual(k.negate()); // j x i = -k
+        expect(v1.cross(v1)).toEqual(zeroVec); // Vector crossed with itself is zero
+        expect(v1.cross(zeroVec)).toEqual(zeroVec);
     });
 
     it('should calculate the unit vector correctly', () => {

@@ -38,7 +38,7 @@ export class Sphere implements Hittable {
     this.vectorPool.reset();
     const pool = this.vectorPool; // avoid repetition    
 
-    const oc: Vec3 = r.origin.subtract(this.center, pool);
+    const oc: Vec3 = r.origin.subtract(this.center);
     const a = r.direction.lengthSquared();
     const halfB = oc.dot(r.direction);
     const c = oc.lengthSquared() - this.radius * this.radius;
@@ -63,12 +63,12 @@ export class Sphere implements Hittable {
     const pointAtT = r.at(root, pool);
     
     // Calculate the outward normal using the vector pool
-    let normal = pointAtT.subtract(this.center, pool)
-                         .divide(this.radius, pool);
+    let normal = pointAtT.subtract(this.center)
+                         .divide(this.radius);
     
     // If the ray hits from the inside, negate the normal
     const frontFace = r.direction.dot(normal) <= 0;
-    if (!frontFace) normal = normal.negate(pool);
+    if (!frontFace) normal = normal.negate();
 
     return {
       t: root,

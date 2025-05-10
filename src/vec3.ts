@@ -2,6 +2,17 @@
 
 import * as glMatrix from 'gl-matrix';
 
+interface IVectorPool {
+    get(): Vec3;
+}
+
+const NoPool: IVectorPool = {
+    get: () => new Vec3()
+}
+
+let pool: IVectorPool = NoPool;
+
+
 /**
  * Represents a 3-dimensional vector or point.
  * Implementation uses gl-matrix for optimal performance.
@@ -41,8 +52,8 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector with all components negated
      */
-    negate(pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    negate(): Vec3 {
+        const result = pool.get();
         glMatrix.vec3.negate(result.glVec, this.glVec);
         // Ensure -0 becomes 0 for consistent equality checks
         for (let i = 0; i < 3; i++) {
@@ -57,11 +68,11 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector representing the sum
      */
-    add(v: Vec3, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    add(v: Vec3): Vec3 {
+        const result = pool.get();
         glMatrix.vec3.add(result.glVec, this.glVec, v.glVec);
         return result;
-    }    
+    }
     
     /**
      * Subtract another vector from this vector.
@@ -69,8 +80,8 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector representing the difference
      */
-    subtract(v: Vec3, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    subtract(v: Vec3): Vec3 {
+        const result = pool.get();
         glMatrix.vec3.subtract(result.glVec, this.glVec, v.glVec);
         return result;
     }    
@@ -81,8 +92,8 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector representing the scaled vector
      */
-    multiply(t: number, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    multiply(t: number): Vec3 {
+        const result = pool.get();
         glMatrix.vec3.scale(result.glVec, this.glVec, t);
         return result;
     }
@@ -93,11 +104,11 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector representing the component-wise product
      */
-    multiplyVec(v: Vec3, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    multiplyVec(v: Vec3): Vec3 {
+        const result = pool.get();
         glMatrix.vec3.multiply(result.glVec, this.glVec, v.glVec);
         return result;
-    }    
+    }
     
     /**
      * Divide this vector by a scalar value.
@@ -105,8 +116,8 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector representing the divided vector
      */
-    divide(t: number, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    divide(t: number): Vec3 {
+        const result = pool.get();
         // Use direct scale with 1/t for better performance
         glMatrix.vec3.scale(result.glVec, this.glVec, 1/t);
         return result;
@@ -138,8 +149,8 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns The cross product vector.
      */
-    cross(v: Vec3, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    cross(v: Vec3): Vec3 {
+        const result = pool.get();
         glMatrix.vec3.cross(result.glVec, this.glVec, v.glVec);
         return result;
     }
@@ -150,14 +161,14 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector representing the reflection.
      */
-    reflect(n: Vec3, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    reflect(n: Vec3): Vec3 {
+        const result = pool.get();
         
         // Calculate dot product
         const dotProduct = this.dot(n);
         
         // Use a pooled vector for the intermediate n*2*dot calculation
-        const scaledNormal = n.multiply(2 * dotProduct, pool);
+        const scaledNormal = n.multiply(2 * dotProduct);
         
         // Subtract from v and store in result
         glMatrix.vec3.subtract(result.glVec, this.glVec, scaledNormal.glVec);
@@ -182,11 +193,11 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A unit vector with the same direction as this vector
      */
-    unitVector(pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    unitVector(): Vec3 {
+        const result = pool.get();
         glMatrix.vec3.normalize(result.glVec, this.glVec);
         return result;
-    }    
+    }
     
     // Static methods for random vector generation
     /**
@@ -196,8 +207,8 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector with random components
      */
-    static random(min: number = 0, max: number = 1, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    static random(min: number = 0, max: number = 1): Vec3 {
+        const result = pool.get();
         for (let i = 0; i < 3; i++) {
             result.glVec[i] = min + (max - min) * Math.random();
         }
@@ -207,9 +218,9 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A random vector inside the unit sphere
      */
-    static randomInUnitSphere(pool?: VectorPool): Vec3 {
+    static randomInUnitSphere(): Vec3 {
         while (true) {
-            const p = Vec3.random(-1, 1, pool);
+            const p = Vec3.random(-1, 1);
             if (p.lengthSquared() < 1) {
                 return p;
             }
@@ -221,8 +232,8 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A random unit vector
      */
-    static randomUnitVector(pool?: VectorPool): Vec3 {
-        return Vec3.randomInUnitSphere(pool).unitVector(pool);
+    static randomUnitVector(): Vec3 {
+        return Vec3.randomInUnitSphere().unitVector();
     }
 
     /**
@@ -231,25 +242,30 @@ export class Vec3 {
      * @param pool Optional vector pool to use for result allocation
      * @returns A random vector in the hemisphere
      */
-    static randomInHemisphere(normal: Vec3, pool?: VectorPool): Vec3 {
-        const inUnitSphere = Vec3.randomInUnitSphere(pool);        // If the random vector is in the same hemisphere as the normal, return it
+    static randomInHemisphere(normal: Vec3): Vec3 {
+        const inUnitSphere = Vec3.randomInUnitSphere();        // If the random vector is in the same hemisphere as the normal, return it
         // otherwise return its negative
         if (inUnitSphere.dot(normal) > 0.0) {
             return inUnitSphere;
         } else {
-            return inUnitSphere.negate(pool);
+            return inUnitSphere.negate();
         }
     }
 
-    static clone(v: Vec3, pool?: VectorPool): Vec3 {
-        const result = pool ? pool.get() : new Vec3();
+    static clone(v: Vec3): Vec3 {
+        const result = pool.get();
         glMatrix.vec3.copy(result.glVec, v.glVec);
         return result;
     }
 
+    static usePool(newPool: VectorPool | null) {
+        // If a new pool is provided, ensure all vectors are allocated from it
+        pool = newPool || NoPool;
+    }
+
     static BLACK = new Vec3(0, 0, 0);
     static WHITE = new Vec3(1, 1, 1);
-    static BLUE = new Vec3(0.5, 0.7, 1.0)
+    static BLUE = new Vec3(0.5, 0.7, 1.0);
 }
 
 // Type aliases
@@ -259,17 +275,6 @@ export type Color = Vec3;
 // NOTE: point3 and color are type aliases for vec3.
 // Always use the 'new vec3(...)' constructor for instantiation.
 // These aliases provide semantic clarity in function signatures and variables.
-
-// vec3 Utility Functions
-
-export function dot(u: Vec3, v: Vec3): number {
-    return u.dot(v);
-}
-
-export function cross(u: Vec3, v: Vec3, pool?: VectorPool): Vec3 {
-    return u.cross(v, pool);
-}
-
 
 /**
  * A pool of reusable vectors to reduce memory allocations during ray tracing
@@ -314,6 +319,10 @@ export class VectorPool {
      */
     reset(): void {
         this.index = 0;
+    }
+
+    size(): number {
+        return this.pool.length;
     }
     
     /**

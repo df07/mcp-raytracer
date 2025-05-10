@@ -5,8 +5,9 @@ describe('generateImageBuffer', () => {
     it('should produce a valid PNG buffer', async () => {
         const imageWidth = 10; // Smaller size for faster testing
         const imageHeight = Math.max(1, Math.floor(imageWidth / (16.0/9.0))); // Ensure height is at least 1
+        const samples = 1;
 
-        const buffer = await generateImageBuffer(imageWidth, false); // Generate buffer, no verbose logging
+        const buffer = await generateImageBuffer(imageWidth, samples, false, false); // Generate buffer, no verbose logging
 
         // Basic buffer checks
         expect(buffer).toBeInstanceOf(Buffer);
@@ -22,7 +23,7 @@ describe('generateImageBuffer', () => {
 
     it('should throw an error for zero width', async () => {
         // Expect the function call itself to reject with the specific error
-        await expect(generateImageBuffer(0, false))
+        await expect(generateImageBuffer(0, 1, false, false))
             .rejects
             .toThrow();
     });

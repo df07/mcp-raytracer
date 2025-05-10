@@ -12,11 +12,8 @@ import { VectorPool } from '../vec3.js';
 export class Lambertian implements Material {
   readonly albedo: Color;
 
-  private vectorPool: VectorPool;
-
   constructor(albedo: Color) {
     this.albedo = albedo;
-    this.vectorPool = new VectorPool();
   }
 
   /**
@@ -26,11 +23,8 @@ export class Lambertian implements Material {
    * @returns An object containing the scattered ray and albedo as attenuation.
    */
   scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
-    this.vectorPool.reset(); // Reset vector pool at the beginning of each scatter
-    const pool = this.vectorPool; // avoid repetition
-    
     // Calculate scatter direction: normal + random unit vector
-    let scatterDirection = rec.normal.add(Vec3.randomUnitVector(pool), pool);
+    let scatterDirection = rec.normal.add(Vec3.randomUnitVector());
 
     // Catch degenerate scatter direction (when random unit vector is exactly opposite to normal)
     if (scatterDirection.nearZero()) {

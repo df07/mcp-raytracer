@@ -42,6 +42,6 @@ export class Ray {
      */
     at(t: number, pool?: VectorPool): Point3 {
         // P(t) = origin + t * direction
-        return this.origin.add(this.direction.multiply(t, pool), pool);
+        return this.origin.add(this.direction.multiply(t));
     }
 }

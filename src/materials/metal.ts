@@ -14,14 +14,10 @@ export class Metal implements Material {
   readonly albedo: Color;
   readonly fuzz: number;
 
-  private vectorPool: VectorPool;
-
   constructor(albedo: Color, fuzz: number = 0.0) {
     this.albedo = albedo;
     // Clamp fuzz to the range [0, 1]
     this.fuzz = fuzz < 1 ? Math.max(0, fuzz) : 1;
-
-    this.vectorPool = new VectorPool(40);
   }
 
   /**
@@ -31,16 +27,13 @@ export class Metal implements Material {
    * @returns An object containing the scattered ray and albedo as attenuation, or null if absorbed.
    */
   scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
-    this.vectorPool.reset(); // Reset vector pool at the beginning of each scatter
-    const pool = this.vectorPool; // avoid repetition
-    
     // Calculate perfect reflection vector
-    const reflected = rIn.direction.unitVector(pool).reflect(rec.normal, pool);
+    const reflected = rIn.direction.unitVector().reflect(rec.normal);
     
     // Add fuzziness by perturbing the reflected vector with a random point in the unit sphere
     const fuzzyReflection = 
       this.fuzz > 0 
-        ? reflected.add(Vec3.randomInUnitSphere(pool).multiply(this.fuzz, pool))
+        ? reflected.add(Vec3.randomInUnitSphere().multiply(this.fuzz))
         : reflected;
     
     // Check if the reflection direction is valid (points outward from the surface)

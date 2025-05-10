@@ -1,5 +1,5 @@
 /* Specs: camera.md */
-import { Vec3, Point3, Color, cross } from './vec3.js';
+import { Vec3, Point3, Color } from './vec3.js';
 import { Ray } from './ray.js';
 import { Hittable } from './hittable.js';
 import { Interval } from './interval.js';
@@ -46,8 +46,8 @@ export class Camera {
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
         // Use vec3 methods instead of standalone functions
         this.w = lookfrom.subtract(lookat).unitVector();
-        this.u = cross(vup, this.w).unitVector();
-        this.v = cross(this.w, this.u);
+        this.u = vup.cross(this.w).unitVector();
+        this.v = this.w.cross(this.u);
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
         // Use vec3 methods instead of standalone functions
@@ -77,7 +77,7 @@ export class Camera {
      */
     getRay(i: number, j: number, pool?: VectorPool): Ray {
         // Calculate pixel center
-        const pixelCenter = this.pixel00Loc.add(this.pixelDeltaU.multiply(i, pool)).add(this.pixelDeltaV.multiply(j, pool));
+        const pixelCenter = this.pixel00Loc.add(this.pixelDeltaU.multiply(i)).add(this.pixelDeltaV.multiply(j));
 
         // For anti-aliasing, add a random offset within the pixel
         // If samplesPerPixel is 1, we'll use the pixel center (no randomization)
@@ -89,11 +89,11 @@ export class Camera {
             const py = -0.5 + Math.random(); 
             
             // Apply the offset scaled by the pixel delta vectors
-            pixelSample = pixelCenter.add(this.pixelDeltaU.multiply(px, pool)).add(this.pixelDeltaV.multiply(py, pool));
+            pixelSample = pixelCenter.add(this.pixelDeltaU.multiply(px)).add(this.pixelDeltaV.multiply(py));
         }
         
         // Calculate ray direction from camera center to the sample point
-        const rayDirection = pixelSample.subtract(this.center, pool);
+        const rayDirection = pixelSample.subtract(this.center);
 
         return new Ray(this.center, rayDirection);
     }
@@ -107,7 +107,7 @@ export class Camera {
      * @param pool Vector pool to use for intermediate calculations.
      * @returns The color of the ray.
      */
-    rayColor(r: Ray, depth: number = this.maxDepth, pool?: VectorPool): Color {
+    rayColor(r: Ray, depth: number = this.maxDepth): Color {
         // If we've exceeded the ray bounce limit, no more light is gathered
         if (depth <= 0) {
             return Vec3.BLACK;
@@ -124,19 +124,18 @@ export class Camera {
             if (scatterResult) {
                 // Recursively trace scattered ray and multiply by attenuation
                 return scatterResult.attenuation.multiplyVec(
-                    this.rayColor(scatterResult.scattered, depth - 1, pool),
-                    pool
+                    this.rayColor(scatterResult.scattered, depth - 1)
                 );
-            }                
+            }
             // If no scattering occurs (material absorbed the ray), return black
             return Vec3.BLACK;
         }
 
         // If the ray doesn't hit anything, compute background gradient color
-        const unitDirection = r.direction.unitVector(pool);
+        const unitDirection = r.direction.unitVector();
         const a = 0.5 * (unitDirection.y + 1.0);
         // Linear interpolation (lerp) between white and blue based on y-coordinate
-        return Vec3.WHITE.multiply(1.0 - a, pool).add(Vec3.BLUE.multiply(a, pool), pool);
+        return Vec3.WHITE.multiply(1.0 - a).add(Vec3.BLUE.multiply(a));
     }
 
     /**
@@ -160,10 +159,14 @@ export class Camera {
 
                 // Anti-aliasing: average multiple samples per pixel
                 for (let s = 0; s < this.samplesPerPixel; ++s) {
+                    
+                    Vec3.usePool(pool);
                     pool.reset(); // Reset vector pool for each sample
 
-                    const r = this.getRay(i + Math.random(), j + Math.random(), pool);
-                    const color = this.rayColor(r, this.maxDepth, pool);
+                    const r = this.getRay(i + Math.random(), j + Math.random());
+                    const color = this.rayColor(r, this.maxDepth);
+
+                    Vec3.usePool(null); // Release the pool after use
 
                     // Accumulate color for averaging
                     pixelColor = pixelColor.add(color); // don't use pool since the pixelColor vector escapes the loop
