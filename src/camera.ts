@@ -3,6 +3,7 @@ import { Vec3, Point3, Color, cross } from './vec3.js';
 import { Ray } from './ray.js';
 import { Hittable } from './hittable.js';
 import { Interval } from './interval.js';
+import { VectorPool } from './vec3.js';
 
 export class Camera {
     public readonly imageWidth: number;
@@ -71,13 +72,13 @@ export class Camera {
      * If anti-aliasing is enabled, generates rays with random offsets within the pixel.
      * @param i The horizontal pixel coordinate.
      * @param j The vertical pixel coordinate.
-     * @param s The sample index (used for random offset calculation).
+     * @param pool Vector pool to use for intermediate calculations.
      * @returns A ray originating from the camera through the specified pixel.
      */
-    getRay(i: number, j: number, s: number = 0): Ray {
+    getRay(i: number, j: number, pool?: VectorPool): Ray {
         // Calculate pixel center
-        const pixelCenter = this.pixel00Loc.add(this.pixelDeltaU.multiply(i)).add(this.pixelDeltaV.multiply(j));
-        
+        const pixelCenter = this.pixel00Loc.add(this.pixelDeltaU.multiply(i, pool)).add(this.pixelDeltaV.multiply(j, pool));
+
         // For anti-aliasing, add a random offset within the pixel
         // If samplesPerPixel is 1, we'll use the pixel center (no randomization)
         let pixelSample = pixelCenter;
@@ -88,11 +89,11 @@ export class Camera {
             const py = -0.5 + Math.random(); 
             
             // Apply the offset scaled by the pixel delta vectors
-            pixelSample = pixelCenter.add(this.pixelDeltaU.multiply(px)).add(this.pixelDeltaV.multiply(py));
+            pixelSample = pixelCenter.add(this.pixelDeltaU.multiply(px, pool)).add(this.pixelDeltaV.multiply(py, pool));
         }
         
         // Calculate ray direction from camera center to the sample point
-        const rayDirection = pixelSample.subtract(this.center);
+        const rayDirection = pixelSample.subtract(this.center, pool);
 
         return new Ray(this.center, rayDirection);
     }
@@ -103,12 +104,13 @@ export class Camera {
      * Otherwise, it returns a background gradient color.
      * @param r The ray.
      * @param depth Maximum recursion depth.
+     * @param pool Vector pool to use for intermediate calculations.
      * @returns The color of the ray.
-     */    
-    rayColor(r: Ray, depth: number = this.maxDepth): Color {
+     */
+    rayColor(r: Ray, depth: number = this.maxDepth, pool?: VectorPool): Color {
         // If we've exceeded the ray bounce limit, no more light is gathered
         if (depth <= 0) {
-            return new Vec3(0, 0, 0); // Return black (no light contribution)
+            return Vec3.BLACK;
         }
 
         // Check if the ray hits any object in the world
@@ -122,18 +124,19 @@ export class Camera {
             if (scatterResult) {
                 // Recursively trace scattered ray and multiply by attenuation
                 return scatterResult.attenuation.multiplyVec(
-                    this.rayColor(scatterResult.scattered, depth - 1)
+                    this.rayColor(scatterResult.scattered, depth - 1, pool),
+                    pool
                 );
             }                
             // If no scattering occurs (material absorbed the ray), return black
-            return new Vec3(0, 0, 0);
+            return Vec3.BLACK;
         }
 
         // If the ray doesn't hit anything, compute background gradient color
-        const unitDirection = r.direction.unitVector();
+        const unitDirection = r.direction.unitVector(pool);
         const a = 0.5 * (unitDirection.y + 1.0);
         // Linear interpolation (lerp) between white and blue based on y-coordinate
-        return new Vec3(1.0, 1.0, 1.0).multiply(1.0 - a).add(new Vec3(0.5, 0.7, 1.0).multiply(a));
+        return Vec3.WHITE.multiply(1.0 - a, pool).add(Vec3.BLUE.multiply(a, pool), pool);
     }
 
     /**
@@ -142,6 +145,8 @@ export class Camera {
      * @param verbose Whether to log progress to stderr.
      */
     render(pixelData: Uint8ClampedArray, verbose: boolean = false): void {
+        const pool = new VectorPool(100); // Create a new vector pool for rendering
+
         let offset = 0;
 
         // Render loop
@@ -155,8 +160,13 @@ export class Camera {
 
                 // Anti-aliasing: average multiple samples per pixel
                 for (let s = 0; s < this.samplesPerPixel; ++s) {
-                    const r = this.getRay(i + Math.random(), j + Math.random());
-                    pixelColor = pixelColor.add(this.rayColor(r, this.maxDepth));
+                    pool.reset(); // Reset vector pool for each sample
+
+                    const r = this.getRay(i + Math.random(), j + Math.random(), pool);
+                    const color = this.rayColor(r, this.maxDepth, pool);
+
+                    // Accumulate color for averaging
+                    pixelColor = pixelColor.add(color); // don't use pool since the pixelColor vector escapes the loop
                 }
 
                 // Divide accumulated color by number of samples and apply gamma correction

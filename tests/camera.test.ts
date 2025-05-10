@@ -282,9 +282,9 @@ describe('Camera', () => {
         // We'll mock the getRay method to verify it's called multiple times
         const originalGetRay = cameraWithAA.getRay;
         let getRayCalls = 0;
-        cameraWithAA.getRay = (i: number, j: number, s: number = 0): Ray => {
+        cameraWithAA.getRay = (i: number, j: number): Ray => {
             getRayCalls++;
-            return originalGetRay.call(cameraWithAA, i, j, s);
+            return originalGetRay.call(cameraWithAA, i, j);
         };
         
         // Create a buffer with a single pixel (3 bytes for RGB)
@@ -292,7 +292,7 @@ describe('Camera', () => {
         const mockRender = () => {
             let pixelColor = new Vec3(0, 0, 0);
             for (let s = 0; s < samplesPerPixel; ++s) {
-                const r = cameraWithAA.getRay(0, 0, s);
+                const r = cameraWithAA.getRay(0, 0);
                 // We don't need to calculate real colors for this test
             }
         };

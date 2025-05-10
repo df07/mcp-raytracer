@@ -49,7 +49,9 @@ export class Vec3 {
             if (result.glVec[i] === 0) result.glVec[i] = 0;
         }
         return result;
-    }    /**
+    }    
+    
+    /**
      * Add another vector to this vector.
      * @param v Vector to add
      * @param pool Optional vector pool to use for result allocation
@@ -59,7 +61,9 @@ export class Vec3 {
         const result = pool ? pool.get() : new Vec3();
         glMatrix.vec3.add(result.glVec, this.glVec, v.glVec);
         return result;
-    }    /**
+    }    
+    
+    /**
      * Subtract another vector from this vector.
      * @param v Vector to subtract
      * @param pool Optional vector pool to use for result allocation
@@ -69,7 +73,9 @@ export class Vec3 {
         const result = pool ? pool.get() : new Vec3();
         glMatrix.vec3.subtract(result.glVec, this.glVec, v.glVec);
         return result;
-    }    /**
+    }    
+    
+    /**
      * Multiply this vector by a scalar value.
      * @param t Scalar to multiply by
      * @param pool Optional vector pool to use for result allocation
@@ -79,7 +85,9 @@ export class Vec3 {
         const result = pool ? pool.get() : new Vec3();
         glMatrix.vec3.scale(result.glVec, this.glVec, t);
         return result;
-    }    /**
+    }
+
+    /**
      * Multiply this vector component-wise with another vector.
      * @param v Vector to multiply by
      * @param pool Optional vector pool to use for result allocation
@@ -89,7 +97,9 @@ export class Vec3 {
         const result = pool ? pool.get() : new Vec3();
         glMatrix.vec3.multiply(result.glVec, this.glVec, v.glVec);
         return result;
-    }    /**
+    }    
+    
+    /**
      * Divide this vector by a scalar value.
      * @param t Scalar to divide by
      * @param pool Optional vector pool to use for result allocation
@@ -236,6 +246,10 @@ export class Vec3 {
         glMatrix.vec3.copy(result.glVec, v.glVec);
         return result;
     }
+
+    static BLACK = new Vec3(0, 0, 0);
+    static WHITE = new Vec3(1, 1, 1);
+    static BLUE = new Vec3(0.5, 0.7, 1.0)
 }
 
 // Type aliases
