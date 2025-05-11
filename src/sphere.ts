@@ -1,10 +1,11 @@
-/* Specs: sphere.md, hittable.md */
+/* Specs: sphere.md, hittable.md, aabb-bvh.md */
 
 import { Point3, Vec3, VectorPool } from './vec3.js'; // Added VectorPool import
 import { Ray } from './ray.js';
 import { HitRecord, Hittable } from './hittable.js';
 import { Interval } from './interval.js';
 import { Material } from './materials/material.js';
+import { AABB } from './aabb.js';
 
 /** Represents a sphere in 3D space that can be intersected by rays */
 export class Sphere implements Hittable {
@@ -77,5 +78,21 @@ export class Sphere implements Hittable {
       frontFace: frontFace,
       material: this.material
     };
+  }
+
+  /**
+   * Returns the axis-aligned bounding box that encloses this sphere.
+   * For a sphere, this is a box with dimensions 2*radius in each direction,
+   * centered at the sphere's center.
+   * 
+   * @returns The bounding box for this sphere
+   */
+  boundingBox(): AABB {
+    // Calculate minimum and maximum points of the bounding box
+    const radiusVec = new Vec3(this.radius, this.radius, this.radius);
+    const min = this.center.subtract(radiusVec);
+    const max = this.center.add(radiusVec);
+    
+    return new AABB(min, max);
   }
 }

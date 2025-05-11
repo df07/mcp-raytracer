@@ -230,13 +230,12 @@ Options:
     
     // Measure time
     const iterStartTime = Date.now();
-      try {
-      // Configure scene based on command line options
+      try {      // Configure scene based on command line options
       const sceneConfig = options.sphereCount > 0 
         ? { 
             type: 'random' as const, 
             count: options.sphereCount, 
-            options: options.seed >= 0 ? { seed: options.seed } : undefined 
+            options: options.seed >= 0 ? { world: { seed: options.seed } } : undefined 
           }
         : { type: 'default' as const };
 

@@ -6,6 +6,15 @@ import { Sphere } from './sphere.js';
 import { Lambertian } from './materials/lambertian.js';
 import { Metal } from './materials/metal.js';
 import { Material } from './materials/material.js';
+import { Hittable } from './hittable.js';
+import { Camera } from './camera.js';
+import { BVHNode } from './bvh.js';
+
+export interface Scene {
+    camera: Camera,
+    world: Hittable,
+    _objects: Hittable[]
+}
 
 /**
  * Simple Seedable Pseudo-Random Number Generator
@@ -71,7 +80,7 @@ export interface RandomSceneOptions {
   centerPoint?: Point3;       // Center point for sphere distribution (default: 0,0,-1)
   radius?: number;            // Radius of the distribution area (default: 2)
   minSphereRadius?: number;   // Minimum radius for generated spheres (default: 0.05)
-  maxSphereRadius?: number;   // Maximum radius for generated spheres (default: 0.2)
+  maxSphereRadius?: number;   // Maximum radius of generated spheres (default: 0.2)
   groundSphere?: boolean;     // Whether to include a large ground sphere (default: true)
   groundY?: number;           // Y-position of the ground sphere (default: -1000)
   groundRadius?: number;      // Radius of the ground sphere (default: 1000)
@@ -83,8 +92,8 @@ export interface RandomSceneOptions {
  * Scene configuration types
  */
 export type SceneConfig = 
-  | { type: 'default' }
-  | { type: 'random', count: number, options?: RandomSceneOptions };
+  | { type: 'default', options?: SceneOptions }
+  | { type: 'random', count: number, options?: SceneOptions };
 
 /**
  * Represents a placed sphere with its properties
@@ -95,17 +104,40 @@ interface PlacedSphere {
 }
 
 /**
+ * Camera configuration options for scene generation
+ */
+export interface CameraOptions {
+  imageWidth?: number;       // Width of the rendered image (default: 400)
+  aspectRatio?: number;      // Aspect ratio of the rendered image (default: 16/9)
+  vfov?: number;             // Vertical field of view in degrees (default: 90)
+  lookFrom?: Point3;         // Camera position (default: origin)
+  lookAt?: Point3;           // Look-at position (default: 0,0,-1)
+  vUp?: Vec3;                // Camera's up direction (default: 0,1,0)
+  samplesPerPixel?: number;  // Anti-aliasing samples per pixel (default: 100)
+}
+
+/**
+ * Combined options for scene generation
+ */
+export interface SceneOptions {
+  camera?: CameraOptions;     // Camera configuration options
+  world?: RandomSceneOptions; // World configuration options
+}
+
+/**
  * Generates a random sphere scene with the specified number of spheres.
  * Spheres are distributed randomly within a spherical volume and don't overlap.
  * 
  * @param count Number of spheres to generate
  * @param options Optional configuration for scene generation
- * @returns A world (HittableList) containing all the generated spheres
+ * @returns A Scene object containing the camera, world, and underlying object list
  */
-export function generateRandomSphereScene(count: number, options?: RandomSceneOptions): HittableList {
-  const world = new HittableList();
-  const placedSpheres: PlacedSphere[] = [];  // Default options
-  const defaultOptions: Required<RandomSceneOptions> = {
+export function generateRandomSphereScene(count: number, options?: SceneOptions): Scene {
+  const worldList = new HittableList();
+  const placedSpheres: PlacedSphere[] = [];
+
+  // Default world options
+  const defaultWorldOptions: Required<RandomSceneOptions> = {
     centerPoint: new Vec3(0, 0, -2),    // Center point matching default scene
     radius: 1.25,                       // Distribution radius around center point
     minSphereRadius: 0.1,               // Small enough to fit multiple spheres
@@ -117,27 +149,46 @@ export function generateRandomSphereScene(count: number, options?: RandomSceneOp
     seed: Math.floor(Math.random() * 2147483647) // Random seed by default
   };
   
-  // Merge defaults with provided options
-  const opts: Required<RandomSceneOptions> = {
-    ...defaultOptions,
-    ...options
+  // Default camera options
+  const defaultCameraOptions: Required<CameraOptions> = {
+    imageWidth: 400,
+    aspectRatio: 16.0 / 9.0,
+    vfov: 90, // Vertical field-of-view in degrees
+    lookFrom: new Vec3(0, 0, 0), // Camera position at origin
+    lookAt: new Vec3(0, 0, -1),  // Looking down the negative z-axis
+    vUp: new Vec3(0, 1, 0),      // Camera-relative "up" direction
+    samplesPerPixel: 100
+  };
+    // Merge defaults with provided options
+  const worldOpts: Required<RandomSceneOptions> = {
+    ...defaultWorldOptions,
+    ...options?.world
+  };
+  
+  const cameraOpts: Required<CameraOptions> = {
+    ...defaultCameraOptions,
+    ...options?.camera
   };
   
   // Initialize our random number generator with the seed
-  const random = new SeededRandom(opts.seed);
-    // Add ground sphere if specified
-  if (opts.groundSphere) {
-    const groundCenter = new Vec3(0, opts.groundY, 0);
-    const groundMaterial = opts.groundMaterial;
-    const groundSphere = new Sphere(groundCenter, opts.groundRadius, groundMaterial);
-    world.add(groundSphere);
-    placedSpheres.push(groundSphere);
+  const random = new SeededRandom(worldOpts.seed);
+    
+  // Add ground sphere if specified
+  if (worldOpts.groundSphere) {
+    const groundCenter = new Vec3(0, worldOpts.groundY, 0);
+    const groundMaterial = worldOpts.groundMaterial;
+    const groundSphere = new Sphere(groundCenter, worldOpts.groundRadius, groundMaterial);
+    worldList.add(groundSphere);
+    placedSpheres.push({
+      center: groundCenter,
+      radius: worldOpts.groundRadius
+    });
   }
   
   // Calculate the maximum radius based on the number of spheres
   // As sphere count increases, maximum radius decreases to allow more spheres to fit
-  const scaleFactor = Math.max(opts.minSphereRadius, 1 - Math.log10(count + 1) / 4);
-  const adjustedMaxRadius = opts.maxSphereRadius * scaleFactor;
+  const scaleFactor = Math.max(worldOpts.minSphereRadius, 1 - Math.log10(count + 1) / 4);
+  const adjustedMaxRadius = worldOpts.maxSphereRadius * scaleFactor;
   
   // Generate random spheres
   let attempts = 0;
@@ -149,8 +200,9 @@ export function generateRandomSphereScene(count: number, options?: RandomSceneOp
     
     // Calculate random sphere parameters
     const radius = adjustedMaxRadius;
-    const sphereCenter = randomPointInSphere(opts.centerPoint, opts.radius, random);
-      // Check if this sphere overlaps with any existing sphere or the ground
+    const sphereCenter = randomPointInSphere(worldOpts.centerPoint, worldOpts.radius, random);
+      
+    // Check if this sphere overlaps with any existing sphere or the ground
     if (checkOverlap(sphereCenter, radius, placedSpheres)) {
       continue; // Try again with a new position
     }
@@ -159,7 +211,7 @@ export function generateRandomSphereScene(count: number, options?: RandomSceneOp
     const material = generateRandomMaterial(random);
     
     // Add the sphere to the world
-    world.add(new Sphere(sphereCenter, radius, material));
+    worldList.add(new Sphere(sphereCenter, radius, material));
     
     // Track the placed sphere
     placedSpheres.push({
@@ -175,7 +227,30 @@ export function generateRandomSphereScene(count: number, options?: RandomSceneOp
     console.error(`Warning: Could only place ${spheresCreated} out of ${count} requested spheres.`);
   }
   
-  return world;
+  // Calculate image height from aspect ratio
+  const imageHeight = Math.max(1, Math.floor(cameraOpts.imageWidth / cameraOpts.aspectRatio));
+  
+  const bvh = BVHNode.fromList(worldList.objects);
+  // Create BVH for efficient ray tracing
+
+  // Create camera
+  const camera = new Camera(
+    cameraOpts.imageWidth,
+    imageHeight,
+    cameraOpts.vfov,
+    cameraOpts.lookFrom,
+    cameraOpts.lookAt,
+    cameraOpts.vUp,
+    bvh,
+    cameraOpts.samplesPerPixel
+  );
+  
+  // Create and return the scene
+  return {
+    camera: camera,
+    world: bvh, // Use BVH for efficient ray tracing
+    _objects: [...worldList.objects] // Create a copy of the objects array for testing
+  };
 }
 
 /**
@@ -247,4 +322,71 @@ function generateRandomMaterial(random: SeededRandom): Material {
     const fuzz = random.next() * 0.5;
     return new Metal(randomColor(random), fuzz);
   }
+}
+
+/**
+ * Generates the default scene with four spheres: ground, center, and two metal spheres.
+ * 
+ * @param options Optional configuration for scene generation
+ * @returns A Scene object containing the camera, world, and underlying object list
+ */
+export function generateDefaultScene(options?: SceneOptions): Scene {
+  const worldList = new HittableList();
+  
+  // Create materials
+  const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0));  // Yellow-ish ground
+  const materialCenter = new Lambertian(new Vec3(0.7, 0.3, 0.3));  // Reddish center
+  const materialLeft = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0);    // Shiny silver (no fuzz)
+  const materialRight = new Metal(new Vec3(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
+
+  // Create spheres with materials
+  const groundSphere = new Sphere(new Vec3(0, -100.5, -1), 100, materialGround); // Ground sphere
+  const centerSphere = new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter);      // Center sphere
+  const leftSphere = new Sphere(new Vec3(-1, 0, -1), 0.5, materialLeft);       // Left sphere (metal)
+  const rightSphere = new Sphere(new Vec3(1, 0, -1), 0.5, materialRight);       // Right sphere (fuzzy metal)
+
+  // Add spheres to the world
+  worldList.add(groundSphere);
+  worldList.add(centerSphere);
+  worldList.add(leftSphere);
+  worldList.add(rightSphere);
+
+  // Default camera options
+  const defaultCameraOptions: Required<CameraOptions> = {
+    imageWidth: 400,
+    aspectRatio: 16.0 / 9.0,
+    vfov: 90, // Vertical field-of-view in degrees
+    lookFrom: new Vec3(0, 0, 0), // Camera position at origin
+    lookAt: new Vec3(0, 0, -1),  // Looking down the negative z-axis
+    vUp: new Vec3(0, 1, 0),      // Camera-relative "up" direction
+    samplesPerPixel: 100
+  };
+
+  // Merge defaults with provided options
+  const cameraOpts: Required<CameraOptions> = {
+    ...defaultCameraOptions,
+    ...options?.camera
+  };
+
+  // Calculate image height from aspect ratio
+  const imageHeight = Math.max(1, Math.floor(cameraOpts.imageWidth / cameraOpts.aspectRatio));
+  
+  // Create camera
+  const camera = new Camera(
+    cameraOpts.imageWidth,
+    imageHeight,
+    cameraOpts.vfov,
+    cameraOpts.lookFrom,
+    cameraOpts.lookAt,
+    cameraOpts.vUp,
+    worldList,
+    cameraOpts.samplesPerPixel
+  );
+
+  // Create and return the scene
+  return {
+    camera: camera,
+    world: worldList,
+    _objects: [...worldList.objects] // Create a copy of the objects array for testing
+  };
 }

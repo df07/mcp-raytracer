@@ -1,8 +1,9 @@
-/* Specs: hittable.md */
+/* Specs: hittable.md, aabb-bvh.md */
 
 import { HitRecord, Hittable } from './hittable.js';
 import { Ray } from './ray.js';
-import { Interval } from './interval.js'; // Added import
+import { Interval } from './interval.js';
+import { AABB } from './aabb.js';
 
 /**
  * Represents a list of Hittable objects.
@@ -11,6 +12,7 @@ import { Interval } from './interval.js'; // Added import
  */
 export class HittableList implements Hittable {
   public objects: Hittable[] = [];
+  private _boundingBox?: AABB; // Cached bounding box
 
   /**
    * Creates an empty HittableList or initializes it with a single object.
@@ -23,25 +25,34 @@ export class HittableList implements Hittable {
   }
 
   /**
-   * Adds a Hittable object to the list.
-   * @param object The Hittable object to add.
+   * Returns the axis-aligned bounding box that encloses all objects in this list.
+   * If the list is empty, returns an "empty" bounding box.
+   * 
+   * @returns The bounding box for all objects in the list
    */
-  public add(object: Hittable): void {
-    this.objects.push(object);
-  }
-
-  /**
-   * Clears all Hittable objects from the list.
-   */
-  public clear(): void {
-    this.objects = [];
-  }
-  
-  /**
-   * Returns the number of objects in the hittable list.
-   */
-  public get count(): number {
-    return this.objects.length;
+  public boundingBox(): AABB {
+    // Return cached bounding box if available
+    if (this._boundingBox) {
+      return this._boundingBox;
+    }
+    
+    // If list is empty, return an empty bounding box
+    if (this.objects.length === 0) {
+      return AABB.empty();
+    }
+    
+    // Start with the first object's bounding box
+    let result = this.objects[0].boundingBox();
+    
+    // Expand to include all other objects
+    for (let i = 1; i < this.objects.length; i++) {
+      result = AABB.surroundingBox(result, this.objects[i].boundingBox());
+    }
+    
+    // Cache the result
+    this._boundingBox = result;
+    
+    return result;
   }
 
   /**
@@ -72,5 +83,31 @@ export class HittableList implements Hittable {
     }
 
     return closestHitRecord;
+  }
+
+  /**
+   * Adds a Hittable object to the list.
+   * @param object The Hittable object to add.
+   */
+  public add(object: Hittable): void {
+    this.objects.push(object);
+    // Invalidate cached bounding box
+    this._boundingBox = undefined;
+  }
+
+  /**
+   * Clears all Hittable objects from the list.
+   */
+  public clear(): void {
+    this.objects = [];
+    // Invalidate cached bounding box
+    this._boundingBox = undefined;
+  }
+  
+  /**
+   * Returns the number of objects in the hittable list.
+   */
+  public get count(): number {
+    return this.objects.length;
   }
 }

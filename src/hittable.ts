@@ -1,9 +1,10 @@
-/* Specs: hittable.md */
+/* Specs: hittable.md, aabb-bvh.md */
 
 import { Ray } from './ray.js';
 import { Point3, Vec3, VectorPool } from './vec3.js';
 import { Interval } from './interval.js';
 import { Material } from './materials/material.js';
+import { AABB } from './aabb.js';
 
 /**
  * Stores information about a ray-object intersection.
@@ -32,4 +33,11 @@ export interface Hittable {
    * @returns A HitRecord if an intersection occurs within the interval, null otherwise.
    */
   hit(r: Ray, rayT: Interval): HitRecord | null;
+  
+  /**
+   * Returns the axis-aligned bounding box that encloses this object.
+   * 
+   * @returns The bounding box for this object
+   */
+  boundingBox(): AABB;
 }

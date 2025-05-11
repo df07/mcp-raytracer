@@ -4,6 +4,7 @@ import { Ray } from '../src/ray.js';
 import { Hittable, HitRecord } from '../src/hittable.js';
 import { Interval } from '../src/interval.js';
 import { Material } from '../src/materials/material.js';
+import { AABB } from '../src/aabb.js';
 
 // Mock Material for testing
 class MockMaterial implements Material {
@@ -52,6 +53,10 @@ class MockHittable implements Hittable {
             return rec;
         }
         return null;
+    }
+
+    boundingBox(): AABB {
+        throw new Error('Method not implemented.');
     }
 }
 

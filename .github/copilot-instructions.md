@@ -6,8 +6,8 @@
 3. Follow testing guidelines and ensure adequate test coverage.
 
 # Execution context
-- You have access to the "raytrace" tool that this project exposes for testing.
-- You can't start the server yourself, you have to ask the user to restart it manually.
+- Run builds with `npm run build` and tests with `npm run test`
+- Run benchmarks with `benchmark.ps1` and check results in `benchmark_results/`.
 - Usually we are executing code in Powershell, so use ";" as a command separator.
 
 # TypeScript Idioms
@@ -25,6 +25,8 @@
 - Exception: Document clearly when mutating objects for performance optimization.
 
 # MCP Server Rules
+- To test MCP, call the "raytrace" tool that this project exposes for testing.
+- You can't start the MCP server yourself. Ask the user to restart it manually.
 - Use `stderr` for logs when using `StdioServerTransport` (use `console.error`).
 - Avoid `stdout` (e.g., `console.log`) as it interferes with MCP JSON-RPC communication.
 
