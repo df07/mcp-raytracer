@@ -58,6 +58,7 @@ export async function generateImageBuffer(
     // Image setup
     const channels = 3; // RGB - Camera.render uses 3 channels
     
+    let startTime = Date.now();
     // Create the scene based on configuration
     const scene = createScene(sceneConfig, imageWidth, samplesPerPixel);
     
@@ -65,13 +66,13 @@ export async function generateImageBuffer(
     const camera = scene.camera;
       // Log scene creation if verbose
     if (verbose && sceneConfig.type === 'random') {
-        console.error(`Generated random scene with ${(scene._objects || []).length} objects`);
+        console.error(`Generated random scene with ${(scene._objects || []).length} objects in ${Date.now() - startTime}ms`);
     }
     
     // Set up the pixel data buffer with the correct dimensions
     const pixelData = new Uint8ClampedArray(camera.imageWidth * camera.imageHeight * channels);
 
-    let startTime = Date.now();
+    startTime = Date.now();
     if (verbose) {
         console.error('Starting PNG render with Camera class...');
     }    // Run the Camera's rendering logic
