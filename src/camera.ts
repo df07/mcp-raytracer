@@ -72,10 +72,9 @@ export class Camera {
      * If anti-aliasing is enabled, generates rays with random offsets within the pixel.
      * @param i The horizontal pixel coordinate.
      * @param j The vertical pixel coordinate.
-     * @param pool Vector pool to use for intermediate calculations.
      * @returns A ray originating from the camera through the specified pixel.
      */
-    getRay(i: number, j: number, pool?: VectorPool): Ray {
+    getRay(i: number, j: number): Ray {
         // Calculate pixel center
         const pixelCenter = this.pixel00Loc.add(this.pixelDeltaU.multiply(i)).add(this.pixelDeltaV.multiply(j));
 
@@ -104,7 +103,6 @@ export class Camera {
      * Otherwise, it returns a background gradient color.
      * @param r The ray.
      * @param depth Maximum recursion depth.
-     * @param pool Vector pool to use for intermediate calculations.
      * @returns The color of the ray.
      */
     rayColor(r: Ray, depth: number = this.maxDepth): Color {
