@@ -13,10 +13,19 @@ export class Sphere implements Hittable {
   readonly radius: number;
   readonly material: Material;
 
+  private _boundingBox: AABB;
+
   constructor(center: Point3, radius: number, material: Material) {
     this.center = center;
     this.radius = radius;
     this.material = material;
+
+    // Calculate minimum and maximum points of the bounding box
+    const radiusVec = new Vec3(this.radius, this.radius, this.radius);
+    const min = this.center.subtract(radiusVec);
+    const max = this.center.add(radiusVec);
+
+    this._boundingBox = new AABB(min, max);
   }
 
   /**
@@ -81,11 +90,6 @@ export class Sphere implements Hittable {
    * @returns The bounding box for this sphere
    */
   boundingBox(): AABB {
-    // Calculate minimum and maximum points of the bounding box
-    const radiusVec = new Vec3(this.radius, this.radius, this.radius);
-    const min = this.center.subtract(radiusVec);
-    const max = this.center.add(radiusVec);
-    
-    return new AABB(min, max);
+    return this._boundingBox
   }
 }
