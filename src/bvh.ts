@@ -4,6 +4,12 @@ import { Ray } from './ray.js';
 import { HitRecord, Hittable } from './hittable.js';
 import { Interval } from './interval.js';
 import { AABB } from './aabb.js';
+import { HittableList } from './hittableList.js';
+
+const _emptyHittable: Hittable = {
+    hit: (_r: Ray, _rayT: Interval): HitRecord | null => null,
+    boundingBox: (): AABB => AABB.empty()
+};
 
 /**
  * Implements a Bounding Volume Hierarchy (BVH) for efficient ray intersection testing.
@@ -14,6 +20,9 @@ export class BVHNode implements Hittable {
     private left: Hittable;
     private right: Hittable;
     private box: AABB;
+    
+    // Maximum number of objects in a leaf node before splitting
+    private static readonly MAX_LEAF_OBJECTS = 4;
 
     /**
      * Constructs a BVH node from a list of hittable objects.
@@ -21,7 +30,8 @@ export class BVHNode implements Hittable {
      * @param objects Array of hittable objects to organize into a BVH
      * @param start Start index in the objects array
      * @param end End index in the objects array (exclusive)
-     */    constructor(objects: Hittable[], start: number, end: number) {
+     */
+    constructor(objects: Hittable[], start: number, end: number) {
         // Make a copy of the objects array that we can modify
         const objectsList = objects.slice(start, end);
         
@@ -61,6 +71,16 @@ export class BVHNode implements Hittable {
                 this.left = objectsList[1];
                 this.right = objectsList[0];
             }
+        } else if (objectsSpan <= BVHNode.MAX_LEAF_OBJECTS) {
+            // Create a leaf node using HittableList for left child
+            const leafList = new HittableList();
+            for (const obj of objectsList) {
+                leafList.add(obj);
+            }
+            
+            // Left contains the HittableList, right is an empty hittable to avoid redundant checks
+            this.left = leafList;
+            this.right = _emptyHittable;
         } else {
             // Many objects, sort and split in half
             

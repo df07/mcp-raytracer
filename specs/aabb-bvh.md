@@ -67,14 +67,17 @@ By implementing a spatial data structure that organizes objects hierarchically b
   * `left: Hittable`: Left child node.
   * `right: Hittable`: Right child node.
   * `box: AABB`: Bounding box enclosing both children's bounding boxes.
+  * `MAX_LEAF_OBJECTS`: Maximum number of objects to store in a leaf node (constant).
 
 * **Methods:**
   * **Constructor:** `constructor(objects: Hittable[], start: number, end: number)`
     * Takes a slice of objects (from `start` to `end` in an array) and organizes them into a BVH.
-    * Randomly selects an axis (x, y, or z) to split on for better tree balance.
-    * Sorts objects along the chosen axis based on their bounding box centers.
-    * Splits objects into left and right groups.
-    * Recursively constructs BVH nodes for each group.
+    * Selects the longest axis (x, y, or z) to split on.
+    * Sorts objects along the chosen axis based on their bounding box minimums.
+    * If there are few enough objects (≤ MAX_LEAF_OBJECTS), creates a leaf node:
+      * Uses a HittableList to store all objects in the left child
+      * Uses an EmptyHittable in the right child to avoid redundant checks
+    * Otherwise, splits objects into left and right groups and recursively constructs BVH nodes.
   
   * **`hit(r: Ray, rayT: Interval): HitRecord | null`**
     * First tests if the ray intersects this node's bounding box.
@@ -83,27 +86,32 @@ By implementing a spatial data structure that organizes objects hierarchically b
   
   * **`boundingBox(): AABB`**
     * Returns this node's bounding box.
+  
+  * **`fromList(objects: Hittable[]): BVHNode` (static)**
+    * Convenience method to create a BVH from a list of objects.
 
 ## Scene Generator Update (`src/sceneGenerator.ts`)
 
 * **Modify scene generation:**
   * After generating a scene with the existing logic, organize the objects into a BVH.
   * Replace the `HittableList` with a `BVHNode` containing all objects.
-  * Alternative: Add an option to use BVH when generating scenes.
 
 ## Performance Considerations
 
 * **Memory Usage:**
   * BVH construction requires additional memory for the tree structure.
+  * Using leaf nodes with multiple objects reduces the overall tree depth and node count.
   * Trade-off between memory and processing speed.
 
 * **Construction Time:**
   * Building the BVH is an O(n log n) operation (due to sorting).
-  * Consider providing an option for simple scenes to skip BVH construction.
+  * Using leaf nodes reduces the number of recursive splits needed.
 
-* **Vector Pool Integration:**
-  * Ensure AABB implementation uses the vector pool for efficient memory usage.
-  * Reuse vectors when computing bounding boxes.
+* **Leaf Node Size Optimization:**
+  * Using small groups of objects in leaf nodes (vs. single objects) can improve performance.
+  * Avoids creating excessively deep trees for scenes with many objects.
+  * Improves cache locality during ray traversal.
+  * The optimal MAX_LEAF_OBJECTS value depends on the scene complexity and hardware.
 
 ## Testing Strategy
 

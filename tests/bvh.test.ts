@@ -19,6 +19,14 @@ describe('BVHNode', () => {
     new Sphere(new Vec3(0, -100.5, -1), 100, material) // Ground sphere
   ];
   
+  // Create more spheres for testing the leaf node optimization
+  const manySmallSpheres: Hittable[] = [];
+  for (let i = 0; i < 10; i++) {
+    manySmallSpheres.push(
+      new Sphere(new Vec3(i-5, 0, -5), 0.3, material)
+    );
+  }
+  
   describe('construction', () => {
     it('should create a BVH from a list of hittables', () => {
       // Create a BVH from the spheres
@@ -108,6 +116,44 @@ describe('BVHNode', () => {
         if (hitList) {
           expect(hitBVH.t).toBeCloseTo(hitList.t);
         }
+      }
+    });
+  });
+  
+  describe('leaf node optimization', () => {
+    it('should correctly handle leaf nodes with multiple objects', () => {
+      // Set MAX_LEAF_OBJECTS to a value that would trigger leaf node creation
+      // This is just for testing - the actual BVHNode has this as a private static readonly field
+      
+      // Create a BVH from the spheres - with small object count, it might create leaf nodes
+      const bvh = BVHNode.fromList(manySmallSpheres);
+      
+      // Create a ray that should hit one of the spheres
+      const ray = new Ray(
+        new Vec3(0, 0, 0),     // Origin
+        new Vec3(0, 0, -1)     // Direction toward -z
+      );
+      
+      // Check if the ray hits anything in the BVH
+      const hit = bvh.hit(ray, new Interval(0.1, 100));
+      
+      // Should hit one of the spheres
+      expect(hit).not.toBeNull();
+      
+      // Create a standard list for comparison
+      const list = new HittableList();
+      for (const sphere of manySmallSpheres) {
+        list.add(sphere);
+      }
+      
+      // Check that BVH gives same result as direct list
+      const hitList = list.hit(ray, new Interval(0.1, 100));
+      
+      // Results should be the same
+      if (hit && hitList) {
+        expect(hit.t).toBeCloseTo(hitList.t);
+      } else {
+        expect(hit).toEqual(hitList); // Both should be null or both should be defined
       }
     });
   });
