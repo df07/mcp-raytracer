@@ -2,8 +2,11 @@ import { Camera } from '../src/camera.js';
 import { Vec3, Point3, Color } from '../src/vec3.js';
 import { Ray } from '../src/ray.js';
 import { Hittable, HitRecord } from '../src/hittable.js';
+import { HittableList } from '../src/hittableList.js';
 import { Interval } from '../src/interval.js';
 import { Material } from '../src/materials/material.js';
+import { Lambertian } from '../src/materials/lambertian.js';
+import { Sphere } from '../src/sphere.js';
 import { AABB } from '../src/aabb.js';
 
 // Mock Material for testing
@@ -307,5 +310,87 @@ describe('Camera', () => {
         
         // Restore the original method
         cameraWithAA.getRay = originalGetRay;
+    });
+});
+
+describe('Camera with adaptive sampling', () => {
+    it('should implement adaptive sampling and convergence check', () => {
+        // Create a camera with adaptive sampling enabled
+        const imageWidth = 4;
+        const imageHeight = 3;
+        const lookfrom = new Vec3(0, 0, 0);  // Point3 is a type alias of Vec3
+        const lookat = new Vec3(0, 0, -1);   // Point3 is a type alias of Vec3
+        const vup = new Vec3(0, 1, 0);
+        const vfov = 90;
+        const samplesPerPixel = 100;
+        
+        // Create a simple world with a black sphere
+        // Black spheres will make areas of high contrast against the blue/white gradient background
+        const blackMaterial = new Lambertian(Vec3.BLACK);
+        const worldList = new HittableList();
+        
+        // Add a large black sphere in front of the camera
+        worldList.add(new Sphere(new Vec3(0, 0, -2), 1.5, blackMaterial));
+        
+        // Create a camera with adaptive sampling enabled
+        const camera = new Camera(
+            imageWidth, 
+            imageHeight, 
+            vfov, 
+            lookfrom, 
+            lookat, 
+            vup, 
+            worldList, 
+            samplesPerPixel,
+            0.2   // Higher tolerance for faster convergence in tests
+        );
+        
+        // Buffer for pixel data
+        const pixelData = new Uint8ClampedArray(imageWidth * imageHeight * 3); // RGB
+        
+        // Buffer for sample counts
+        const sampleCountBuffer = new Uint32Array(imageWidth * imageHeight);
+        
+        // Render with adaptive sampling
+        camera.render(pixelData, false, sampleCountBuffer);
+        
+        // With our test setup, we should have at least one pixel that uses fewer samples
+        // due to quick convergence, and at least one that uses more samples
+        
+        // Find the min and max sample counts
+        let minSampleCount = sampleCountBuffer[0];
+        let maxSampleCount = sampleCountBuffer[0];
+        
+        for (let i = 1; i < sampleCountBuffer.length; i++) {
+            minSampleCount = Math.min(minSampleCount, sampleCountBuffer[i]);
+            maxSampleCount = Math.max(maxSampleCount, sampleCountBuffer[i]);
+        }
+        
+        // At least one pixel should use fewer samples than the maximum
+        // Either minSampleCount < samplesPerPixel OR all pixels converged early
+        expect(minSampleCount).toBeLessThanOrEqual(samplesPerPixel);
+        
+        // Verify that no pixel used more than the maximum samples
+        const maxSamplesUsed = Math.max(...sampleCountBuffer);
+        expect(maxSamplesUsed).toBeLessThanOrEqual(samplesPerPixel);
+        
+        // We've already checked minSampleCount above, 
+        // now verify that we have some variation in the sample counts
+        // This ensures that adaptive sampling actually did something
+        expect(minSampleCount).not.toEqual(maxSampleCount);
+    });
+    
+    it('should calculate correct illuminance for color vectors', () => {
+        // Test the illuminance calculation
+        const color1 = new Vec3(1, 0, 0); // Pure red
+        const color2 = new Vec3(0, 1, 0); // Pure green
+        const color3 = new Vec3(0, 0, 1); // Pure blue
+        const color4 = new Vec3(1, 1, 1); // White
+        
+        // Expected values based on standard weights: 0.299R + 0.587G + 0.114B
+        expect(color1.illuminance()).toBeCloseTo(0.299, 5);
+        expect(color2.illuminance()).toBeCloseTo(0.587, 5);
+        expect(color3.illuminance()).toBeCloseTo(0.114, 5);
+        expect(color4.illuminance()).toBeCloseTo(1.0, 5);
     });
 });

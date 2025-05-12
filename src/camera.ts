@@ -17,7 +17,8 @@ export class Camera {
     private readonly w: Vec3;
     private readonly world: Hittable;
     private readonly maxDepth: number = 50; // Maximum recursion depth for ray bounces
-    private readonly samplesPerPixel: number; // Number of samples per pixel for anti-aliasing
+    private readonly samples: number; // Maximum number of samples per pixel
+    private readonly adaptiveTolerance: number; // Tolerance for convergence
 
     constructor(
         imageWidth: number, 
@@ -27,13 +28,15 @@ export class Camera {
         lookat: Point3, 
         vup: Vec3, 
         world: Hittable,
-        samplesPerPixel: number = 1 // Default to 1 sample per pixel (no anti-aliasing)
+        samples: number = 1, // Default to 1 sample per pixel (no anti-aliasing)
+        adaptiveTolerance: number = 0.05 // Default tolerance for convergence
     ) {
         this.imageWidth = imageWidth;
         this.imageHeight = imageHeight;
         this.center = lookfrom;
         this.world = world; // Store world
-        this.samplesPerPixel = samplesPerPixel;
+        this.samples = samples;
+        this.adaptiveTolerance = adaptiveTolerance;
 
         // Determine viewport dimensions.
         const focalLength = 1.0; // Fixed focal length
@@ -82,7 +85,7 @@ export class Camera {
         // If samplesPerPixel is 1, we'll use the pixel center (no randomization)
         let pixelSample = pixelCenter;
         
-        if (this.samplesPerPixel > 1) {
+        if (this.samples > 1) {
             // Calculate random offset within the pixel
             const px = -0.5 + Math.random(); // Random between -0.5 and 0.5
             const py = -0.5 + Math.random(); 
@@ -134,51 +137,119 @@ export class Camera {
         const a = 0.5 * (unitDirection.y + 1.0);
         // Linear interpolation (lerp) between white and blue based on y-coordinate
         return Vec3.WHITE.multiply(1.0 - a).add(Vec3.BLUE.multiply(a));
-    }
-
-    /**
+    }    /**
      * Renders the scene and writes the pixel data to the buffer.
+     * Uses adaptive sampling if enabled to optimize rendering by focusing samples on complex areas.
      * @param pixelData The buffer to write pixel data into.
      * @param verbose Whether to log progress to stderr.
+     * @param sampleCountBuffer Optional buffer to write the number of samples per pixel.
      */
-    render(pixelData: Uint8ClampedArray, verbose: boolean = false): void {
-        const pool = new VectorPool(1600); // Create a new vector pool for rendering
-
+    render(
+        pixelData: Uint8ClampedArray, 
+        verbose: boolean = false,
+        sampleCountBuffer?: Uint32Array
+    ): void {
+        const pool = new VectorPool(1600); // Create a vector pool for rendering
         let offset = 0;
+        
+        // Determine if adaptive sampling should be used
+        const useAdaptiveSampling = this.adaptiveTolerance > 0 && this.samples > 1;
+        const samplesPerBatch = 9; // Number of samples to process in one batch
+
+        let totalSamples = 0;
 
         // Render loop
         for (let j = 0; j < this.imageHeight; ++j) {
-            // Log progress only if verbose
             if (verbose && j % 10 === 0) {
                 process.stderr.write(`\rScanlines remaining: ${this.imageHeight - j} `);
             }
+            
             for (let i = 0; i < this.imageWidth; ++i) {
+                // Initialize pixel data
                 let pixelColor = new Vec3(0, 0, 0);
-
-                // Anti-aliasing: average multiple samples per pixel
-                for (let s = 0; s < this.samplesPerPixel; ++s) {
+                let sampleCount = 0;
+                
+                // Statistics for adaptive sampling
+                let s1 = 0; // Sum of illuminance values
+                let s2 = 0; // Sum of squared illuminance values
+                
+                // Sampling loop - unified approach for both adaptive and non-adaptive
+                while (sampleCount < this.samples) {
+                    // Determine batch size for this iteration
+                    const remainingSamples = this.samples - sampleCount;
+                    const batchSize = useAdaptiveSampling 
+                        ? Math.min(samplesPerBatch, remainingSamples)
+                        : remainingSamples;
                     
-                    Vec3.usePool(pool);
-                    pool.reset(); // Reset vector pool for each sample
-
-                    const r = this.getRay(i + Math.random(), j + Math.random());
-                    const color = this.rayColor(r, this.maxDepth);
-
-                    Vec3.usePool(null); // Release the pool after each ray
-
-                    // Accumulate color for averaging
-                    pixelColor = pixelColor.add(color); // don't use pool since the pixelColor vector escapes the loop
+                    // Process one batch of samples
+                    for (let s = 0; s < batchSize; ++s) {
+                        // Set up vector pooling for this ray
+                        Vec3.usePool(pool);
+                        pool.reset();
+                        
+                        // Get and trace a ray through this pixel with jitter
+                        const r = this.getRay(i + Math.random(), j + Math.random());
+                        const color = this.rayColor(r, this.maxDepth);
+                        
+                        // Release the vector pool
+                        Vec3.usePool(null);
+                        
+                        // Accumulate color
+                        pixelColor = pixelColor.add(color);
+                        
+                        // Track statistics for adaptive sampling
+                        if (useAdaptiveSampling) {
+                            const illuminance = color.illuminance();
+                            s1 += illuminance;
+                            s2 += illuminance * illuminance;
+                        }
+                        
+                        sampleCount++;
+                    }
+                    
+                    // Only perform convergence check if using adaptive sampling and we have enough samples
+                    if (useAdaptiveSampling && sampleCount >= 2 && sampleCount < this.samples) {
+                        // Check if pixel has converged using statistical analysis
+                        const mean = s1 / sampleCount;
+                        const variance = (s2 - (s1 * s1) / sampleCount) / (sampleCount - 1);
+                        
+                        // Skip convergence check if variance is invalid (constant color or numerical issue)
+                        if (variance <= 0 || isNaN(variance)) break;
+                        
+                        // Calculate 95% confidence interval
+                        const stdDev = Math.sqrt(variance);
+                        const confidenceInterval = 1.96 * stdDev / Math.sqrt(sampleCount);
+                        
+                        // Check if confidence interval is within tolerance of the mean
+                        if (confidenceInterval <= this.adaptiveTolerance * mean) {
+                            break; // Pixel has converged, stop sampling
+                        }
+                    }
+                    
+                    // For non-adaptive sampling, we take all samples in one batch
+                    if (!useAdaptiveSampling) break;
                 }
-
-                // Divide accumulated color by number of samples and apply gamma correction
-                pixelColor = pixelColor.divide(this.samplesPerPixel);
+                
+                // Store sample count if a buffer was provided
+                if (sampleCountBuffer) {
+                    sampleCountBuffer[j * this.imageWidth + i] = sampleCount;
+                }
+                
+                // Compute final pixel color by averaging all samples
+                pixelColor = pixelColor.divide(sampleCount);
+                totalSamples += sampleCount;
+                
+                // Write the color to the output buffer
                 writeColorToBuffer(pixelData, offset, pixelColor);
-                offset += 3; // Move to the next pixel (RGB)
+                offset += 3; // Move to next pixel (RGB)
             }
         }
-         // Clear progress line only if verbose
-         if (verbose) {
+        
+        if (verbose) {
             process.stderr.write(`\rScanlines remaining: 0 \n`);
+            if (useAdaptiveSampling) {
+                console.error("Average samples per pixel: ", totalSamples / (this.imageWidth * this.imageHeight));
+            }
         }
     }
 }

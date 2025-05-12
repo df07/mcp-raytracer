@@ -47,7 +47,9 @@ export class Vec3 {
         return Math.abs(this.x - v.x) < s && 
                Math.abs(this.y - v.y) < s && 
                Math.abs(this.z - v.z) < s;
-    }    /**
+    }
+    
+    /**
      * Returns a vector that is the negation of this vector.
      * @param pool Optional vector pool to use for result allocation
      * @returns A new vector with all components negated
@@ -199,6 +201,16 @@ export class Vec3 {
         return result;
     }
     
+    /**
+     * Calculates the illuminance (perceived brightness) of this color vector.
+     * Uses standard RGB-to-brightness conversion weights.
+     * @returns The perceived brightness as a single number
+     */
+    illuminance(): number {
+        // Standard weights for perceived brightness: 0.299R + 0.587G + 0.114B
+        return 0.299 * this.x + 0.587 * this.y + 0.114 * this.z;
+    }
+
     // Static methods for random vector generation
     /**
      * Creates a random vector with components in the given range.
