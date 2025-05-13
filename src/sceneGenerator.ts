@@ -211,9 +211,14 @@ export function generateRandomSphereScene(cameraOpts?: CameraOptions, sceneOpts?
   
   // Create BVH for efficient ray tracing
   const bvhWorld = BVHNode.fromList(worldList.objects);
+  
+  const defaultCameraOptions: CameraOptions = {
+    vfov: 40,
+    lookFrom: new Vec3(0, 0, 2)
+  }
 
   // Create camera
-  const camera = new Camera(bvhWorld, cameraOpts);
+  const camera = new Camera(bvhWorld, { ...defaultCameraOptions, ...cameraOpts });
 
   // Create and return the scene
   return {
