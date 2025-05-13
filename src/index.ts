@@ -8,6 +8,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { generateImageBuffer } from "./raytracer.js";
 import { SceneConfig } from './sceneGenerator.js';
+import { CameraOptions } from './camera.js';
+import { RandomSceneOptions } from './sceneGenerator.js';
 
 // Helper to get the root directory (assuming index.ts is in src)
 const __filename = fileURLToPath(import.meta.url);
@@ -199,36 +201,35 @@ function isMainModule(importMetaUrl: string) {
 // New function to run performance testing from command line
 async function runRaytracerBenchmark() {
   // Parse command line arguments
-  const args = process.argv.slice(2);  
-  const options = {
-    width: 400,
-    samples: 100,
+  const args = process.argv.slice(2);
+  const cameraOptions: CameraOptions = {};
+  const randomSceneOptions: RandomSceneOptions = {};
+  const generationOptions = {
     verbose: true,
     output: null as string | null,
-    iterations: 1,
-    sphereCount: 0,
-    seed: undefined as number | undefined,
-    adaptiveTolerance: undefined as number | undefined,
-    adaptiveSampleBatchSize: undefined as number | undefined
+    iterations: 1
   };
   // Process args
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     
     if (arg === '--width' || arg === '-w') {
-      options.width = parseInt(args[++i], 10);
+      cameraOptions.imageWidth = parseInt(args[++i], 10);
+      cameraOptions.imageHeight = Math.ceil(cameraOptions.imageWidth / (16 / 9)); // Maintain 16:9 aspect ratios
     } else if (arg === '--samples' || arg === '-s') {
-      options.samples = parseInt(args[++i], 10);
+      cameraOptions.samples = parseInt(args[++i], 10);
     } else if (arg === '--output' || arg === '-o') {
-      options.output = args[++i];    } else if (arg === '--iterations' || arg === '-i') {
-      options.iterations = parseInt(args[++i], 10);    } else if (arg === '--spheres') {
-      options.sphereCount = parseInt(args[++i], 10);
+      generationOptions.output = args[++i];
+    } else if (arg === '--iterations' || arg === '-i') {
+      generationOptions.iterations = parseInt(args[++i], 10);
+    } else if (arg === '--spheres') {
+      randomSceneOptions.count = parseInt(args[++i], 10);
     } else if (arg === '--seed') {
-      options.seed = parseInt(args[++i], 10);
+      randomSceneOptions.seed = parseInt(args[++i], 10);
     } else if (arg === '--adaptive-tolerance' || arg === '--at') {
-      options.adaptiveTolerance = parseFloat(args[++i]);
+      cameraOptions.adaptiveTolerance = parseFloat(args[++i]);
     } else if (arg === '--adaptive-batch' || arg === '--ab') {
-      options.adaptiveSampleBatchSize = parseInt(args[++i], 10);
+      cameraOptions.adaptiveBatchSize = parseInt(args[++i], 10);
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
 Raytracer Performance Benchmark
@@ -249,57 +250,43 @@ Options:
     }
   }
   console.error(`Running raytracer with options:`);
-  console.error(`  Width: ${options.width}`);
-  console.error(`  Samples: ${options.samples}`);
-  console.error(`  Output: ${options.output || 'none (image discarded)'}`);
-  console.error(`  Iterations: ${options.iterations}`);
+  console.error(`  Dimensions: ${cameraOptions.imageWidth}x${cameraOptions.imageHeight}`);
+  console.error(`  Samples: ${cameraOptions.samples}`);
+  console.error(`  Output: ${generationOptions.output || 'none (image discarded)'}`);
+  if (generationOptions.iterations > 1) {
+    console.error(`  Iterations: ${generationOptions.iterations}`);
+  }
 
   const totalStartTime = Date.now();
   let totalRenderTime = 0;
 
   // Run multiple iterations as specified
-  for (let iter = 1; iter <= options.iterations; iter++) {
-    console.error(`\nIteration ${iter}/${options.iterations}:`);
-    
+  for (let iter = 1; iter <= generationOptions.iterations; iter++) {
+    console.error(`\nIteration ${iter}/${generationOptions.iterations}:`);
+
     // Measure time
     const iterStartTime = Date.now();
-      try {      // Configure scene based on command line options
-      let sceneConfig: SceneConfig;
-      
-      if (options.sphereCount > 0) {
-        // Random scene with spheres
-        sceneConfig = {
-          type: 'random' as const,
-          options: {
-            count: options.sphereCount,
-            seed: options.seed
-          }
-        };
-      } else {
-        // Default scene
-        sceneConfig = { 
-          type: 'default' as const
-        };
-      }
-      
-      // Add adaptive tolerance if > 0
-      if (options.adaptiveTolerance && options.adaptiveTolerance > 0) {
-        sceneConfig.camera = sceneConfig.camera || {};
-        sceneConfig.camera.adaptiveTolerance = options.adaptiveTolerance;
-        sceneConfig.camera.adaptiveBatchSize = options.adaptiveSampleBatchSize;
+      try {      
+        // Configure scene based on command line options
+        let sceneConfig: SceneConfig;
+
+        if (randomSceneOptions?.count) {
+          sceneConfig = { type: 'random', camera: cameraOptions, options: randomSceneOptions };
+        } else {
+          sceneConfig = { type: 'default', camera: cameraOptions };
       }
 
       // Generate the image with the configured scene
-      const pngBuffer = await generateImageBuffer(sceneConfig, options.verbose);
+      const pngBuffer = await generateImageBuffer(sceneConfig, generationOptions.verbose);
 
       const iterDuration = Date.now() - iterStartTime;
       totalRenderTime += iterDuration;
       console.error(`  Render time: ${iterDuration}ms`);
 
       // Save the output file (only for the first iteration if multiple)
-      if (options.output && iter === 1) {
-        await fs.writeFile(options.output, pngBuffer);
-        console.error(`  Image saved to ${options.output}`);
+      if (generationOptions.output && iter === 1) {
+        await fs.writeFile(generationOptions.output, pngBuffer);
+        console.error(`  Image saved to ${generationOptions.output}`);
       }
     } catch (error) {
       console.error(`Error in iteration ${iter}:`, error);
@@ -309,12 +296,12 @@ Options:
   
   // Calculate and display stats
   const totalDuration = Date.now() - totalStartTime;
-  const avgRenderTime = totalRenderTime / options.iterations;
+  const avgRenderTime = totalRenderTime / generationOptions.iterations;
     console.error(`\nPerformance Summary:`);
   console.error(`  Implementation: gl-matrix`);
   console.error(`  Total time: ${totalDuration}ms`);
   console.error(`  Average render time: ${avgRenderTime.toFixed(2)}ms`);
-  console.error(`  Iterations: ${options.iterations}`);
+  console.error(`  Iterations: ${generationOptions.iterations}`);
 }
 
 // Only run server and attach listeners if run directly

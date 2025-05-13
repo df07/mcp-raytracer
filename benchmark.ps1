@@ -7,7 +7,7 @@ param (
     [int]$samples = 20,
     [int]$iterations = 0,
     [string]$outputDir = "benchmark_results",
-    [int]$sphereCount = 0,
+    [int]$spheres = 0,
     [int]$seed = 0,
     [double]$at = 0, # Default to 0 = disabled (will use Camera's default if > 0)
     [double]$ab = 0, # Default to 0 = disabled (will use Camera's default if > 0)
@@ -37,8 +37,8 @@ $cmd = "$nodeCmd dist/src/index.js --benchmark --width $width --samples $samples
 if ($iterations -gt 0) {
     $cmd += " --iterations $iterations"
 }
-if ($sphereCount -gt 0) {
-    $cmd += " --spheres $sphereCount"
+if ($spheres -gt 0) {
+    $cmd += " --spheres $spheres"
 }
 if ($seed -gt 0) {
     $cmd += " --seed $seed"
