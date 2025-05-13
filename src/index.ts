@@ -70,17 +70,31 @@ export const raytraceToolHandler = async ({
   verbose = false, 
   width = 400, 
   samples = 100,
+  adaptiveTolerance,
   scene = { type: 'default' as const },
 }: { 
   verbose?: boolean, 
   width?: number, 
   samples?: number,
-  scene?: { type: 'default' } | { type: 'random', count: number, options?: any }
+  adaptiveTolerance?: number,
+  scene?: { type: 'default', options?: any } | { type: 'random', count: number, options?: any }
 }): Promise<any> => {
-  console.error(`[Tool:raytrace] Request received. Generating PNG via ray tracing. Width: ${width}, Samples: ${samples}, Verbose: ${verbose}, Scene: ${JSON.stringify(scene)}`);
+  console.error(`[Tool:raytrace] Request received. Generating PNG via ray tracing. Width: ${width}, Samples: ${samples}, ${adaptiveTolerance !== undefined ? `Adaptive Tolerance: ${adaptiveTolerance}, ` : ''}Verbose: ${verbose}, Scene: ${JSON.stringify(scene)}`);
+  
+  // Ensure scene options includes adaptiveTolerance only if it's specified and > 0
+  if (adaptiveTolerance !== undefined && adaptiveTolerance > 0) {
+    if (!scene.options) {
+      scene.options = { camera: { adaptiveTolerance } };
+    } else if (!scene.options.camera) {
+      scene.options.camera = { adaptiveTolerance };
+    } else if (scene.options.camera.adaptiveTolerance === undefined) {
+      scene.options.camera.adaptiveTolerance = adaptiveTolerance;
+    }
+  }
+  
   try {
     // Generate the image using the refactored function with the specified scene config
-    const pngBuffer = await generateImageBuffer(width, samples, verbose, scene);
+    const pngBuffer = await generateImageBuffer(scene, verbose);
     const base64Data = pngBuffer.toString('base64');
 
     return {
@@ -124,21 +138,33 @@ const raytraceInputSchema = z.object({
   verbose: z.boolean().optional().default(false).describe("Log progress to stderr during generation"),
   width: z.number().optional().default(400).describe("Width of the generated image"),
   samples: z.number().optional().default(100).describe("Number of samples per pixel (higher = better quality but slower)"),
+  adaptiveTolerance: z.number().optional().default(0.05).describe("Tolerance for convergence in adaptive sampling (lower = higher quality but slower)"),
   scene: z.union([
     z.object({
-      type: z.literal('default')
+      type: z.literal('default'),
+      options: z.object({
+        camera: z.object({
+          adaptiveTolerance: z.number().optional().describe("Tolerance for convergence in adaptive sampling")
+        }).optional()
+      }).optional()
     }).default({ type: 'default' }),
     z.object({
       type: z.literal('random'),
       count: z.number().min(1).describe("Number of spheres to generate"),
       options: z.object({
-        centerPoint: z.any().optional().describe("Center point for sphere distribution"),
-        radius: z.number().positive().optional().describe("Radius of the distribution area"),
-        minSphereRadius: z.number().positive().optional().describe("Minimum radius for generated spheres"),
-        maxSphereRadius: z.number().positive().optional().describe("Maximum radius for generated spheres"),
-        groundSphere: z.boolean().optional().describe("Whether to include a large ground sphere"),
-        groundY: z.number().optional().describe("Y-position of the ground sphere"),
-        groundRadius: z.number().positive().optional().describe("Radius of the ground sphere")
+        world: z.object({
+          centerPoint: z.any().optional().describe("Center point for sphere distribution"),
+          radius: z.number().positive().optional().describe("Radius of the distribution area"),
+          minSphereRadius: z.number().positive().optional().describe("Minimum radius for generated spheres"),
+          maxSphereRadius: z.number().positive().optional().describe("Maximum radius for generated spheres"),
+          groundSphere: z.boolean().optional().describe("Whether to include a large ground sphere"),
+          groundY: z.number().optional().describe("Y-position of the ground sphere"),
+          groundRadius: z.number().positive().optional().describe("Radius of the ground sphere"),
+          seed: z.number().optional().describe("Random seed for deterministic scene generation")
+        }).optional(),
+        camera: z.object({
+          adaptiveTolerance: z.number().optional().describe("Tolerance for convergence in adaptive sampling")
+        }).optional()
       }).optional()
     })
   ]).optional().default({ type: 'default' }).describe("Scene configuration")
@@ -173,14 +199,17 @@ function isMainModule(importMetaUrl: string) {
 // New function to run performance testing from command line
 async function runRaytracerBenchmark() {
   // Parse command line arguments
-  const args = process.argv.slice(2);    const options = {
+  const args = process.argv.slice(2);  
+  const options = {
     width: 400,
     samples: 100,
     verbose: true,
     output: null as string | null,
     iterations: 1,
     sphereCount: 0,
-    seed: -1
+    seed: undefined as number | undefined,
+    adaptiveTolerance: undefined as number | undefined,
+    adaptiveSampleBatchSize: undefined as number | undefined
   };
   // Process args
   for (let i = 0; i < args.length; i++) {
@@ -192,11 +221,14 @@ async function runRaytracerBenchmark() {
       options.samples = parseInt(args[++i], 10);
     } else if (arg === '--output' || arg === '-o') {
       options.output = args[++i];    } else if (arg === '--iterations' || arg === '-i') {
-      options.iterations = parseInt(args[++i], 10);
-    } else if (arg === '--spheres') {
+      options.iterations = parseInt(args[++i], 10);    } else if (arg === '--spheres') {
       options.sphereCount = parseInt(args[++i], 10);
     } else if (arg === '--seed') {
       options.seed = parseInt(args[++i], 10);
+    } else if (arg === '--adaptive-tolerance' || arg === '--at') {
+      options.adaptiveTolerance = parseFloat(args[++i]);
+    } else if (arg === '--adaptive-batch' || arg === '--ab') {
+      options.adaptiveSampleBatchSize = parseInt(args[++i], 10);
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
 Raytracer Performance Benchmark
@@ -206,10 +238,11 @@ Usage: node dist/src/index.js [options]
 Options:
   --width, -w <number>     Image width (default: 400)  
   --samples, -s <number>   Samples per pixel (default: 100)
-  --output, -o <file>      Output PNG file
-  --iterations, -i <num>   Number of iterations to run (default: 1)
+  --output, -o <file>      Output PNG file  --iterations, -i <num>   Number of iterations to run (default: 1)
   --spheres <number>       Number of random spheres to generate (0 = default scene)
   --seed <number>          Random seed for deterministic scene generation
+  --adaptive-tolerance <n> Convergence tolerance for adaptive sampling (default: 0.05)
+  --adaptive-batch <n>     Number of samples to process in one batch (default: 32)
   --help, -h               Show this help
       `);
       process.exit(0);
@@ -231,26 +264,38 @@ Options:
     // Measure time
     const iterStartTime = Date.now();
       try {      // Configure scene based on command line options
-      const sceneConfig = options.sphereCount > 0 
-        ? { 
-            type: 'random' as const, 
-            count: options.sphereCount, 
-            options: options.seed >= 0 ? { world: { seed: options.seed } } : undefined 
+      let sceneConfig: SceneConfig;
+      
+      if (options.sphereCount > 0) {
+        // Random scene with spheres
+        sceneConfig = {
+          type: 'random' as const,
+          options: {
+            count: options.sphereCount,
+            seed: options.seed
           }
-        : { type: 'default' as const };
+        };
+      } else {
+        // Default scene
+        sceneConfig = { 
+          type: 'default' as const
+        };
+      }
+      
+      // Add adaptive tolerance if > 0
+      if (options.adaptiveTolerance && options.adaptiveTolerance > 0) {
+        sceneConfig.camera = sceneConfig.camera || {};
+        sceneConfig.camera.adaptiveTolerance = options.adaptiveTolerance;
+        sceneConfig.camera.adaptiveBatchSize = options.adaptiveSampleBatchSize;
+      }
 
       // Generate the image with the configured scene
-      const pngBuffer = await generateImageBuffer(
-        options.width,
-        options.samples,
-        options.verbose,
-        sceneConfig
-      );
-      
+      const pngBuffer = await generateImageBuffer(sceneConfig, options.verbose);
+
       const iterDuration = Date.now() - iterStartTime;
       totalRenderTime += iterDuration;
       console.error(`  Render time: ${iterDuration}ms`);
-      
+
       // Save the output file (only for the first iteration if multiple)
       if (options.output && iter === 1) {
         await fs.writeFile(options.output, pngBuffer);

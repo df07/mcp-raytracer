@@ -5,10 +5,12 @@
 param (
     [int]$width = 400,
     [int]$samples = 20,
-    [int]$iterations = 1,
+    [int]$iterations = 0,
     [string]$outputDir = "benchmark_results",
     [int]$sphereCount = 0,
-    [int]$seed = -1,
+    [int]$seed = 0,
+    [double]$at = 0, # Default to 0 = disabled (will use Camera's default if > 0)
+    [double]$ab = 0, # Default to 0 = disabled (will use Camera's default if > 0)
     [switch]$profile = $false # Parameter for enabling Node.js profiling (automatically processes the output)
 )
 
@@ -29,14 +31,23 @@ if ($profile) {
 }
 
 # Build the command with scene parameters
-$cmd = "$nodeCmd dist/src/index.js --benchmark --width $width --samples $samples --iterations $iterations"
+$cmd = "$nodeCmd dist/src/index.js --benchmark --width $width --samples $samples"
 
 # Add scene parameters if specified
+if ($iterations -gt 0) {
+    $cmd += " --iterations $iterations"
+}
 if ($sphereCount -gt 0) {
     $cmd += " --spheres $sphereCount"
 }
-if ($seed -ne -1) {
+if ($seed -gt 0) {
     $cmd += " --seed $seed"
+}
+if ($at -gt 0) {
+    $cmd += " --at $at"
+}
+if ($ab -gt 0) {
+    $cmd += " --ab $ab"
 }
 
 # Add output file

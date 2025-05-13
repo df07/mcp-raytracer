@@ -5,11 +5,38 @@ import { Hittable } from './hittable.js';
 import { Interval } from './interval.js';
 import { VectorPool } from './vec3.js';
 
+/**
+ * Camera configuration options for scene generation
+ */
+export interface CameraOptions {
+  imageWidth?: number;           // Width of the rendered image (default: 400)
+  imageHeight?: number;          // Height of the rendered image (default: 225)
+  vfov?: number;                 // Vertical field of view in degrees (default: 90)
+  lookFrom?: Point3;             // Camera position (default: origin)
+  lookAt?: Point3;               // Look-at position (default: 0,0,-1)
+  vUp?: Vec3;                    // Camera's up direction (default: 0,1,0)
+  samples?: number;              // Anti-aliasing samples per pixel (default: 100)
+  adaptiveTolerance?: number;    // Tolerance for convergence in adaptive sampling (default: 0.05)
+  adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
+}
+
 export class Camera {
+    static defaultOptions: Required<CameraOptions> = {
+        imageWidth: 400,
+        imageHeight: 225, // 16:9 aspect ratio
+        vfov: 90,
+        lookFrom: new Vec3(0, 0, 0),
+        lookAt: new Vec3(0, 0, -1),
+        vUp: new Vec3(0, 1, 0),
+        samples: 100,
+        adaptiveTolerance: 0.05,
+        adaptiveBatchSize: 10,
+    }
+
     public readonly imageWidth: number;
     public readonly imageHeight: number;
-    public readonly center: Point3;
-    public readonly pixel00Loc: Point3;
+    public readonly center: Vec3;
+    public readonly pixel00Loc: Vec3;
     public readonly pixelDeltaU: Vec3;
     public readonly pixelDeltaV: Vec3;
     private readonly u: Vec3;
@@ -19,37 +46,35 @@ export class Camera {
     private readonly maxDepth: number = 50; // Maximum recursion depth for ray bounces
     private readonly samples: number; // Maximum number of samples per pixel
     private readonly adaptiveTolerance: number; // Tolerance for convergence
+    private readonly adaptiveSampleBatchSize: number = 32; // Number of samples to process in one batch
 
-    constructor(
-        imageWidth: number, 
-        imageHeight: number, 
-        vfovDegrees: number, 
-        lookfrom: Point3, 
-        lookat: Point3, 
-        vup: Vec3, 
+    constructor(        
         world: Hittable,
-        samples: number = 1, // Default to 1 sample per pixel (no anti-aliasing)
-        adaptiveTolerance: number = 0.05 // Default tolerance for convergence
+        options?: CameraOptions,
     ) {
-        this.imageWidth = imageWidth;
-        this.imageHeight = imageHeight;
-        this.center = lookfrom;
-        this.world = world; // Store world
-        this.samples = samples;
-        this.adaptiveTolerance = adaptiveTolerance;
+        this.world = world;
+
+        const loptions: Required<CameraOptions> = {...Camera.defaultOptions, ...options};
+
+        this.imageWidth = loptions.imageWidth;
+        this.imageHeight = loptions.imageHeight;
+        this.center = loptions.lookFrom;
+        this.samples = loptions.samples;
+        this.adaptiveTolerance = loptions.adaptiveTolerance;
+        this.adaptiveSampleBatchSize = loptions.adaptiveBatchSize;
 
         // Determine viewport dimensions.
         const focalLength = 1.0; // Fixed focal length
-        const theta = vfovDegrees * (Math.PI / 180); // Convert vfov to radians
+        const theta = loptions.vfov * (Math.PI / 180); // Convert vfov to radians
         const h = Math.tan(theta / 2);
         const viewportHeight = 2 * h * focalLength;
-        const aspectRatio = imageWidth / imageHeight;
+        const aspectRatio = this.imageWidth / this.imageHeight;
         const viewportWidth = viewportHeight * aspectRatio;
 
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
         // Use vec3 methods instead of standalone functions
-        this.w = lookfrom.subtract(lookat).unitVector();
-        this.u = vup.cross(this.w).unitVector();
+        this.w = loptions.lookFrom.subtract(loptions.lookAt).unitVector();
+        this.u = loptions.vUp.cross(this.w).unitVector();
         this.v = this.w.cross(this.u);
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
@@ -59,8 +84,8 @@ export class Camera {
 
         // Calculate the horizontal and vertical delta vectors from pixel to pixel.
         // Use vec3 methods instead of standalone functions
-        this.pixelDeltaU = viewportU.divide(imageWidth);
-        this.pixelDeltaV = viewportV.divide(imageHeight);
+        this.pixelDeltaU = viewportU.divide(this.imageWidth);
+        this.pixelDeltaV = viewportV.divide(this.imageHeight);
 
         // Calculate the location of the upper left pixel.
         // Use vec3 methods instead of standalone functions
@@ -154,7 +179,6 @@ export class Camera {
         
         // Determine if adaptive sampling should be used
         const useAdaptiveSampling = this.adaptiveTolerance > 0 && this.samples > 1;
-        const samplesPerBatch = 9; // Number of samples to process in one batch
 
         let totalSamples = 0;
 
@@ -177,8 +201,8 @@ export class Camera {
                 while (sampleCount < this.samples) {
                     // Determine batch size for this iteration
                     const remainingSamples = this.samples - sampleCount;
-                    const batchSize = useAdaptiveSampling 
-                        ? Math.min(samplesPerBatch, remainingSamples)
+                    const batchSize = useAdaptiveSampling
+                        ? Math.min(this.adaptiveSampleBatchSize, remainingSamples)
                         : remainingSamples;
                     
                     // Process one batch of samples

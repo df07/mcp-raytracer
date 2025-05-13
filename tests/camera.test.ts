@@ -65,13 +65,14 @@ class MockHittable implements Hittable {
 
 
 describe('Camera', () => {
-    const imageWidth = 200;
-    const imageHeight = 100;
-    // Use Vec3 constructor for Point3 types
-    const lookfrom: Point3 = new Vec3(0, 0, 0);
-    const lookat: Point3 = new Vec3(0, 0, -1);
-    const vup = new Vec3(0, 1, 0);
-    const vfov = 90;
+    const defaultOptions = {
+        imageWidth: 200,
+        imageHeight: 100,
+        lookfrom: new Vec3(0, 0, 0),
+        lookat: new Vec3(0, 0, -1),
+        vup: new Vec3(0, 1, 0),
+        vfov: 90
+    };
 
     // Test cases for rayColor
     const backgroundRay = new Ray(new Vec3(0,0,0), new Vec3(0, 0.5, -1));
@@ -92,15 +93,15 @@ describe('Camera', () => {
 
     beforeEach(() => {
         // Re-initialize cameras before each test
-        cameraMiss = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, mockWorldMiss);
-        cameraHitScatter = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, mockWorldHitScatter);
-        cameraHitNoScatter = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, mockWorldHitNoScatter);
+        cameraMiss = new Camera(mockWorldMiss, defaultOptions);
+        cameraHitScatter = new Camera(mockWorldHitScatter, defaultOptions);
+        cameraHitNoScatter = new Camera(mockWorldHitNoScatter, defaultOptions);
     });
 
     test('constructor initializes properties correctly', () => {
-        expect(cameraHitScatter.imageWidth).toBe(imageWidth);
-        expect(cameraHitScatter.imageHeight).toBe(imageHeight);
-        expect(cameraHitScatter.center).toEqual(lookfrom);
+        expect(cameraHitScatter.imageWidth).toBe(defaultOptions.imageWidth);
+        expect(cameraHitScatter.imageHeight).toBe(defaultOptions.imageHeight);
+        expect(cameraHitScatter.center).toEqual(defaultOptions.lookfrom);
         expect((cameraHitScatter as any).world).toBe(mockWorldHitScatter); // Check world is stored
 
         // Basic checks for calculated properties - more detailed checks could be added
@@ -137,8 +138,8 @@ describe('Camera', () => {
     });
 
     test('getRay returns a ray with correct direction for center pixel', () => {
-        const i = imageWidth / 2;
-        const j = imageHeight / 2;
+        const i = defaultOptions.imageWidth / 2;
+        const j = defaultOptions.imageHeight / 2;
         // Use cameraHitScatter instance
         const testRay = cameraHitScatter.getRay(i, j);
         // The ray for the center pixel should point directly along -w (towards lookat)
@@ -153,7 +154,7 @@ describe('Camera', () => {
     test('getRay returns different directions for different pixels', () => {
         // Use cameraHitScatter instance
         const ray1 = cameraHitScatter.getRay(10, 10);
-        const ray2 = cameraHitScatter.getRay(imageWidth - 10, imageHeight - 10);
+        const ray2 = cameraHitScatter.getRay(defaultOptions.imageWidth - 10, defaultOptions.imageHeight - 10);
         expect(ray1.direction).not.toEqual(ray2.direction);
     });
 
@@ -169,7 +170,7 @@ describe('Camera', () => {
 
     test('getRay for bottom-right corner', () => {
         // Use cameraHitScatter instance
-        const testRay = cameraHitScatter.getRay(imageWidth -1 , imageHeight -1);
+        const testRay = cameraHitScatter.getRay(defaultOptions.imageWidth - 1, defaultOptions.imageHeight - 1);
         // Direction should point towards the bottom-right of the viewport
         expect(testRay.direction.x).toBeGreaterThan(0); // Use getter property, Points right
         expect(testRay.direction.y).toBeLessThan(0); // Use getter property, Points down
@@ -195,7 +196,7 @@ describe('Camera', () => {
         // ... test using cameraHit ...
         const channels = 3; // RGB
         // Use Uint8ClampedArray as expected by the render method
-        const pixelData = new Uint8ClampedArray(imageWidth * imageHeight * channels);
+        const pixelData = new Uint8ClampedArray(defaultOptions.imageWidth * defaultOptions.imageHeight * channels);
         // Fill buffer with a known value first to ensure render changes it
         pixelData.fill(128);
 
@@ -203,7 +204,7 @@ describe('Camera', () => {
         cameraMiss.render(pixelData);
 
         // Check buffer size
-        expect(pixelData.length).toBe(imageWidth * imageHeight * channels);
+        expect(pixelData.length).toBe(defaultOptions.imageWidth * defaultOptions.imageHeight * channels);
 
         // Check that the buffer is no longer filled with the initial value
         // (This is a weak test, but confirms *something* was written)
@@ -278,9 +279,12 @@ describe('Camera', () => {
       // Test for anti-aliasing
     test('anti-aliasing uses multiple samples per pixel', () => {
         // Create a camera with multiple samples per pixel
-        const samplesPerPixel = 10;
-        const cameraWithAA = new Camera(imageWidth, imageHeight, vfov, lookfrom, lookat, vup, mockWorldHitScatter, samplesPerPixel);
-        
+        const cameraOptions = {
+            ...defaultOptions,
+            samplesPerPixel: 10
+        };
+        const cameraWithAA = new Camera(mockWorldHitScatter, cameraOptions);
+
         // Create a small buffer for one pixel
         const pixelData = new Uint8ClampedArray(3);
         
@@ -296,7 +300,7 @@ describe('Camera', () => {
         // and render just one pixel to test sampling
         const mockRender = () => {
             let pixelColor = new Vec3(0, 0, 0);
-            for (let s = 0; s < samplesPerPixel; ++s) {
+            for (let s = 0; s < cameraOptions.samplesPerPixel; ++s) {
                 const r = cameraWithAA.getRay(0, 0);
                 // We don't need to calculate real colors for this test
             }
@@ -306,23 +310,21 @@ describe('Camera', () => {
         mockRender();
         
         // Verify getRay was called samplesPerPixel times
-        expect(getRayCalls).toBe(samplesPerPixel);
+        expect(getRayCalls).toBe(cameraOptions.samplesPerPixel);
         
         // Restore the original method
         cameraWithAA.getRay = originalGetRay;
     });
-});
 
-describe('Camera with adaptive sampling', () => {
     it('should implement adaptive sampling and convergence check', () => {
         // Create a camera with adaptive sampling enabled
-        const imageWidth = 4;
-        const imageHeight = 3;
-        const lookfrom = new Vec3(0, 0, 0);  // Point3 is a type alias of Vec3
-        const lookat = new Vec3(0, 0, -1);   // Point3 is a type alias of Vec3
-        const vup = new Vec3(0, 1, 0);
-        const vfov = 90;
-        const samplesPerPixel = 100;
+        const cameraOptions = {
+            ...defaultOptions,
+            imageWidth: 4,
+            imageHeight: 3,
+            samplesPerPixel: 100,
+            adaptiveTolerance: 0.2 // Higher tolerance for faster convergence in tests
+        }
         
         // Create a simple world with a black sphere
         // Black spheres will make areas of high contrast against the blue/white gradient background
@@ -333,23 +335,14 @@ describe('Camera with adaptive sampling', () => {
         worldList.add(new Sphere(new Vec3(0, 0, -2), 1.5, blackMaterial));
         
         // Create a camera with adaptive sampling enabled
-        const camera = new Camera(
-            imageWidth, 
-            imageHeight, 
-            vfov, 
-            lookfrom, 
-            lookat, 
-            vup, 
-            worldList, 
-            samplesPerPixel,
-            0.2   // Higher tolerance for faster convergence in tests
-        );
+        const camera = new Camera(worldList, cameraOptions);
         
         // Buffer for pixel data
-        const pixelData = new Uint8ClampedArray(imageWidth * imageHeight * 3); // RGB
-        
+        const pixels = cameraOptions.imageWidth * cameraOptions.imageHeight;
+        const pixelData = new Uint8ClampedArray(pixels * 3); // RGB
+
         // Buffer for sample counts
-        const sampleCountBuffer = new Uint32Array(imageWidth * imageHeight);
+        const sampleCountBuffer = new Uint32Array(pixels);
         
         // Render with adaptive sampling
         camera.render(pixelData, false, sampleCountBuffer);
@@ -368,13 +361,13 @@ describe('Camera with adaptive sampling', () => {
         
         // At least one pixel should use fewer samples than the maximum
         // Either minSampleCount < samplesPerPixel OR all pixels converged early
-        expect(minSampleCount).toBeLessThanOrEqual(samplesPerPixel);
-        
+        expect(minSampleCount).toBeLessThanOrEqual(cameraOptions.samplesPerPixel);
+
         // Verify that no pixel used more than the maximum samples
         const maxSamplesUsed = Math.max(...sampleCountBuffer);
-        expect(maxSamplesUsed).toBeLessThanOrEqual(samplesPerPixel);
-        
-        // We've already checked minSampleCount above, 
+        expect(maxSamplesUsed).toBeLessThanOrEqual(cameraOptions.samplesPerPixel);
+
+        // We've already checked minSampleCount above,
         // now verify that we have some variation in the sample counts
         // This ensures that adaptive sampling actually did something
         expect(minSampleCount).not.toEqual(maxSampleCount);

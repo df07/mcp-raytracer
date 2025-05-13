@@ -1,32 +1,40 @@
-import { generateRandomSphereScene, RandomSceneOptions, SceneOptions } from '../src/sceneGenerator.js';
-import { HittableList } from '../src/hittableList.js';
+import { generateRandomSphereScene, RandomSceneOptions } from '../src/sceneGenerator.js';
 import { Sphere } from '../src/sphere.js';
 import { Vec3 } from '../src/vec3.js';
+import { CameraOptions } from '../src/camera.js';
 
 describe('SceneGenerator', () => {
+  const defaultCamera: CameraOptions = {
+    imageWidth: 9,
+        imageHeight: 6,
+        samples: 1
+    };    
+
   describe('generateRandomSphereScene', () => {
     it('should generate a scene with the specified number of spheres', () => {
       const count = 5;
-      const scene = generateRandomSphereScene(count);
-      
+      const scene = generateRandomSphereScene(defaultCamera, { count });
+
       // Count should not include the ground sphere by default
       expect(scene._objects.length).toBe(count);
     });
+    
       it('should generate a scene without ground sphere if specified', () => {
       const count = 5;
-      const options: SceneOptions = {
-        world: {
-          groundSphere: false
-        }
+      const options: RandomSceneOptions = {
+        count,
+        groundSphere: false
       };
-      
-      const scene = generateRandomSphereScene(count, options);
-      
+
+      const scene = generateRandomSphereScene(defaultCamera,options);
+
       // Count should be exactly the number of spheres requested (no ground)
       expect(scene._objects.length).toBe(count);
-    });    it('should generate non-overlapping spheres', () => {
+    });    
+    
+    it('should generate non-overlapping spheres', () => {
       const count = 10;
-      const scene = generateRandomSphereScene(count);
+      const scene = generateRandomSphereScene(defaultCamera, { count });
       
       // Extract all spheres from the world
       const spheres: Array<{center: Vec3, radius: number}> = [];
@@ -57,8 +65,8 @@ describe('SceneGenerator', () => {
     
     it('should decrease sphere radius as sphere count increases', () => {
       // Generate scenes with different sphere counts
-      const smallScene = generateRandomSphereScene(5);
-      const largeScene = generateRandomSphereScene(50);
+      const smallScene = generateRandomSphereScene(defaultCamera, { count: 5 });
+      const largeScene = generateRandomSphereScene(defaultCamera, { count: 50 });
         // Extract non-ground spheres
       const getMaxSphereRadius = (scene: any): number => {
         let maxRadius = 0;
@@ -80,20 +88,20 @@ describe('SceneGenerator', () => {
       expect(largeSceneMaxRadius).toBeLessThan(smallSceneMaxRadius);
     });
       it('should respect the provided options', () => {
-      const customOptions: SceneOptions = {
-        world: {
-          centerPoint: new Vec3(1, 0, -2),
-          radius: 3,
-          minSphereRadius: 0.1,
-          maxSphereRadius: 0.3,
-          groundSphere: true,
-          groundY: -500,
-          groundRadius: 500
-        }
+      const customOptions: RandomSceneOptions = {
+        count: 10,   
+        centerPoint: new Vec3(1, 0, -2),
+        radius: 3,
+        minSphereRadius: 0.1,
+        maxSphereRadius: 0.3,
+        groundSphere: true,
+        groundY: -500,
+        groundRadius: 500
+        
       };
-      
-      const scene = generateRandomSphereScene(10, customOptions);
-      
+
+      const scene = generateRandomSphereScene(defaultCamera, customOptions);
+
       // Check if ground sphere uses specified parameters
       // Find ground sphere (largest sphere)
       let groundSphere: Sphere | null = null;
@@ -106,8 +114,8 @@ describe('SceneGenerator', () => {
       }
       
       expect(groundSphere).not.toBeNull();
-      expect(groundSphere!.center.y).toBeCloseTo(customOptions.world!.groundY!);
-      expect(groundSphere!.radius).toBeCloseTo(customOptions.world!.groundRadius!);
+      expect(groundSphere!.center.y).toBeCloseTo(customOptions.groundY!);
+      expect(groundSphere!.radius).toBeCloseTo(customOptions.groundRadius!);
     });
   });
 });
