@@ -61,7 +61,7 @@ export class BVHNode implements Hittable {
         if (objectsSpan === 1) {
             // Only one object, both children are the same
             this.left = objectsList[0];
-            this.right = objectsList[0];
+            this.right = _emptyHittable;
         } else if (objectsSpan === 2) {
             // Two objects, sort them along the chosen axis
             if (this.compareBoxes(objectsList[0], objectsList[1], axis)) {
