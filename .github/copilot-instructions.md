@@ -1,5 +1,9 @@
 # Project Rules - Quick Reference
 
+# Project Overview
+- We're building a Raytracer in TypeScript following the guide here https://raytracing.github.io/books/RayTracingInOneWeekend.html
+- You can review what we've done so far by reading the specs in /specs
+
 # Core Coding Checklist
 1. Follow rules .github/copilot-instructions.md when writing code; suggest updates when needed.
 2. Always have a spec in `specs/`; review before coding and keep updated.

@@ -8,6 +8,7 @@ import { Material } from '../src/materials/material.js';
 import { Lambertian } from '../src/materials/lambertian.js';
 import { Sphere } from '../src/sphere.js';
 import { AABB } from '../src/aabb.js';
+import { CameraOptions } from '../src/camera.js';
 
 // Mock Material for testing
 class MockMaterial implements Material {
@@ -318,11 +319,12 @@ describe('Camera', () => {
 
     it('should implement adaptive sampling and convergence check', () => {
         // Create a camera with adaptive sampling enabled
-        const cameraOptions = {
+        const cameraOptions: CameraOptions = {
             ...defaultOptions,
             imageWidth: 4,
             imageHeight: 3,
-            samplesPerPixel: 100,
+            samples: 10,
+            adaptiveBatchSize: 1,
             adaptiveTolerance: 0.2 // Higher tolerance for faster convergence in tests
         }
         
@@ -338,39 +340,41 @@ describe('Camera', () => {
         const camera = new Camera(worldList, cameraOptions);
         
         // Buffer for pixel data
-        const pixels = cameraOptions.imageWidth * cameraOptions.imageHeight;
+        const pixels = cameraOptions.imageWidth! * cameraOptions.imageHeight!;
         const pixelData = new Uint8ClampedArray(pixels * 3); // RGB
-
-        // Buffer for sample counts
-        const sampleCountBuffer = new Uint32Array(pixels);
         
-        // Render with adaptive sampling
-        camera.render(pixelData, false, sampleCountBuffer);
+        // Render with adaptive sampling and get statistics
+        const stats = camera.render(pixelData);
         
-        // With our test setup, we should have at least one pixel that uses fewer samples
-        // due to quick convergence, and at least one that uses more samples
-        
-        // Find the min and max sample counts
-        let minSampleCount = sampleCountBuffer[0];
-        let maxSampleCount = sampleCountBuffer[0];
-        
-        for (let i = 1; i < sampleCountBuffer.length; i++) {
-            minSampleCount = Math.min(minSampleCount, sampleCountBuffer[i]);
-            maxSampleCount = Math.max(maxSampleCount, sampleCountBuffer[i]);
+        // Verify the buffer has been populated with something
+        let allZeros = true;
+        for (let i = 0; i < pixelData.length; i++) {
+            if (pixelData[i] !== 0) {
+                allZeros = false;
+                break;
+            }
         }
+        expect(allZeros).toBe(false);
         
-        // At least one pixel should use fewer samples than the maximum
-        // Either minSampleCount < samplesPerPixel OR all pixels converged early
-        expect(minSampleCount).toBeLessThanOrEqual(cameraOptions.samplesPerPixel);
-
-        // Verify that no pixel used more than the maximum samples
-        const maxSamplesUsed = Math.max(...sampleCountBuffer);
-        expect(maxSamplesUsed).toBeLessThanOrEqual(cameraOptions.samplesPerPixel);
-
-        // We've already checked minSampleCount above,
-        // now verify that we have some variation in the sample counts
-        // This ensures that adaptive sampling actually did something
-        expect(minSampleCount).not.toEqual(maxSampleCount);
+        // With adaptive sampling, we expect some pixels to use fewer samples
+        // than the maximum allowed
+        expect(stats.minSamplesPerPixel).toBeLessThan(cameraOptions.samples!);
+        
+        // Max samples should not exceed the configured maximum
+        expect(stats.maxSamplesPerPixel).toBeLessThanOrEqual(cameraOptions.samples!);
+        
+        // There should be variation in the number of samples between pixels
+        expect(stats.minSamplesPerPixel).toBeLessThan(stats.maxSamplesPerPixel);
+        
+        // Average samples should be between min and max
+        expect(stats.avgSamplesPerPixel).toBeGreaterThanOrEqual(stats.minSamplesPerPixel);
+        expect(stats.avgSamplesPerPixel).toBeLessThanOrEqual(stats.maxSamplesPerPixel);
+        
+        // Check that the total number of pixels is correct
+        expect(stats.pixelCount).toBe(cameraOptions.imageWidth! * cameraOptions.imageHeight!);
+        
+        // Total samples should be the sum of samples across all pixels
+        expect(stats.totalSamples).toBe(stats.avgSamplesPerPixel * stats.pixelCount);
     });
     
     it('should calculate correct illuminance for color vectors', () => {

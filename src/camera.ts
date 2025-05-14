@@ -20,6 +20,17 @@ export interface CameraOptions {
   adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
 }
 
+/**
+ * Statistics from the rendering process
+ */
+export interface RenderStats {
+    totalSamples: number;        // Total number of samples taken
+    pixelCount: number;          // Total number of pixels rendered
+    minSamplesPerPixel: number;  // Minimum samples for any pixel
+    maxSamplesPerPixel: number;  // Maximum samples for any pixel
+    avgSamplesPerPixel: number;  // Average samples per pixel
+}
+
 export class Camera {
     static defaultOptions: Required<CameraOptions> = {
         imageWidth: 400,
@@ -35,6 +46,7 @@ export class Camera {
 
     public readonly imageWidth: number;
     public readonly imageHeight: number;
+    public readonly channels = 3;
     public readonly center: Vec3;
     public readonly pixel00Loc: Vec3;
     public readonly pixelDeltaU: Vec3;
@@ -162,33 +174,44 @@ export class Camera {
         const a = 0.5 * (unitDirection.y + 1.0);
         // Linear interpolation (lerp) between white and blue based on y-coordinate
         return Vec3.WHITE.multiply(1.0 - a).add(Vec3.BLUE.multiply(a));
-    }    /**
-     * Renders the scene and writes the pixel data to the buffer.
+    }    
+
+    /**
+     * Renders a specific region of the scene and writes the pixel data to the buffer.
      * Uses adaptive sampling if enabled to optimize rendering by focusing samples on complex areas.
-     * @param pixelData The buffer to write pixel data into.
-     * @param verbose Whether to log progress to stderr.
-     * @param sampleCountBuffer Optional buffer to write the number of samples per pixel.
+     * 
+     * @param buffer The buffer to write pixel data into
+     * @param startX The starting X coordinate of the region (inclusive)
+     * @param startY The starting Y coordinate of the region (inclusive)
+     * @param width The width of the region
+     * @param height The height of the region
+     * @returns Statistics about the rendering process
      */
-    render(
-        pixelData: Uint8ClampedArray, 
-        verbose: boolean = false,
-        sampleCountBuffer?: Uint32Array
-    ): void {
+    renderRegion(
+        buffer: Uint8ClampedArray,
+        startX: number,
+        startY: number,
+        width: number,
+        height: number
+    ): RenderStats {
         const pool = new VectorPool(1600); // Create a vector pool for rendering
-        let offset = 0;
+        
+        // Ensure the region is within the image bounds
+        const endX = Math.min(startX + width, this.imageWidth);
+        const endY = Math.min(startY + height, this.imageHeight);
         
         // Determine if adaptive sampling should be used
         const useAdaptiveSampling = this.adaptiveTolerance > 0 && this.samples > 1;
 
+        // Statistics tracking
         let totalSamples = 0;
+        let minSamplesPerPixel = this.samples; // Start with max possible
+        let maxSamplesPerPixel = 0;
+        const pixelCount = (endX - startX) * (endY - startY);
 
-        // Render loop
-        for (let j = 0; j < this.imageHeight; ++j) {
-            if (verbose && j % 10 === 0) {
-                process.stderr.write(`\rScanlines remaining: ${this.imageHeight - j} `);
-            }
-            
-            for (let i = 0; i < this.imageWidth; ++i) {
+        // Render loop for the region
+        for (let j = startY; j < endY; ++j) {            
+            for (let i = startX; i < endX; ++i) {
                 // Initialize pixel data
                 let pixelColor = new Vec3(0, 0, 0);
                 let sampleCount = 0;
@@ -249,32 +272,42 @@ export class Camera {
                             break; // Pixel has converged, stop sampling
                         }
                     }
-                    
-                    // For non-adaptive sampling, we take all samples in one batch
-                    if (!useAdaptiveSampling) break;
-                }
-                
-                // Store sample count if a buffer was provided
-                if (sampleCountBuffer) {
-                    sampleCountBuffer[j * this.imageWidth + i] = sampleCount;
                 }
                 
                 // Compute final pixel color by averaging all samples
                 pixelColor = pixelColor.divide(sampleCount);
-                totalSamples += sampleCount;
                 
-                // Write the color to the output buffer
-                writeColorToBuffer(pixelData, offset, pixelColor);
-                offset += 3; // Move to next pixel (RGB)
+                // Update statistics
+                totalSamples += sampleCount;
+                minSamplesPerPixel = Math.min(minSamplesPerPixel, sampleCount);
+                maxSamplesPerPixel = Math.max(maxSamplesPerPixel, sampleCount);
+                
+                // Write directly to the full image buffer at the correct position
+                const bufferIndex = (j * this.imageWidth + i) * this.channels;
+                writeColorToBuffer(buffer, bufferIndex, pixelColor);
             }
         }
         
-        if (verbose) {
-            process.stderr.write(`\rScanlines remaining: 0 \n`);
-            if (useAdaptiveSampling) {
-                console.error("Average samples per pixel: ", totalSamples / (this.imageWidth * this.imageHeight));
-            }
-        }
+        // Calculate average samples per pixel
+        const avgSamplesPerPixel = totalSamples / pixelCount;
+        
+        return {
+            totalSamples,
+            pixelCount,
+            minSamplesPerPixel,
+            maxSamplesPerPixel,
+            avgSamplesPerPixel
+        };
+    }
+
+    /**
+     * Renders the scene and writes the pixel data to the buffer.
+     * Uses adaptive sampling if enabled to optimize rendering by focusing samples on complex areas.
+     * @param pixelData The buffer to write pixel data into.
+     * @returns Statistics about the rendering process
+     */ 
+    render(pixelData: Uint8ClampedArray): RenderStats {
+        return this.renderRegion(pixelData, 0, 0, this.imageWidth, this.imageHeight);
     }
 }
 

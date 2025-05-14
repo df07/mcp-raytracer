@@ -11,6 +11,8 @@ param (
     [int]$seed = 0,
     [double]$at = 0, # Default to 0 = disabled (will use Camera's default if > 0)
     [double]$ab = 0, # Default to 0 = disabled (will use Camera's default if > 0)
+    [switch]$parallel = $false, # Use parallel rendering with worker threads
+    [int]$threads = 0, # Number of threads to use for parallel rendering
     [switch]$profile = $false # Parameter for enabling Node.js profiling (automatically processes the output)
 )
 
@@ -48,6 +50,12 @@ if ($at -gt 0) {
 }
 if ($ab -gt 0) {
     $cmd += " --ab $ab"
+}
+if ($parallel) {
+    $cmd += " -p"
+}
+if ($threads -gt 0) {
+    $cmd += " -t $threads"
 }
 
 # Add output file
