@@ -55,7 +55,7 @@ export class Camera {
     private readonly v: Vec3;
     private readonly w: Vec3;
     private readonly world: Hittable;
-    private readonly maxDepth: number = 50; // Maximum recursion depth for ray bounces
+    private readonly maxDepth: number = 10; // Maximum recursion depth for ray bounces
     private readonly samples: number; // Maximum number of samples per pixel
     private readonly adaptiveTolerance: number; // Tolerance for convergence
     private readonly adaptiveSampleBatchSize: number = 32; // Number of samples to process in one batch
