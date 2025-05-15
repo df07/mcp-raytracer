@@ -3,7 +3,7 @@
 import { Ray } from './ray.js';
 import { Point3, Vec3, VectorPool } from './vec3.js';
 import { Interval } from './interval.js';
-import { Material } from './materials/material.js';
+import { Material } from '../materials/material.js';
 import { AABB } from './aabb.js';
 
 /**

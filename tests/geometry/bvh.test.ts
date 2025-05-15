@@ -1,11 +1,11 @@
-import { BVHNode } from '../src/bvh.js';
-import { Hittable } from '../src/hittable.js';
-import { HittableList } from '../src/hittableList.js';
-import { Sphere } from '../src/sphere.js';
-import { Ray } from '../src/ray.js';
-import { Interval } from '../src/interval.js';
-import { Vec3 } from '../src/vec3.js';
-import { Lambertian } from '../src/materials/lambertian.js';
+import { BVHNode } from '../../src/geometry/bvh.js';
+import { Hittable } from '../../src/geometry/hittable.js';
+import { HittableList } from '../../src/geometry/hittableList.js';
+import { Sphere } from '../../src/entities/sphere.js';
+import { Ray } from '../../src/geometry/ray.js';
+import { Interval } from '../../src/geometry/interval.js';
+import { Vec3 } from '../../src/geometry/vec3.js';
+import { Lambertian } from '../../src/materials/lambertian.js';
 
 describe('BVHNode', () => {
   // Create a simple material for testing

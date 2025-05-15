@@ -1,14 +1,14 @@
 /* Specs: random-scene.md */
 
-import { Point3, Vec3 } from './vec3.js';
-import { HittableList } from './hittableList.js';
-import { Sphere } from './sphere.js';
+import { Point3, Vec3 } from './geometry/vec3.js';
+import { HittableList } from './geometry/hittableList.js';
+import { Sphere } from './entities/sphere.js';
 import { Lambertian } from './materials/lambertian.js';
 import { Metal } from './materials/metal.js';
 import { Material } from './materials/material.js';
-import { Hittable } from './hittable.js';
+import { Hittable } from './geometry/hittable.js';
 import { Camera, CameraOptions } from './camera.js';
-import { BVHNode } from './bvh.js';
+import { BVHNode } from './geometry/bvh.js';
 
 export interface Scene {
     camera: Camera,

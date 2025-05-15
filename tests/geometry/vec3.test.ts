@@ -1,4 +1,4 @@
-import { Vec3, Point3, Color } from '../src/vec3.js';
+import { Vec3, Point3, Color } from '../../src/geometry/vec3.js';
 
 describe('Vec3', () => {
     // --- Constructor and Accessors --- 

@@ -1,13 +1,13 @@
 import { Camera } from '../src/camera.js';
-import { Vec3, Point3, Color } from '../src/vec3.js';
-import { Ray } from '../src/ray.js';
-import { Hittable, HitRecord } from '../src/hittable.js';
-import { HittableList } from '../src/hittableList.js';
-import { Interval } from '../src/interval.js';
+import { Vec3, Point3, Color } from '../src/geometry/vec3.js';
+import { Ray } from '../src/geometry/ray.js';
+import { Hittable, HitRecord } from '../src/geometry/hittable.js';
+import { HittableList } from '../src/geometry/hittableList.js';
+import { Interval } from '../src/geometry/interval.js';
 import { Material } from '../src/materials/material.js';
 import { Lambertian } from '../src/materials/lambertian.js';
-import { Sphere } from '../src/sphere.js';
-import { AABB } from '../src/aabb.js';
+import { Sphere } from '../src/entities/sphere.js';
+import { AABB } from '../src/geometry/aabb.js';
 import { CameraOptions } from '../src/camera.js';
 
 // Mock Material for testing

@@ -1,9 +1,9 @@
 /* Specs: camera.md */
-import { Vec3, Point3, Color } from './vec3.js';
-import { Ray } from './ray.js';
-import { Hittable } from './hittable.js';
-import { Interval } from './interval.js';
-import { VectorPool } from './vec3.js';
+import { Vec3, Point3, Color } from './geometry/vec3.js';
+import { Ray } from './geometry/ray.js';
+import { Hittable } from './geometry/hittable.js';
+import { Interval } from './geometry/interval.js';
+import { VectorPool } from './geometry/vec3.js';
 
 /**
  * Camera configuration options for scene generation

@@ -1,7 +1,7 @@
-import { AABB } from '../src/aabb.js';
-import { Ray } from '../src/ray.js';
-import { Vec3 } from '../src/vec3.js';
-import { Interval } from '../src/interval.js';
+import { AABB } from '../../src/geometry/aabb.js';
+import { Ray } from '../../src/geometry/ray.js';
+import { Vec3 } from '../../src/geometry/vec3.js';
+import { Interval } from '../../src/geometry/interval.js';
 
 describe('AABB', () => {
   describe('hit method', () => {

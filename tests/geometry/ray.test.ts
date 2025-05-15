@@ -1,5 +1,5 @@
-import { Ray } from '../src/ray.js';
-import { Vec3, Point3 } from '../src/vec3.js';
+import { Ray } from '../../src/geometry/ray.js';
+import { Vec3, Point3 } from '../../src/geometry/vec3.js';
 
 describe('Ray', () => {
     it('should initialize origin and direction correctly', () => {

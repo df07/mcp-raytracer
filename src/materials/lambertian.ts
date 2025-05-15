@@ -1,10 +1,10 @@
 /* Specs: material.md */
 
-import { Ray } from '../ray.js';
-import { Color, Vec3 } from '../vec3.js';
-import { HitRecord } from '../hittable.js';
+import { Ray } from '../geometry/ray.js';
+import { Color, Vec3 } from '../geometry/vec3.js';
+import { HitRecord } from '../geometry/hittable.js';
 import { Material } from './material.js';
-import { VectorPool } from '../vec3.js';
+import { VectorPool } from '../geometry/vec3.js';
 
 /**
  * Lambertian (diffuse) material that scatters light in random directions.

@@ -2,7 +2,7 @@
   "mcpServers": {
     "HelloWorldServer": {
       "command": "node",
-      "args": ["C:\\Users\\dfull\\Documents\\code\\mcp-raytracer\\dist\\src\\index.js"],
+      "args": ["C:\\Users\\dfull\\Documents\\code\\mcp-raytracer\\dist\\src\\index.js", "--mcp"],
       "env": {}
     }
   }

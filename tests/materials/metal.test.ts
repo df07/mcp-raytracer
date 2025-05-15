@@ -2,9 +2,9 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { Metal } from '../../src/materials/metal.js';
-import { Vec3 } from '../../src/vec3.js';
-import { Ray } from '../../src/ray.js';
-import { HitRecord } from '../../src/hittable.js';
+import { Vec3 } from '../../src/geometry/vec3.js';
+import { Ray } from '../../src/geometry/ray.js';
+import { HitRecord } from '../../src/geometry/hittable.js';
 
 describe('Metal Material', () => {
   // Test Metal constructor

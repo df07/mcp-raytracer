@@ -1,5 +1,5 @@
-// Import necessary items directly from src/index.ts
-import { greetToolHandler, showImageToolHandler } from "../src/index.js"; 
+// Import necessary items directly from src/mcp.js
+import { greetToolHandler, showImageToolHandler } from "../src/mcp.js"; 
 import fs from "fs/promises"; // Import fs normally
 import path from "path";
 import { jest } from '@jest/globals'; 

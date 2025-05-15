@@ -1,8 +1,8 @@
 /* Specs: material.md */
 
-import { Ray } from '../ray.js';
-import { Color } from '../vec3.js';
-import { HitRecord } from '../hittable.js';
+import { Ray } from '../geometry/ray.js';
+import { Color } from '../geometry/vec3.js';
+import { HitRecord } from '../geometry/hittable.js';
 
 /**
  * Interface for materials that determine how rays interact with surfaces.

@@ -1,4 +1,4 @@
-import { Interval } from '../src/interval.js';
+import { Interval } from '../../src/geometry/interval.js';
 
 describe('Interval', () => {
   it('should initialize correctly with values', () => {

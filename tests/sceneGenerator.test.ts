@@ -1,6 +1,6 @@
 import { generateRandomSphereScene, RandomSceneOptions } from '../src/sceneGenerator.js';
-import { Sphere } from '../src/sphere.js';
-import { Vec3 } from '../src/vec3.js';
+import { Sphere } from '../src/entities/sphere.js';
+import { Vec3 } from '../src/geometry/vec3.js';
 import { CameraOptions } from '../src/camera.js';
 
 describe('SceneGenerator', () => {

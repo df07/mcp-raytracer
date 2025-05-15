@@ -1,11 +1,11 @@
 /* Specs: sphere.md, hittable.md, aabb-bvh.md */
 
-import { Point3, Vec3, VectorPool } from './vec3.js'; // Added VectorPool import
-import { Ray } from './ray.js';
-import { HitRecord, Hittable } from './hittable.js';
-import { Interval } from './interval.js';
-import { Material } from './materials/material.js';
-import { AABB } from './aabb.js';
+import { Point3, Vec3, VectorPool } from '../geometry/vec3.js'; // Added VectorPool import
+import { Ray } from '../geometry/ray.js';
+import { HitRecord, Hittable } from '../geometry/hittable.js';
+import { Interval } from '../geometry/interval.js';
+import { Material } from '../materials/material.js';
+import { AABB } from '../geometry/aabb.js';
 
 /** Represents a sphere in 3D space that can be intersected by rays */
 export class Sphere implements Hittable {
