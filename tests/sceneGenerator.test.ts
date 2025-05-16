@@ -1,7 +1,9 @@
-import { generateRandomSphereScene, RandomSceneOptions } from '../src/sceneGenerator.js';
+import { generateSpheresScene, SpheresSceneOptions } from '../src/sceneGenerator.js';
 import { Sphere } from '../src/entities/sphere.js';
 import { Vec3 } from '../src/geometry/vec3.js';
 import { CameraOptions } from '../src/camera.js';
+import { generateScene, SceneConfig } from '../src/sceneGenerator.js';
+import { Metal } from '../src/materials/metal.js';
 
 describe('SceneGenerator', () => {
   const defaultCamera: CameraOptions = {
@@ -10,10 +12,10 @@ describe('SceneGenerator', () => {
         samples: 1
     };    
 
-  describe('generateRandomSphereScene', () => {
+  describe('generateSpheresScene', () => {
     it('should generate a scene with the specified number of spheres', () => {
       const count = 5;
-      const scene = generateRandomSphereScene(defaultCamera, { count });
+      const scene = generateSpheresScene(defaultCamera, { count });
 
       // Count should not include the ground sphere by default
       expect(scene._objects.length).toBe(count);
@@ -21,12 +23,12 @@ describe('SceneGenerator', () => {
     
       it('should generate a scene without ground sphere if specified', () => {
       const count = 5;
-      const options: RandomSceneOptions = {
+      const options: SpheresSceneOptions = {
         count,
         groundSphere: false
       };
 
-      const scene = generateRandomSphereScene(defaultCamera,options);
+      const scene = generateSpheresScene(defaultCamera,options);
 
       // Count should be exactly the number of spheres requested (no ground)
       expect(scene._objects.length).toBe(count);
@@ -34,7 +36,7 @@ describe('SceneGenerator', () => {
     
     it('should generate non-overlapping spheres', () => {
       const count = 10;
-      const scene = generateRandomSphereScene(defaultCamera, { count });
+      const scene = generateSpheresScene(defaultCamera, { count });
       
       // Extract all spheres from the world
       const spheres: Array<{center: Vec3, radius: number}> = [];
@@ -65,8 +67,8 @@ describe('SceneGenerator', () => {
     
     it('should decrease sphere radius as sphere count increases', () => {
       // Generate scenes with different sphere counts
-      const smallScene = generateRandomSphereScene(defaultCamera, { count: 5 });
-      const largeScene = generateRandomSphereScene(defaultCamera, { count: 50 });
+      const smallScene = generateSpheresScene(defaultCamera, { count: 5 });
+      const largeScene = generateSpheresScene(defaultCamera, { count: 50 });
         // Extract non-ground spheres
       const getMaxSphereRadius = (scene: any): number => {
         let maxRadius = 0;
@@ -88,7 +90,7 @@ describe('SceneGenerator', () => {
       expect(largeSceneMaxRadius).toBeLessThan(smallSceneMaxRadius);
     });
       it('should respect the provided options', () => {
-      const customOptions: RandomSceneOptions = {
+      const customOptions: SpheresSceneOptions = {
         count: 10,   
         centerPoint: new Vec3(1, 0, -2),
         radius: 3,
@@ -100,7 +102,7 @@ describe('SceneGenerator', () => {
         
       };
 
-      const scene = generateRandomSphereScene(defaultCamera, customOptions);
+      const scene = generateSpheresScene(defaultCamera, customOptions);
 
       // Check if ground sphere uses specified parameters
       // Find ground sphere (largest sphere)
@@ -116,6 +118,83 @@ describe('SceneGenerator', () => {
       expect(groundSphere).not.toBeNull();
       expect(groundSphere!.center.y).toBeCloseTo(customOptions.groundY!);
       expect(groundSphere!.radius).toBeCloseTo(customOptions.groundRadius!);
+    });
+  });
+
+  describe('Rain Scene', () => {
+    it('should generate a rain scene with the specified number of metallic spheres', () => {
+      // Arrange
+      const config: SceneConfig = {
+        type: 'rain',
+        options: {
+          count: 20,
+          sphereRadius: 0.1,
+          groundSphere: true
+        }
+      };
+
+      // Act
+      const scene = generateScene(config);
+
+      // Assert
+      expect(scene).toBeDefined();
+      expect(scene.world).toBeDefined();
+      expect(scene._objects.length).toBe(21); // 20 rain spheres + 1 ground sphere
+      
+      // Check that spheres are metallic
+      let metallicCount = 0;
+      for (let i = 0; i < scene._objects.length; i++) {
+        const sphere = scene._objects[i] as Sphere;
+        if (sphere.material instanceof Metal) {
+          metallicCount++;
+        }
+      }
+      
+      // All rain drops should be metallic (the other object is the ground sphere)
+      expect(metallicCount).toBe(20);
+    });
+
+    it('should generate a rain scene without ground sphere when specified', () => {
+      // Arrange
+      const config: SceneConfig = {
+        type: 'rain',
+        options: {
+          count: 10,
+          groundSphere: false
+        }
+      };
+
+      // Act
+      const scene = generateScene(config);
+
+      // Assert
+      expect(scene).toBeDefined();
+      expect(scene._objects.length).toBe(10); // No ground sphere, just 10 rain spheres
+    });
+
+    it('should respect the provided camera options', () => {
+      // Arrange
+      const cameraOptions = {
+        vfov: 60,
+        lookFrom: new Vec3(0, 1, 3),
+        lookAt: new Vec3(0, 0, -2)
+      };
+      
+      const config: SceneConfig = {
+        type: 'rain',
+        camera: cameraOptions,
+        options: {
+          count: 5
+        }
+      };
+
+      // Act
+      const scene = generateScene(config);
+
+      // Assert
+      expect(scene.camera).toBeDefined();
+      // We don't check specific camera properties as they're internal
+      // Just verify the camera object exists
     });
   });
 });

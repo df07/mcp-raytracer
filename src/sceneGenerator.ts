@@ -1,4 +1,4 @@
-/* Specs: random-scene.md */
+/* Specs: spheres-scene.md, rain-scene.md */
 
 import { Point3, Vec3 } from './geometry/vec3.js';
 import { HittableList } from './geometry/hittableList.js';
@@ -74,9 +74,9 @@ class SeededRandom {
 }
 
 /**
- * Options for random scene generation
+ * Options for spheres scene generation
  */
-export interface RandomSceneOptions {
+export interface SpheresSceneOptions {
   count?: number;         // Number of spheres to generate (default: 100)
   centerPoint?: Point3;       // Center point for sphere distribution (default: 0,0,-1)
   radius?: number;            // Radius of the distribution area (default: 2)
@@ -89,12 +89,34 @@ export interface RandomSceneOptions {
   seed?: number;              // Random seed for deterministic scene generation
 }
 
+// Keep the old interface name for backward compatibility
+export type RandomSceneOptions = SpheresSceneOptions;
+
+/**
+ * Options for rain scene generation
+ */
+export interface RainSceneOptions {
+  count?: number;             // Number of raindrops (spheres) to generate
+  sphereRadius?: number;      // Radius of the rain spheres
+  width?: number;             // Width of the distribution area
+  height?: number;            // Height of the distribution area
+  depth?: number;             // Depth of the distribution area
+  centerPoint?: Point3;       // Center point of the distribution volume
+  metalFuzz?: number;         // Fuzziness of the metallic material (0-1)
+  groundSphere?: boolean;     // Whether to include a ground sphere
+  groundY?: number;           // Y-position of the ground sphere
+  groundRadius?: number;      // Radius of the ground sphere
+  groundMaterial?: Material;  // Material for the ground sphere
+  seed?: number;              // Random seed for deterministic scene generation
+}
+
 /**
  * Scene configuration types
  */
 export type SceneConfig = 
   | { type: 'default', camera?: CameraOptions }
-  | { type: 'random', camera?: CameraOptions, options?: RandomSceneOptions };
+  | { type: 'spheres', camera?: CameraOptions, options?: SpheresSceneOptions }
+  | { type: 'rain', camera?: CameraOptions, options?: RainSceneOptions };
 
 /**
  * Represents a placed sphere with its properties
@@ -114,8 +136,10 @@ interface PlacedSphere {
  */
 export function generateScene(sceneConfig: SceneConfig): Scene {
     // Create scene based on configuration type
-    if (sceneConfig.type === 'random') {
-        return generateRandomSphereScene(sceneConfig.camera, sceneConfig.options);
+    if (sceneConfig.type === 'spheres') {
+        return generateSpheresScene(sceneConfig.camera, sceneConfig.options);
+    } else if (sceneConfig.type === 'rain') {
+        return generateRainScene(sceneConfig.camera, sceneConfig.options);
     } else {
         return generateDefaultScene(sceneConfig.camera);
     }
@@ -129,12 +153,12 @@ export function generateScene(sceneConfig: SceneConfig): Scene {
  * @param options Optional configuration for scene generation
  * @returns A Scene object containing the camera, world, and underlying object list
  */
-export function generateRandomSphereScene(cameraOpts?: CameraOptions, sceneOpts?: RandomSceneOptions): Scene {
+export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: SpheresSceneOptions): Scene {
   const worldList = new HittableList();
   const placedSpheres: PlacedSphere[] = [];
 
   // Default world options
-  const defaultWorldOptions: Required<RandomSceneOptions> = {
+  const defaultWorldOptions: Required<SpheresSceneOptions> = {
     count: 10,
     centerPoint: new Vec3(0, 0, -2),    // Center point matching default scene
     radius: 1.25,                       // Distribution radius around center point
@@ -147,7 +171,7 @@ export function generateRandomSphereScene(cameraOpts?: CameraOptions, sceneOpts?
     seed: Math.floor(Math.random() * 2147483647) // Random seed by default
   };
     // Merge defaults with provided options
-  const worldOpts: Required<RandomSceneOptions> = {
+  const worldOpts: Required<SpheresSceneOptions> = {
     ...defaultWorldOptions,
     ...sceneOpts
   };
@@ -214,7 +238,8 @@ export function generateRandomSphereScene(cameraOpts?: CameraOptions, sceneOpts?
   
   const defaultCameraOptions: CameraOptions = {
     vfov: 40,
-    lookFrom: new Vec3(0, 0, 2)
+    lookFrom: new Vec3(0, 0, 2),
+    lookAt: worldOpts.centerPoint
   }
 
   // Create camera
@@ -326,8 +351,15 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   worldList.add(leftSphere);
   worldList.add(rightSphere);
   
+  // Default camera options that match the scene
+  const defaultCameraOptions: CameraOptions = {
+    vfov: 40,
+    lookFrom: new Vec3(0, 0, 0),
+    lookAt: new Vec3(0, 0, -1)
+  };
+  
   // Create camera
-  const camera = new Camera(worldList, cameraOpts);
+  const camera = new Camera(worldList, { ...defaultCameraOptions, ...cameraOpts });
 
   // Create and return the scene
   return {
@@ -335,4 +367,135 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
     world: worldList,
     _objects: [...worldList.objects] // Create a copy of the objects array for testing
   };
+}
+
+/**
+ * Generates a rain scene with evenly distributed metallic spheres.
+ * 
+ * @param cameraOpts Optional camera configuration
+ * @param sceneOpts Optional scene configuration
+ * @returns A Scene object containing the camera, world, and underlying object list
+ */
+export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSceneOptions): Scene {
+  const worldList = new HittableList();
+  
+  // Default rain scene options
+  const defaultRainOptions: Required<RainSceneOptions> = {
+    count: 50,
+    sphereRadius: 0.05,
+    width: 4,
+    height: 3,
+    depth: 2,
+    centerPoint: new Vec3(0, 0, -2),
+    metalFuzz: 0.1,
+    groundSphere: true,
+    groundY: -100.5,
+    groundRadius: 100,
+    groundMaterial: new Lambertian(new Vec3(0.1, 0.1, 0.1)),
+    seed: Math.floor(Math.random() * 2147483647)
+  };
+  
+  // Merge defaults with provided options
+  const rainOpts: Required<RainSceneOptions> = {
+    ...defaultRainOptions,
+    ...sceneOpts
+  };
+  
+  // Initialize random number generator with the seed
+  const random = new SeededRandom(rainOpts.seed);
+  
+  // Add ground sphere if specified
+  if (rainOpts.groundSphere) {
+    const groundCenter = new Vec3(0, rainOpts.groundY, 0);
+    const groundMaterial = rainOpts.groundMaterial;
+    const groundSphere = new Sphere(groundCenter, rainOpts.groundRadius, groundMaterial);
+    worldList.add(groundSphere);
+  }
+  
+  // Calculate the number of spheres per dimension for an even distribution
+  // Calculate for a slightly larger grid to ensure even distribution
+  const spheresPerDimension = Math.ceil(Math.pow(rainOpts.count, 1/3));
+  
+  // Calculate spacing between spheres
+  const xSpacing = rainOpts.width / spheresPerDimension;
+  const ySpacing = rainOpts.height / spheresPerDimension;
+  const zSpacing = rainOpts.depth / spheresPerDimension;
+  
+  // Calculate the total size of the grid
+  const totalGridWidth = spheresPerDimension * xSpacing;
+  const totalGridHeight = spheresPerDimension * ySpacing;
+  const totalGridDepth = spheresPerDimension * zSpacing;
+  
+  // Calculate the starting position to ensure the grid is centered at centerPoint
+  const startX = rainOpts.centerPoint.x - totalGridWidth / 2 + xSpacing / 2;
+  const startY = rainOpts.centerPoint.y - totalGridHeight / 2 + ySpacing / 2;
+  const startZ = rainOpts.centerPoint.z - totalGridDepth / 2 + zSpacing / 2;
+  
+  // Create a list of all possible positions in the grid
+  const positions: Vec3[] = [];
+  for (let x = 0; x < spheresPerDimension; x++) {
+    for (let y = 0; y < spheresPerDimension; y++) {
+      for (let z = 0; z < spheresPerDimension; z++) {
+        // Calculate position with small random offset for natural appearance
+        const position = new Vec3(
+          startX + x * xSpacing + (random.next() - 0.5) * xSpacing * 0.3,
+          startY + y * ySpacing + (random.next() - 0.5) * ySpacing * 0.3,
+          startZ + z * zSpacing + (random.next() - 0.5) * zSpacing * 0.3
+        );
+        positions.push(position);
+      }
+    }
+  }
+  
+  // Shuffle the positions to ensure random distribution when taking a subset
+  shuffleArray(positions, random);
+  
+  // Take only the number of positions we need
+  const selectedPositions = positions.slice(0, rainOpts.count);
+  
+  // Create spheres at the selected positions
+  for (const position of selectedPositions) {
+    // Create a metallic material with slight color variation (silver/gray tones)
+    const brightness = 0.7 + random.next() * 0.3; // 0.7-1.0 range for silver/gray
+    const color = new Vec3(brightness, brightness, brightness);
+    const fuzz = rainOpts.metalFuzz * random.next(); // Randomize fuzziness a bit
+    const material = new Metal(color, fuzz);
+    
+    // Add the sphere to the world
+    worldList.add(new Sphere(position, rainOpts.sphereRadius, material));
+  }
+  
+  // Create BVH for efficient ray tracing
+  const bvhWorld = BVHNode.fromList(worldList.objects);
+  
+  // Default camera options
+  const defaultCameraOptions: CameraOptions = {
+    vfov: 40,
+    lookFrom: new Vec3(0, 0, 2),
+    lookAt: rainOpts.centerPoint,
+  };
+  
+  // Create camera
+  const camera = new Camera(bvhWorld, { ...defaultCameraOptions, ...cameraOpts });
+  
+  // Create and return the scene
+  return {
+    camera: camera,
+    world: bvhWorld,
+    _objects: [...worldList.objects]
+  };
+}
+
+/**
+ * Shuffles an array in-place using Fisher-Yates algorithm
+ * @param array The array to shuffle
+ * @param random The random number generator to use
+ */
+function shuffleArray<T>(array: T[], random: SeededRandom): void {
+  for (let i = array.length - 1; i > 0; i--) {
+    // Generate random index between 0 and i (inclusive)
+    const j = Math.floor(random.next() * (i + 1));
+    // Swap elements
+    [array[i], array[j]] = [array[j], array[i]];
+  }
 }

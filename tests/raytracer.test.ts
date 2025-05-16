@@ -21,7 +21,7 @@ describe('generateImageBuffer', () => {
     };
 
     const randomScene: SceneConfig = {
-        type: 'random',
+        type: 'spheres',
         camera: {
             imageWidth: 9,
             imageHeight: 6,
@@ -114,7 +114,7 @@ describe('generateImageBuffer', () => {
         it('should support adaptive sampling in parallel mode', async () => {
             // Create a scene with adaptive sampling enabled
             const adaptiveScene: SceneConfig = {
-                type: 'random',
+                type: 'spheres',
                 camera: {
                     imageWidth: 20,
                     imageHeight: 15,

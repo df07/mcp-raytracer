@@ -9,7 +9,7 @@ import { fileURLToPath } from "url";
 import { generateImageBuffer, RaytracerOptions } from "./raytracer.js";
 import { SceneConfig } from "./sceneGenerator.js";
 import { CameraOptions } from "./camera.js";
-import { RandomSceneOptions } from "./sceneGenerator.js";
+import { RandomSceneOptions, RainSceneOptions } from "./sceneGenerator.js";
 
 // Helper to get the root directory (assuming mcp.ts is in src)
 const __filename = fileURLToPath(import.meta.url);
@@ -85,7 +85,7 @@ export const raytraceToolHandler = async (args: {
       adaptiveBatchSize?: number,
     },
   } | {
-    type: "random",
+    type: "spheres",
     camera?: {
       imageWidth?: number,
       imageHeight?: number,
@@ -103,6 +103,32 @@ export const raytraceToolHandler = async (args: {
       radius?: number,
       minSphereRadius?: number,
       maxSphereRadius?: number,
+      groundSphere?: boolean,
+      groundY?: number,
+      groundRadius?: number,
+      seed?: number,
+    },
+  } | {
+    type: "rain",
+    camera?: {
+      imageWidth?: number,
+      imageHeight?: number,
+      vfov?: number,
+      lookFrom?: any,
+      lookAt?: any,
+      vUp?: any,
+      samples?: number,
+      adaptiveTolerance?: number,
+      adaptiveBatchSize?: number,
+    },
+    options?: {
+      count?: number,
+      sphereRadius?: number,
+      width?: number,
+      height?: number,
+      depth?: number,
+      centerPoint?: any,
+      metalFuzz?: number,
       groundSphere?: boolean,
       groundY?: number,
       groundRadius?: number,
@@ -167,14 +193,29 @@ const cameraOptionsSchema = z.object({
   adaptiveBatchSize: z.number().optional().describe("Number of samples to batch for adaptive sampling"),
 });
 
-// Define the schema for random scene options
-const randomSceneOptionsSchema = z.object({
+// Define the schema for spheres scene options
+const spheresSceneOptionsSchema = z.object({
   count: z.number().optional().describe("Number of spheres to generate"),
   centerPoint: z.any().optional().describe("Center point for sphere distribution"),
   radius: z.number().optional().describe("Radius of the distribution area"),
   minSphereRadius: z.number().optional().describe("Minimum radius for generated spheres"),
   maxSphereRadius: z.number().optional().describe("Maximum radius for generated spheres"),
   groundSphere: z.boolean().optional().describe("Whether to include a large ground sphere"),
+  groundY: z.number().optional().describe("Y-position of the ground sphere"),
+  groundRadius: z.number().optional().describe("Radius of the ground sphere"),
+  seed: z.number().optional().describe("Random seed for deterministic scene generation"),
+});
+
+// Define the schema for rain scene options
+const rainSceneOptionsSchema = z.object({
+  count: z.number().optional().describe("Number of raindrops (spheres) to generate"),
+  sphereRadius: z.number().optional().describe("Radius of each raindrop sphere"),
+  width: z.number().optional().describe("Width of the distribution volume"),
+  height: z.number().optional().describe("Height of the distribution volume"),
+  depth: z.number().optional().describe("Depth of the distribution volume"),
+  centerPoint: z.any().optional().describe("Center point of the distribution volume"),
+  metalFuzz: z.number().optional().describe("Fuzziness of the metallic material (0-1)"),
+  groundSphere: z.boolean().optional().describe("Whether to include a ground sphere"),
   groundY: z.number().optional().describe("Y-position of the ground sphere"),
   groundRadius: z.number().optional().describe("Radius of the ground sphere"),
   seed: z.number().optional().describe("Random seed for deterministic scene generation"),
@@ -203,9 +244,14 @@ const raytraceInputSchema = z.object({
       camera: cameraOptionsSchema.optional(),
     }).optional(),
     z.object({
-      type: z.literal("random"),
+      type: z.literal("spheres"),
       camera: cameraOptionsSchema.optional(),
-      options: randomSceneOptionsSchema.optional(),
+      options: spheresSceneOptionsSchema.optional(),
+    }),
+    z.object({
+      type: z.literal("rain"),
+      camera: cameraOptionsSchema.optional(),
+      options: rainSceneOptionsSchema.optional(),
     }),
   ])
     .optional()

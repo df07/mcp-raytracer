@@ -2,7 +2,7 @@
 
 import { generateImageBuffer, RaytracerOptions } from './raytracer.js';
 import { CameraOptions } from './camera.js';
-import { RandomSceneOptions, SceneConfig } from './sceneGenerator.js';
+import { SpheresSceneOptions, SceneConfig, RainSceneOptions } from './sceneGenerator.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -11,13 +11,15 @@ export async function runRaytracerBenchmark() {
   // Parse command line arguments
   const args = process.argv.slice(2);
   const cameraOptions: CameraOptions = {};
-  const randomSceneOptions: RandomSceneOptions = {};
+  const spheresSceneOptions: SpheresSceneOptions = {};
+  const rainSceneOptions: RainSceneOptions = {};
   const generationOptions = {
     verbose: true,
     output: null as string | null,
     iterations: 1,
     parallel: false,
-    threads: undefined as number | undefined
+    threads: undefined as number | undefined,
+    sceneType: 'default' as 'default' | 'spheres' | 'rain'
   };
   // Process args
   for (let i = 0; i < args.length; i++) {
@@ -33,9 +35,12 @@ export async function runRaytracerBenchmark() {
     } else if (arg === '--iterations' || arg === '-i') {
       generationOptions.iterations = parseInt(args[++i], 10);
     } else if (arg === '--spheres') {
-      randomSceneOptions.count = parseInt(args[++i], 10);
+      spheresSceneOptions.count = parseInt(args[++i], 10);
+      generationOptions.sceneType = 'spheres';
     } else if (arg === '--seed') {
-      randomSceneOptions.seed = parseInt(args[++i], 10);
+      const seedValue = parseInt(args[++i], 10);
+      spheresSceneOptions.seed = seedValue;
+      rainSceneOptions.seed = seedValue;
     } else if (arg === '--adaptive-tolerance' || arg === '--at') {
       cameraOptions.adaptiveTolerance = parseFloat(args[++i]);
     } else if (arg === '--adaptive-batch' || arg === '--ab') {
@@ -44,7 +49,13 @@ export async function runRaytracerBenchmark() {
       generationOptions.parallel = true;
     } else if (arg === '--threads' || arg === '-t') {
       generationOptions.threads = parseInt(args[++i], 10);
-    } else if (arg === '--help' || arg === '-h') {
+    } 
+    // Rain scene - just the number of spheres
+    else if (arg === '--rain') {
+      rainSceneOptions.count = parseInt(args[++i], 10);
+      generationOptions.sceneType = 'rain';
+    } 
+    else if (arg === '--help' || arg === '-h') {
       console.log(`
 Raytracer Performance Benchmark
 
@@ -55,7 +66,8 @@ Options:
   --samples, -s <number>   Samples per pixel (default: 100)
   --output, -o <file>      Output PNG file  
   --iterations, -i <num>   Number of iterations to run (default: 1)
-  --spheres <number>       Number of random spheres to generate (0 = default scene)
+  --spheres <number>       Number of random spheres to generate (spheres scene)
+  --rain <number>          Number of metallic raindrops to generate (rain scene)
   --seed <number>          Random seed for deterministic scene generation
   --adaptive-tolerance <n> Convergence tolerance for adaptive sampling (default: 0.05)
   --adaptive-batch <n>     Number of samples to process in one batch (default: 32)
@@ -69,6 +81,10 @@ Options:
   console.error(`Running raytracer with options:`);
   console.error(`  Dimensions: ${cameraOptions.imageWidth}x${cameraOptions.imageHeight}`);
   console.error(`  Samples: ${cameraOptions.samples}`);
+  console.error(`  Scene type: ${generationOptions.sceneType}`);
+  if (spheresSceneOptions.seed !== undefined || rainSceneOptions.seed !== undefined) {
+    console.error(`  Seed: ${spheresSceneOptions.seed || rainSceneOptions.seed}`);
+  }
   console.error(`  Output: ${generationOptions.output || 'none (image discarded)'}`);
   if (generationOptions.iterations > 1) {
     console.error(`  Iterations: ${generationOptions.iterations}`);
@@ -90,11 +106,17 @@ Options:
         // Configure scene based on command line options
         let sceneConfig: SceneConfig;
 
-        if (randomSceneOptions?.count) {
+        if (generationOptions.sceneType === 'spheres' && Object.keys(spheresSceneOptions).length > 0) {
           sceneConfig = { 
-            type: 'random', 
+            type: 'spheres',
             camera: Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined,
-            options: Object.keys(randomSceneOptions).length > 0 ? randomSceneOptions : undefined 
+            options: spheresSceneOptions
+          };
+        } else if (generationOptions.sceneType === 'rain') {
+          sceneConfig = {
+            type: 'rain',
+            camera: Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined,
+            options: rainSceneOptions
           };
         } else {
           sceneConfig = { 
