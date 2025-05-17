@@ -5,6 +5,7 @@ import { HittableList } from './geometry/hittableList.js';
 import { Sphere } from './entities/sphere.js';
 import { Lambertian } from './materials/lambertian.js';
 import { Metal } from './materials/metal.js';
+import { Dielectric } from './materials/dielectric.js';
 import { Material } from './materials/material.js';
 import { Hittable } from './geometry/hittable.js';
 import { Camera, CameraOptions } from './camera.js';
@@ -303,26 +304,30 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   
   // Create materials
   const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0));  // Yellow-ish ground
-  const materialCenter = new Lambertian(new Vec3(0.7, 0.3, 0.3));  // Reddish center
-  const materialLeft = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0);    // Shiny silver (no fuzz)
-  const materialRight = new Metal(new Vec3(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
+  const materialRed = new Lambertian(new Vec3(0.7, 0.3, 0.3));
+  const materialBlue = new Lambertian(new Vec3(0.1, 0.1, 0.9));
+  const materialGlass = new Dielectric(Dielectric.GLASS_IOR);
+  const materialSilver = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0); // Shiny silver (no fuzz)
+  const materialGold = new Metal(new Vec3(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
 
   // Create spheres with materials
-  const groundSphere = new Sphere(new Vec3(0, -100.5, -1), 100, materialGround); // Ground sphere
-  const centerSphere = new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter);      // Center sphere
-  const leftSphere = new Sphere(new Vec3(-1, 0, -1), 0.5, materialLeft);       // Left sphere (metal)
-  const rightSphere = new Sphere(new Vec3(1, 0, -1), 0.5, materialRight);       // Right sphere (fuzzy metal)
+  worldList.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround)); // Ground sphere
+  worldList.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialRed));         // Center sphere
+  worldList.add(new Sphere(new Vec3(-1,0,-1), 0.5, materialSilver));       // Left sphere (silver)
+  worldList.add(new Sphere(new Vec3(1, 0, -1), 0.5, materialGold));        // Right sphere (fuzzy metal)
+  worldList.add(new Sphere(new Vec3( 0.5, -0.25, -0.5), 0.25, materialGlass));// Left glass sphere (foreground)
+  worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), 0.25, materialGlass)); // Right glass sphere (foreground)
+  worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), -0.24, materialGlass)); // Right glass sphere (foreground)
+  worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), 0.20, materialBlue));  // Blue sphere inside glass sphere
 
-  // Add spheres to the world
-  worldList.add(groundSphere);
-  worldList.add(centerSphere);
-  worldList.add(leftSphere);
-  worldList.add(rightSphere);
-  
+  // Create a hollow glass sphere by adding a negative sphere inside the left sphere
+  // Using negative radius creates an inverted sphere with inward-facing normals
+  //worldList.add(new Sphere(new Vec3(-1, 0, -1), -0.3, materialGlass)); // Inner sphere (negative radius)
+
   // Default camera options that match the scene
   const defaultCameraOptions: CameraOptions = {
     vfov: 40,
-    lookFrom: new Vec3(0, 0, 0),
+    lookFrom: new Vec3(0, 0, 2),
     lookAt: new Vec3(0, 0, -1)
   };
   

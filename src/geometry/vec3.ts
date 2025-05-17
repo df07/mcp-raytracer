@@ -179,6 +179,30 @@ export class Vec3 {
     }
 
     /**
+     * Calculates the refraction of a vector through a surface with normal n.
+     * @param n The normal vector at the surface point (assumed to be unit length).
+     * @param etaiOverEtat The ratio of refractive indices (n_incident / n_refracted).
+     * @returns A new vector representing the refracted direction.
+     */
+    refract(n: Vec3, etaiOverEtat: number): Vec3 {
+        const result = pool.get();
+        
+        // Calculate cosine of incident angle (clamped to [-1,1])
+        const cosTheta = Math.min(this.negate().dot(n), 1.0);
+        
+        // Calculate perpendicular component of refracted ray
+        const rOutPerp = this.add(n.multiply(cosTheta)).multiply(etaiOverEtat);
+        
+        // Calculate parallel component of refracted ray
+        const rOutParallel = n.multiply(-Math.sqrt(Math.abs(1.0 - rOutPerp.lengthSquared())));
+        
+        // Add perpendicular and parallel components
+        glMatrix.vec3.add(result.glVec, rOutPerp.glVec, rOutParallel.glVec);
+        
+        return result;
+    }
+
+    /**
      * Checks if the vector is very close to zero in all dimensions.
      * Used to prevent degenerate scatter directions.
      */
