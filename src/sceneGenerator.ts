@@ -276,20 +276,27 @@ function randomColor(random: SeededRandom): Vec3 {
 }
 
 /**
- * Generates a random material (70% Lambertian, 30% Metal)
+ * Generates a random material (60% Lambertian, 30% Metal, 10% Dielectric)
  */
 function generateRandomMaterial(random: SeededRandom): Material {
   const materialType = random.next();
   
-  // 70% chance of Lambertian
-  if (materialType < 0.7) {
+  // 60% chance of Lambertian
+  if (materialType < 0.6) {
     return new Lambertian(randomColor(random));
   } 
   // 30% chance of Metal
-  else {
+  else if (materialType < 0.9) {
     // Random fuzziness between 0.0 and 0.5
     const fuzz = random.next() * 0.5;
     return new Metal(randomColor(random), fuzz);
+  }
+  // 10% chance of Dielectric
+  else {
+    // Random refractive index between 1.3 and 2.5
+    // Covers typical glass (~1.5), water (1.33), diamond (2.4), etc.
+    const refIndex = 1.3 + random.next() * 1.2;
+    return new Dielectric(refIndex);
   }
 }
 
