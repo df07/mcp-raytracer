@@ -78,19 +78,8 @@ class SeededRandom {
  */
 export interface SpheresSceneOptions {
   count?: number;         // Number of spheres to generate (default: 100)
-  centerPoint?: Point3;       // Center point for sphere distribution (default: 0,0,-1)
-  radius?: number;            // Radius of the distribution area (default: 2)
-  minSphereRadius?: number;   // Minimum radius for generated spheres (default: 0.05)
-  maxSphereRadius?: number;   // Maximum radius of generated spheres (default: 0.2)
-  groundSphere?: boolean;     // Whether to include a large ground sphere (default: true)
-  groundY?: number;           // Y-position of the ground sphere (default: -1000)
-  groundRadius?: number;      // Radius of the ground sphere (default: 1000)
-  groundMaterial?: Material;  // Material for the ground sphere
   seed?: number;              // Random seed for deterministic scene generation
 }
-
-// Keep the old interface name for backward compatibility
-export type RandomSceneOptions = SpheresSceneOptions;
 
 /**
  * Options for rain scene generation
@@ -98,15 +87,6 @@ export type RandomSceneOptions = SpheresSceneOptions;
 export interface RainSceneOptions {
   count?: number;             // Number of raindrops (spheres) to generate
   sphereRadius?: number;      // Radius of the rain spheres
-  width?: number;             // Width of the distribution area
-  height?: number;            // Height of the distribution area
-  depth?: number;             // Depth of the distribution area
-  centerPoint?: Point3;       // Center point of the distribution volume
-  metalFuzz?: number;         // Fuzziness of the metallic material (0-1)
-  groundSphere?: boolean;     // Whether to include a ground sphere
-  groundY?: number;           // Y-position of the ground sphere
-  groundRadius?: number;      // Radius of the ground sphere
-  groundMaterial?: Material;  // Material for the ground sphere
   seed?: number;              // Random seed for deterministic scene generation
 }
 
@@ -158,7 +138,7 @@ export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: Sph
   const placedSpheres: PlacedSphere[] = [];
 
   // Default world options
-  const defaultWorldOptions: Required<SpheresSceneOptions> = {
+  const defaultWorldOptions = {
     count: 10,
     centerPoint: new Vec3(0, 0, -2),    // Center point matching default scene
     radius: 1.25,                       // Distribution radius around center point
@@ -171,25 +151,13 @@ export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: Sph
     seed: Math.floor(Math.random() * 2147483647) // Random seed by default
   };
     // Merge defaults with provided options
-  const worldOpts: Required<SpheresSceneOptions> = {
+  const worldOpts = {
     ...defaultWorldOptions,
     ...sceneOpts
   };
   
   // Initialize our random number generator with the seed
   const random = new SeededRandom(worldOpts.seed);
-    
-  // Add ground sphere if specified
-  if (worldOpts.groundSphere) {
-    const groundCenter = new Vec3(0, worldOpts.groundY, 0);
-    const groundMaterial = worldOpts.groundMaterial;
-    const groundSphere = new Sphere(groundCenter, worldOpts.groundRadius, groundMaterial);
-    worldList.add(groundSphere);
-    placedSpheres.push({
-      center: groundCenter,
-      radius: worldOpts.groundRadius
-    });
-  }
   
   // Calculate the maximum radius based on the number of spheres
   // As sphere count increases, maximum radius decreases to allow more spheres to fit
@@ -380,7 +348,7 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   const worldList = new HittableList();
   
   // Default rain scene options
-  const defaultRainOptions: Required<RainSceneOptions> = {
+  const defaultRainOptions = {
     count: 50,
     sphereRadius: 0.05,
     width: 4,
@@ -396,7 +364,7 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   };
   
   // Merge defaults with provided options
-  const rainOpts: Required<RainSceneOptions> = {
+  const rainOpts = {
     ...defaultRainOptions,
     ...sceneOpts
   };

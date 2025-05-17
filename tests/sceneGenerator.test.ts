@@ -24,8 +24,7 @@ describe('SceneGenerator', () => {
       it('should generate a scene without ground sphere if specified', () => {
       const count = 5;
       const options: SpheresSceneOptions = {
-        count,
-        groundSphere: false
+        count
       };
 
       const scene = generateSpheresScene(defaultCamera,options);
@@ -89,36 +88,6 @@ describe('SceneGenerator', () => {
       // Max radius should be smaller in the scene with more spheres
       expect(largeSceneMaxRadius).toBeLessThan(smallSceneMaxRadius);
     });
-      it('should respect the provided options', () => {
-      const customOptions: SpheresSceneOptions = {
-        count: 10,   
-        centerPoint: new Vec3(1, 0, -2),
-        radius: 3,
-        minSphereRadius: 0.1,
-        maxSphereRadius: 0.3,
-        groundSphere: true,
-        groundY: -500,
-        groundRadius: 500
-        
-      };
-
-      const scene = generateSpheresScene(defaultCamera, customOptions);
-
-      // Check if ground sphere uses specified parameters
-      // Find ground sphere (largest sphere)
-      let groundSphere: Sphere | null = null;
-      let maxRadius = 0;
-        for (const obj of scene._objects) {
-        if (obj instanceof Sphere && obj.radius > maxRadius) {
-          maxRadius = obj.radius;
-          groundSphere = obj;
-        }
-      }
-      
-      expect(groundSphere).not.toBeNull();
-      expect(groundSphere!.center.y).toBeCloseTo(customOptions.groundY!);
-      expect(groundSphere!.radius).toBeCloseTo(customOptions.groundRadius!);
-    });
   });
 
   describe('Rain Scene', () => {
@@ -128,8 +97,7 @@ describe('SceneGenerator', () => {
         type: 'rain',
         options: {
           count: 20,
-          sphereRadius: 0.1,
-          groundSphere: true
+          sphereRadius: 0.1
         }
       };
 
@@ -152,24 +120,6 @@ describe('SceneGenerator', () => {
       
       // All rain drops should be metallic (the other object is the ground sphere)
       expect(metallicCount).toBe(20);
-    });
-
-    it('should generate a rain scene without ground sphere when specified', () => {
-      // Arrange
-      const config: SceneConfig = {
-        type: 'rain',
-        options: {
-          count: 10,
-          groundSphere: false
-        }
-      };
-
-      // Act
-      const scene = generateScene(config);
-
-      // Assert
-      expect(scene).toBeDefined();
-      expect(scene._objects.length).toBe(10); // No ground sphere, just 10 rain spheres
     });
 
     it('should respect the provided camera options', () => {

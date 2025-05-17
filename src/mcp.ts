@@ -6,10 +6,9 @@ import { z } from "zod";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { generateImageBuffer, RaytracerOptions } from "./raytracer.js";
-import { SceneConfig } from "./sceneGenerator.js";
+import { generateImageBuffer } from "./raytracer.js";
 import { CameraOptions } from "./camera.js";
-import { RandomSceneOptions, RainSceneOptions } from "./sceneGenerator.js";
+import { SpheresSceneOptions, RainSceneOptions } from "./sceneGenerator.js";
 
 // Helper to get the root directory (assuming mcp.ts is in src)
 const __filename = fileURLToPath(import.meta.url);
@@ -73,67 +72,15 @@ export const raytraceToolHandler = async (args: {
   threads?: number,
   scene?: {
     type: "default",
-    camera?: {
-      imageWidth?: number,
-      imageHeight?: number,
-      vfov?: number,
-      lookFrom?: any,
-      lookAt?: any,
-      vUp?: any,
-      samples?: number,
-      adaptiveTolerance?: number,
-      adaptiveBatchSize?: number,
-    },
+    camera?: CameraOptions
   } | {
     type: "spheres",
-    camera?: {
-      imageWidth?: number,
-      imageHeight?: number,
-      vfov?: number,
-      lookFrom?: any,
-      lookAt?: any,
-      vUp?: any,
-      samples?: number,
-      adaptiveTolerance?: number,
-      adaptiveBatchSize?: number,
-    },
-    options?: {
-      count?: number,
-      centerPoint?: any,
-      radius?: number,
-      minSphereRadius?: number,
-      maxSphereRadius?: number,
-      groundSphere?: boolean,
-      groundY?: number,
-      groundRadius?: number,
-      seed?: number,
-    },
+    camera?: CameraOptions,
+    options?: SpheresSceneOptions,
   } | {
     type: "rain",
-    camera?: {
-      imageWidth?: number,
-      imageHeight?: number,
-      vfov?: number,
-      lookFrom?: any,
-      lookAt?: any,
-      vUp?: any,
-      samples?: number,
-      adaptiveTolerance?: number,
-      adaptiveBatchSize?: number,
-    },
-    options?: {
-      count?: number,
-      sphereRadius?: number,
-      width?: number,
-      height?: number,
-      depth?: number,
-      centerPoint?: any,
-      metalFuzz?: number,
-      groundSphere?: boolean,
-      groundY?: number,
-      groundRadius?: number,
-      seed?: number,
-    },
+    camera?: CameraOptions,
+    options?: RainSceneOptions,
   },
 }): Promise<any> => {
   const {
@@ -196,13 +143,6 @@ const cameraOptionsSchema = z.object({
 // Define the schema for spheres scene options
 const spheresSceneOptionsSchema = z.object({
   count: z.number().optional().describe("Number of spheres to generate"),
-  centerPoint: z.any().optional().describe("Center point for sphere distribution"),
-  radius: z.number().optional().describe("Radius of the distribution area"),
-  minSphereRadius: z.number().optional().describe("Minimum radius for generated spheres"),
-  maxSphereRadius: z.number().optional().describe("Maximum radius for generated spheres"),
-  groundSphere: z.boolean().optional().describe("Whether to include a large ground sphere"),
-  groundY: z.number().optional().describe("Y-position of the ground sphere"),
-  groundRadius: z.number().optional().describe("Radius of the ground sphere"),
   seed: z.number().optional().describe("Random seed for deterministic scene generation"),
 });
 
@@ -210,14 +150,6 @@ const spheresSceneOptionsSchema = z.object({
 const rainSceneOptionsSchema = z.object({
   count: z.number().optional().describe("Number of raindrops (spheres) to generate"),
   sphereRadius: z.number().optional().describe("Radius of each raindrop sphere"),
-  width: z.number().optional().describe("Width of the distribution volume"),
-  height: z.number().optional().describe("Height of the distribution volume"),
-  depth: z.number().optional().describe("Depth of the distribution volume"),
-  centerPoint: z.any().optional().describe("Center point of the distribution volume"),
-  metalFuzz: z.number().optional().describe("Fuzziness of the metallic material (0-1)"),
-  groundSphere: z.boolean().optional().describe("Whether to include a ground sphere"),
-  groundY: z.number().optional().describe("Y-position of the ground sphere"),
-  groundRadius: z.number().optional().describe("Radius of the ground sphere"),
   seed: z.number().optional().describe("Random seed for deterministic scene generation"),
 });
 

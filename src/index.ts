@@ -1,23 +1,8 @@
 /* Specs: mcp-server.md */
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
-import { generateImageBuffer, RaytracerOptions } from './raytracer.js';
-import { SceneConfig } from './sceneGenerator.js';
-import { CameraOptions } from './camera.js';
-import { RandomSceneOptions } from './sceneGenerator.js';
+import { fileURLToPath } from 'url';
 import { runServer, greetToolHandler, showImageToolHandler, raytraceToolHandler } from './mcp.js';
 import { runRaytracerBenchmark } from './benchmark.js';
-
-// Helper to get the root directory (assuming index.ts is in src)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename); // Gets the directory of the current module (src)
-const projectRoot = path.resolve(__dirname, '..'); // Go up one level from src
-
 
 // Function to check if the module is run directly (ESM equivalent)
 function isMainModule(importMetaUrl: string) {
