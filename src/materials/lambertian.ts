@@ -3,16 +3,17 @@
 import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
-import { Material } from './material.js';
+import { DefaultMaterial } from './material.js';
 import { VectorPool } from '../geometry/vec3.js';
 
 /**
  * Lambertian (diffuse) material that scatters light in random directions.
  */
-export class Lambertian implements Material {
+export class Lambertian extends DefaultMaterial {
   readonly albedo: Color;
 
   constructor(albedo: Color) {
+    super();
     this.albedo = albedo;
   }
 
@@ -22,7 +23,7 @@ export class Lambertian implements Material {
    * @param rec The hit record.
    * @returns An object containing the scattered ray and albedo as attenuation.
    */
-  scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
+  override scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
     // Calculate scatter direction: normal + random unit vector
     let scatterDirection = rec.normal.add(Vec3.randomUnitVector());
 

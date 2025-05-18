@@ -9,27 +9,34 @@ import { Lambertian } from '../src/materials/lambertian.js';
 import { Sphere } from '../src/entities/sphere.js';
 import { AABB } from '../src/geometry/aabb.js';
 import { CameraOptions } from '../src/camera.js';
+import { DefaultMaterial } from '../src/materials/material.js';
 
 // Mock Material for testing
 class MockMaterial implements Material {
     albedo: Vec3;
     shouldScatter: boolean;
+    emissionColor: Vec3;
     
-    constructor(albedo: Vec3, shouldScatter: boolean = true) {
+    constructor(albedo: Vec3, shouldScatter: boolean = true, emissionColor: Vec3 = new Vec3(0, 0, 0)) {
         this.albedo = albedo;
         this.shouldScatter = shouldScatter;
+        this.emissionColor = emissionColor;
     }
     
     scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
         if (!this.shouldScatter) {
             return null;
         }
-        // Create a deterministic scattered ray for testing
-        const scatteredDirection = rec.normal;
+        
+        const scatterDir = rec.normal.add(Vec3.randomUnitVector());
         return {
-            scattered: new Ray(rec.p, scatteredDirection),
+            scattered: new Ray(rec.p, scatterDir),
             attenuation: this.albedo
         };
+    }
+    
+    emitted(rec: HitRecord): Color {
+        return this.emissionColor;
     }
 }
 
@@ -389,5 +396,79 @@ describe('Camera', () => {
         expect(color2.illuminance()).toBeCloseTo(0.587, 5);
         expect(color3.illuminance()).toBeCloseTo(0.114, 5);
         expect(color4.illuminance()).toBeCloseTo(1.0, 5);
+    });
+
+    // Tests for rayColor with emissive materials
+    describe('rayColor with emissive materials', () => {
+        let emissiveMaterial: MockMaterial;
+        let emissiveWorldHit: MockHittable;
+        let cameraWithEmissive: Camera;
+        
+        beforeEach(() => {
+            // Create a material that emits light but doesn't scatter
+            emissiveMaterial = new MockMaterial(
+                new Vec3(0, 0, 0), // albedo doesn't matter since it won't scatter
+                false, // doesn't scatter
+                new Vec3(1, 0.5, 0.25) // orange-ish emission
+            );
+            
+            // Create a world that always returns a hit with the emissive material
+            emissiveWorldHit = new MockHittable(true, new Vec3(0, 1, 0), emissiveMaterial);
+            
+            // Create a camera with the emissive world
+            cameraWithEmissive = new Camera(emissiveWorldHit, defaultOptions);
+        });
+        
+        test('rayColor returns emission color for non-scattering emissive material', () => {
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const color = cameraWithEmissive.rayColor(ray, 10);
+            
+            // Should return the emission color directly
+            expect(color.x).toBeCloseTo(1);
+            expect(color.y).toBeCloseTo(0.5);
+            expect(color.z).toBeCloseTo(0.25);
+        });
+        
+        test('rayColor adds emission to scattered ray color', () => {
+            // Create a material that both emits and scatters
+            const emitAndScatterMaterial = new MockMaterial(
+                new Vec3(0.5, 0.5, 0.5), // 50% reflective gray
+                true, // does scatter
+                new Vec3(0.2, 0.2, 0.2) // slight emission
+            );
+            
+            // Create a world that always returns a hit with this material
+            const emitAndScatterWorld = new MockHittable(true, new Vec3(0, 1, 0), emitAndScatterMaterial);
+            
+            // Override randomUnitVector to make tests deterministic
+            const originalRandomUnitVector = Vec3.randomUnitVector;
+            Vec3.randomUnitVector = () => new Vec3(0, 1, 0);
+            
+            // Create a camera with the world
+            const camera = new Camera(emitAndScatterWorld, defaultOptions);
+            
+            // With depth=1, it will hit once, emit, and scatter once more but then return black
+            // So result should be emit + (albedo * black) = emit + (0.5,0.5,0.5) * (0,0,0) = emit
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const color = camera.rayColor(ray, 1);
+            
+            // Restore original method
+            Vec3.randomUnitVector = originalRandomUnitVector;
+            
+            // With depth=1, final color should be approximately equal to emission color
+            expect(color.x).toBeCloseTo(0.2);
+            expect(color.y).toBeCloseTo(0.2);
+            expect(color.z).toBeCloseTo(0.2);
+        });
+        
+        test('rayColor with zero depth returns black even for emissive materials', () => {
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const color = cameraWithEmissive.rayColor(ray, 0);
+            
+            // Should return black because max depth is reached
+            expect(color.x).toBeCloseTo(0);
+            expect(color.y).toBeCloseTo(0);
+            expect(color.z).toBeCloseTo(0);
+        });
     });
 });

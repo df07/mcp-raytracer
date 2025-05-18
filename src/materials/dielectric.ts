@@ -3,13 +3,13 @@
 import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
-import { Material } from './material.js';
+import { DefaultMaterial } from './material.js';
 
 /**
  * Dielectric material that simulates transparent substances like glass, water, and diamonds.
  * Exhibits both reflection and refraction based on angles and material properties.
  */
-export class Dielectric implements Material {
+export class Dielectric extends DefaultMaterial {
     readonly indexOfRefraction: number;
     public static readonly AIR_IOR = 1.0;
     public static readonly GLASS_IOR = 1.5;
@@ -22,6 +22,7 @@ export class Dielectric implements Material {
      *        (Air ≈ 1.0, Glass ≈ 1.5, Diamond ≈ 2.4, Water ≈ 1.33)
      */
     constructor(indexOfRefraction: number) {
+        super();
         this.indexOfRefraction = indexOfRefraction;
     }
 
@@ -31,7 +32,7 @@ export class Dielectric implements Material {
      * @param rec The hit record.
      * @returns An object containing the scattered ray and attenuation, or null if absorbed.
      */
-    scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
+    override scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
         // For a pure dielectric, light isn't absorbed - attenuation is always 1.0
         const attenuation = new Vec3(1.0, 1.0, 1.0);
         

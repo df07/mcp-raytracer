@@ -3,18 +3,18 @@
 import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
-import { Material } from './material.js';
-import { VectorPool } from '../geometry/vec3.js';
+import { DefaultMaterial } from './material.js';
 
 /**
  * Metal material that reflects light according to the law of reflection.
  * May have a fuzzy reflection to simulate roughness.
  */
-export class Metal implements Material {
+export class Metal extends DefaultMaterial {
   readonly albedo: Color;
   readonly fuzz: number;
 
   constructor(albedo: Color, fuzz: number = 0.0) {
+    super();
     this.albedo = albedo;
     // Clamp fuzz to the range [0, 1]
     this.fuzz = fuzz < 1 ? Math.max(0, fuzz) : 1;
@@ -26,7 +26,7 @@ export class Metal implements Material {
    * @param rec The hit record.
    * @returns An object containing the scattered ray and albedo as attenuation, or null if absorbed.
    */
-  scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
+  override scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
     // Calculate perfect reflection vector
     const reflected = rIn.direction.unitVector().reflect(rec.normal);
     

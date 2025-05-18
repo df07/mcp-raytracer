@@ -156,17 +156,22 @@ export class Camera {
         const rec = this.world.hit(r, new Interval(0.001, Infinity));
 
         if (rec !== null) {
+            // Get the emitted light from the material at hit point
+            const emitted = rec.material.emitted(rec);
+            
             // If the ray hits an object with a material, compute scattered ray
-        
             const scatterResult = rec.material.scatter(r, rec);
             if (scatterResult) {
-                // Recursively trace scattered ray and multiply by attenuation
-                return scatterResult.attenuation.multiplyVec(
-                    this.rayColor(scatterResult.scattered, depth - 1)
+                // Recursively trace scattered ray, multiply by attenuation, and add emitted light
+                return emitted.add(
+                    scatterResult.attenuation.multiplyVec(
+                        this.rayColor(scatterResult.scattered, depth - 1)
+                    )
                 );
             }
-            // If no scattering occurs (material absorbed the ray), return black
-            return Vec3.BLACK;
+            
+            // If no scattering occurs but the material emits light, return emitted color
+            return emitted;
         }
 
         // If the ray doesn't hit anything, compute background gradient color

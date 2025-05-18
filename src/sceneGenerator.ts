@@ -6,6 +6,7 @@ import { Sphere } from './entities/sphere.js';
 import { Lambertian } from './materials/lambertian.js';
 import { Metal } from './materials/metal.js';
 import { Dielectric } from './materials/dielectric.js';
+import { DiffuseLight } from './materials/diffuseLight.js';
 import { Material } from './materials/material.js';
 import { Hittable } from './geometry/hittable.js';
 import { Camera, CameraOptions } from './camera.js';
@@ -316,6 +317,9 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   const materialGlass = new Dielectric(Dielectric.GLASS_IOR);
   const materialSilver = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0); // Shiny silver (no fuzz)
   const materialGold = new Metal(new Vec3(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
+  
+  // Create a bright sun-like light source - very bright (intensity > 1.0)
+  const sunLight = new DiffuseLight(new Vec3(15.0, 14.0, 13.0));
 
   // Create spheres with materials
   worldList.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround)); // Ground sphere
@@ -326,6 +330,9 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), 0.25, materialGlass)); // Right glass sphere (foreground)
   worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), -0.24, materialGlass)); // Right glass sphere (foreground)
   worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), 0.20, materialBlue));  // Blue sphere inside glass sphere
+  
+  // Add a sun-like sphere high in the sky but out of direct view
+  worldList.add(new Sphere(new Vec3(30, 30, 15), 10, sunLight));
 
   // Create a hollow glass sphere by adding a negative sphere inside the left sphere
   // Using negative radius creates an inverted sphere with inward-facing normals
