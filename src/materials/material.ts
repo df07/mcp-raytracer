@@ -42,6 +42,6 @@ export class DefaultMaterial implements Material {
    * Should be overridden by emissive materials.
    */
   emitted(rec: HitRecord): Color {
-    return new Vec3(0, 0, 0);
+    return new Color(0, 0, 0);
   }
 }

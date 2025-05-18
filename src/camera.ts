@@ -148,7 +148,7 @@ export class Camera {
     rayColor(r: Ray, depth: number = this.maxDepth): Color {
         // If we've exceeded the ray bounce limit, no more light is gathered
         if (depth <= 0) {
-            return Vec3.BLACK;
+            return Color.BLACK;
         }
 
         // Check if the ray hits any object in the world
@@ -178,7 +178,7 @@ export class Camera {
         const unitDirection = r.direction.unitVector();
         const a = 0.5 * (unitDirection.y + 1.0);
         // Linear interpolation (lerp) between white and blue based on y-coordinate
-        return Vec3.WHITE.multiply(1.0 - a).add(Vec3.BLUE.multiply(a));
+        return Color.WHITE.multiply(1.0 - a).add(Color.BLUE.multiply(a));
     }    
 
     /**
@@ -218,7 +218,7 @@ export class Camera {
         for (let j = startY; j < endY; ++j) {            
             for (let i = startX; i < endX; ++i) {
                 // Initialize pixel data
-                let pixelColor = new Vec3(0, 0, 0);
+                let pixelColor = new Color(0, 0, 0);
                 let sampleCount = 0;
                 
                 // Statistics for adaptive sampling

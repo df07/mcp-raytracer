@@ -4,12 +4,12 @@ import { HittableList } from '../../src/geometry/hittableList.js';
 import { Sphere } from '../../src/entities/sphere.js';
 import { Ray } from '../../src/geometry/ray.js';
 import { Interval } from '../../src/geometry/interval.js';
-import { Vec3 } from '../../src/geometry/vec3.js';
+import { Vec3, Color } from '../../src/geometry/vec3.js';
 import { Lambertian } from '../../src/materials/lambertian.js';
 
 describe('BVHNode', () => {
   // Create a simple material for testing
-  const material = new Lambertian(new Vec3(0.5, 0.5, 0.5));
+  const material = new Lambertian(new Color(0.5, 0.5, 0.5));
   
   // Create a few spheres
   const spheres: Hittable[] = [

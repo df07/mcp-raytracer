@@ -1,6 +1,6 @@
 /* Specs: spheres-scene.md, rain-scene.md */
 
-import { Point3, Vec3 } from './geometry/vec3.js';
+import { Point3, Vec3, Color } from './geometry/vec3.js';
 import { HittableList } from './geometry/hittableList.js';
 import { Sphere } from './entities/sphere.js';
 import { Lambertian } from './materials/lambertian.js';
@@ -67,7 +67,7 @@ class SeededRandom {
    * Generate a random color
    */
   randomColor(): Vec3 {
-    return new Vec3(
+    return new Color(
       this.next(),
       this.next(),
       this.next()
@@ -149,7 +149,7 @@ export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: Sph
     groundSphere: false,
     groundY: -100.5,                    // Match default scene ground position
     groundRadius: 100,                  // Match default scene ground radius
-    groundMaterial: new Lambertian(new Vec3(0.8, 0.8, 0.0)), // Match default yellow-ish ground
+    groundMaterial: new Lambertian(new Color(0.8, 0.8, 0.0)), // Match default yellow-ish ground
     seed: Math.floor(Math.random() * 2147483647) // Random seed by default
   };
     // Merge defaults with provided options
@@ -269,7 +269,7 @@ function randomPointInSphere(center: Point3, radius: number, random: SeededRando
  * Generates a random color
  */
 function randomColor(random: SeededRandom): Vec3 {
-  return new Vec3(
+  return new Color(
     random.next(),
     random.next(),
     random.next()
@@ -311,15 +311,15 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   const worldList = new HittableList();
   
   // Create materials
-  const materialGround = new Lambertian(new Vec3(0.8, 0.8, 0.0));  // Yellow-ish ground
-  const materialRed = new Lambertian(new Vec3(0.7, 0.3, 0.3));
-  const materialBlue = new Lambertian(new Vec3(0.1, 0.1, 0.9));
+  const materialGround = new Lambertian(new Color(0.8, 0.8, 0.0));  // Yellow-ish ground
+  const materialRed = new Lambertian(new Color(0.7, 0.3, 0.3));
+  const materialBlue = new Lambertian(new Color(0.1, 0.1, 0.9));
   const materialGlass = new Dielectric(Dielectric.GLASS_IOR);
-  const materialSilver = new Metal(new Vec3(0.8, 0.8, 0.8), 0.0); // Shiny silver (no fuzz)
-  const materialGold = new Metal(new Vec3(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
+  const materialSilver = new Metal(new Color(0.8, 0.8, 0.8), 0.0); // Shiny silver (no fuzz)
+  const materialGold = new Metal(new Color(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
   
   // Create a bright sun-like light source - very bright (intensity > 1.0)
-  const sunLight = new DiffuseLight(new Vec3(15.0, 14.0, 13.0));
+  const sunLight = new DiffuseLight(new Color(15.0, 14.0, 13.0));
 
   // Create spheres with materials
   worldList.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround)); // Ground sphere
@@ -378,7 +378,7 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
     groundSphere: true,
     groundY: -100.5,
     groundRadius: 100,
-    groundMaterial: new Lambertian(new Vec3(0.1, 0.1, 0.1)),
+    groundMaterial: new Lambertian(new Color(0.1, 0.1, 0.1)),
     seed: Math.floor(Math.random() * 2147483647)
   };
   
@@ -444,7 +444,7 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   for (const position of selectedPositions) {
     // Create a metallic material with slight color variation (silver/gray tones)
     const brightness = 0.7 + random.next() * 0.3; // 0.7-1.0 range for silver/gray
-    const color = new Vec3(brightness, brightness, brightness);
+    const color = new Color(brightness, brightness, brightness);
     const fuzz = rainOpts.metalFuzz * random.next(); // Randomize fuzziness a bit
     const material = new Metal(color, fuzz);
     

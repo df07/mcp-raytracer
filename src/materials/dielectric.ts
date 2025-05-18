@@ -34,7 +34,7 @@ export class Dielectric extends DefaultMaterial {
      */
     override scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
         // For a pure dielectric, light isn't absorbed - attenuation is always 1.0
-        const attenuation = new Vec3(1.0, 1.0, 1.0);
+        const attenuation = new Color(1.0, 1.0, 1.0);
         
         // Calculate whether we're entering or exiting the material
         // and adjust the refraction ratio accordingly

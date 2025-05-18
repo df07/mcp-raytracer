@@ -1,18 +1,18 @@
 import { Lambertian } from '../../src/materials/lambertian.js';
+import { Vec3, Color } from '../../src/geometry/vec3.js';
 import { Ray } from '../../src/geometry/ray.js';
-import { Vec3 } from '../../src/geometry/vec3.js';
 import { HitRecord } from '../../src/geometry/hittable.js';
 
 describe('Lambertian Material', () => {
     test('should have correct albedo', () => {
-        const redLambertian = new Lambertian(new Vec3(0.8, 0.2, 0.2));
+        const redLambertian = new Lambertian(new Color(0.8, 0.2, 0.2));
         expect(redLambertian.albedo.x).toBeCloseTo(0.8);
         expect(redLambertian.albedo.y).toBeCloseTo(0.2);
         expect(redLambertian.albedo.z).toBeCloseTo(0.2);
     });
 
     test('should produce a scatter result', () => {
-        const lambertian = new Lambertian(new Vec3(0.8, 0.2, 0.2));
+        const lambertian = new Lambertian(new Color(0.8, 0.2, 0.2));
         const hitRecord: HitRecord = {
             p: new Vec3(0, 0, 0),
             normal: new Vec3(0, 1, 0),
@@ -42,7 +42,7 @@ describe('Lambertian Material', () => {
         }
     });    test('should handle degenerate scatter direction', () => {
         // Set up the test objects
-        const lambertian = new Lambertian(new Vec3(0.8, 0.2, 0.2));
+        const lambertian = new Lambertian(new Color(0.8, 0.2, 0.2));
         const hitRecord: HitRecord = {
             p: new Vec3(0, 0, 0),
             normal: new Vec3(0, 1, 0),

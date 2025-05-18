@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { Metal } from '../../src/materials/metal.js';
-import { Vec3 } from '../../src/geometry/vec3.js';
+import { Vec3, Color } from '../../src/geometry/vec3.js';
 import { Ray } from '../../src/geometry/ray.js';
 import { HitRecord } from '../../src/geometry/hittable.js';
 
@@ -10,7 +10,7 @@ describe('Metal Material', () => {
   // Test Metal constructor
   it('should create a Metal material with proper albedo and fuzz', () => {
     // Arrange
-    const albedo = new Vec3(0.8, 0.6, 0.2);
+    const albedo = new Color(0.8, 0.6, 0.2);
     
     // Act
     const metal1 = new Metal(albedo, 0.5);
@@ -29,7 +29,7 @@ describe('Metal Material', () => {
   // Test Metal scatter method
   it('should scatter rays correctly when hitting surface', () => {
     // Arrange
-    const albedo = new Vec3(0.8, 0.6, 0.2);
+    const albedo = new Color(0.8, 0.6, 0.2);
     const metal = new Metal(albedo, 0.0); // Perfect reflection
     
     const origin = new Vec3(0, 0, 0);
@@ -79,7 +79,7 @@ describe('Metal Material', () => {
     }
 
     // Create test instances
-    const metal = new MockMetal(new Vec3(1, 1, 1));
+    const metal = new MockMetal(new Color(1, 1, 1));
 
     // Case 1: Ray reflects properly (should return true)
     const validIn = new Vec3(0, -1, 0); // Straight down
@@ -94,7 +94,7 @@ describe('Metal Material', () => {
   // Test absorption when ray reflects into the surface
   it('should return null when ray reflects into the surface', () => {
     // Arrange
-    const albedo = new Vec3(0.8, 0.6, 0.2);
+    const albedo = new Color(0.8, 0.6, 0.2);
     const metal = new Metal(albedo, 0.0); // Perfect reflection
     
     // Use a case we know should fail (ray coming from same direction as normal)
@@ -123,7 +123,7 @@ describe('Metal Material', () => {
   // Test fuzzy reflection
   it('should create fuzzy reflections when fuzz > 0', () => {
     // Arrange
-    const albedo = new Vec3(0.8, 0.6, 0.2);
+    const albedo = new Color(0.8, 0.6, 0.2);
     const fuzz = 0.5;
     const metal = new Metal(albedo, fuzz);
     

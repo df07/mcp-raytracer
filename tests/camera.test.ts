@@ -13,11 +13,11 @@ import { DefaultMaterial } from '../src/materials/material.js';
 
 // Mock Material for testing
 class MockMaterial implements Material {
-    albedo: Vec3;
+    albedo: Color;
     shouldScatter: boolean;
-    emissionColor: Vec3;
+    emissionColor: Color;
     
-    constructor(albedo: Vec3, shouldScatter: boolean = true, emissionColor: Vec3 = new Vec3(0, 0, 0)) {
+    constructor(albedo: Color, shouldScatter: boolean = true, emissionColor: Color = new Color(0, 0, 0)) {
         this.albedo = albedo;
         this.shouldScatter = shouldScatter;
         this.emissionColor = emissionColor;
@@ -46,7 +46,7 @@ class MockHittable implements Hittable {
     hitNormal: Vec3;
     material: Material;
 
-    constructor(shouldHit: boolean, hitNormal: Vec3 = new Vec3(0, 0, 0), material: Material = new MockMaterial(new Vec3(1, 1, 1))) {
+    constructor(shouldHit: boolean, hitNormal: Vec3 = new Vec3(0, 0, 0), material: Material = new MockMaterial(new Color(1, 1, 1))) {
         this.shouldHit = shouldHit;
         this.hitNormal = hitNormal;
         this.material = material;
@@ -88,8 +88,8 @@ describe('Camera', () => {
     const hitNormal = new Vec3(0, 0, 1);
     
     // Materials for testing
-    const redScatterMaterial = new MockMaterial(new Vec3(1, 0, 0), true);
-    const greenNoScatterMaterial = new MockMaterial(new Vec3(0, 1, 0), false);
+    const redScatterMaterial = new MockMaterial(new Color(1, 0, 0), true);
+    const greenNoScatterMaterial = new MockMaterial(new Color(0, 1, 0), false);
 
     const mockWorldMiss = new MockHittable(false);
     const mockWorldHitScatter = new MockHittable(true, hitNormal, redScatterMaterial);
@@ -192,7 +192,7 @@ describe('Camera', () => {
         // Calculate expected background color for the backgroundRay direction
         const unitDirection = backgroundRay.direction.unitVector();
         const a = 0.5 * (unitDirection.y + 1.0);
-        const expectedColor = new Vec3(1.0, 1.0, 1.0).multiply(1.0 - a).add(new Vec3(0.5, 0.7, 1.0).multiply(a));
+        const expectedColor = new Color(1.0, 1.0, 1.0).multiply(1.0 - a).add(new Color(0.5, 0.7, 1.0).multiply(a));
 
         expect(colorResult.x).toBeCloseTo(expectedColor.x);
         expect(colorResult.y).toBeCloseTo(expectedColor.y);
@@ -257,7 +257,7 @@ describe('Camera', () => {
     test('writeColorToBuffer applies gamma correction', () => {
         const channels = 3;
         const pixelData = new Uint8ClampedArray(channels);
-        const testColor = new Vec3(0.25, 0.5, 1.0);
+        const testColor = new Color(0.25, 0.5, 1.0);
         
         // Create a private helper to call writeColorToBuffer directly
         // Since it's now private, we'll create our own simple version to test
@@ -307,7 +307,7 @@ describe('Camera', () => {
         // Create a buffer with a single pixel (3 bytes for RGB)
         // and render just one pixel to test sampling
         const mockRender = () => {
-            let pixelColor = new Vec3(0, 0, 0);
+            let pixelColor = new Color(0, 0, 0);
             for (let s = 0; s < cameraOptions.samplesPerPixel; ++s) {
                 const r = cameraWithAA.getRay(0, 0);
                 // We don't need to calculate real colors for this test
@@ -337,7 +337,7 @@ describe('Camera', () => {
         
         // Create a simple world with a black sphere
         // Black spheres will make areas of high contrast against the blue/white gradient background
-        const blackMaterial = new Lambertian(Vec3.BLACK);
+        const blackMaterial = new Lambertian(Color.BLACK);
         const worldList = new HittableList();
         
         // Add a large black sphere in front of the camera
@@ -386,10 +386,10 @@ describe('Camera', () => {
     
     it('should calculate correct illuminance for color vectors', () => {
         // Test the illuminance calculation
-        const color1 = new Vec3(1, 0, 0); // Pure red
-        const color2 = new Vec3(0, 1, 0); // Pure green
-        const color3 = new Vec3(0, 0, 1); // Pure blue
-        const color4 = new Vec3(1, 1, 1); // White
+        const color1 = new Color(1, 0, 0); // Pure red
+        const color2 = new Color(0, 1, 0); // Pure green
+        const color3 = new Color(0, 0, 1); // Pure blue
+        const color4 = new Color(1, 1, 1); // White
         
         // Expected values based on standard weights: 0.299R + 0.587G + 0.114B
         expect(color1.illuminance()).toBeCloseTo(0.299, 5);
@@ -407,9 +407,9 @@ describe('Camera', () => {
         beforeEach(() => {
             // Create a material that emits light but doesn't scatter
             emissiveMaterial = new MockMaterial(
-                new Vec3(0, 0, 0), // albedo doesn't matter since it won't scatter
+                new Color(0, 0, 0), // albedo doesn't matter since it won't scatter
                 false, // doesn't scatter
-                new Vec3(1, 0.5, 0.25) // orange-ish emission
+                new Color(1, 0.5, 0.25) // orange-ish emission
             );
             
             // Create a world that always returns a hit with the emissive material
@@ -432,9 +432,9 @@ describe('Camera', () => {
         test('rayColor adds emission to scattered ray color', () => {
             // Create a material that both emits and scatters
             const emitAndScatterMaterial = new MockMaterial(
-                new Vec3(0.5, 0.5, 0.5), // 50% reflective gray
+                new Color(0.5, 0.5, 0.5), // 50% reflective gray
                 true, // does scatter
-                new Vec3(0.2, 0.2, 0.2) // slight emission
+                new Color(0.2, 0.2, 0.2) // slight emission
             );
             
             // Create a world that always returns a hit with this material

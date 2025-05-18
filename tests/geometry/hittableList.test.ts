@@ -1,13 +1,13 @@
 import { HittableList } from '../../src/geometry/hittableList.js';
 import { Sphere } from '../../src/entities/sphere.js';
+import { Vec3, Color } from '../../src/geometry/vec3.js';
 import { Ray } from '../../src/geometry/ray.js';
-import { Vec3, Point3 } from '../../src/geometry/vec3.js';
 import { Interval } from '../../src/geometry/interval.js';
 import { Lambertian } from '../../src/materials/lambertian.js';
 
 describe('HittableList', () => {  
   let list: HittableList;
-  const material = new Lambertian(new Vec3(0.8, 0.8, 0.8));
+  const material = new Lambertian(new Color(0.8, 0.8, 0.8));
   const sphere1 = new Sphere(new Vec3(0, 0, -1), 0.5, material);
   const sphere2 = new Sphere(new Vec3(0, 100, -5), 10, material); // A different sphere
   const rayTowardsSphere1 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
@@ -45,7 +45,7 @@ describe('HittableList', () => {
     expect(list.hit(rayTowardsSphere1, fullInterval)).toBeNull(); // Should be null after clear
   });
   describe('hit', () => {
-    const testMaterial = new Lambertian(new Vec3(0.8, 0.8, 0.8));
+    const testMaterial = new Lambertian(new Color(0.8, 0.8, 0.8));
     const sphere1Hit = new Sphere(new Vec3(0, 0, -1), 0.5, testMaterial); // Hits at t=0.5, 1.5
     const sphere2Hit = new Sphere(new Vec3(0, 0, -3), 0.5, testMaterial); // Hits at t=2.5, 3.5
     const rayFromOrigin = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));

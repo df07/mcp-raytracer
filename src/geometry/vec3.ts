@@ -12,7 +12,6 @@ const NoPool: IVectorPool = {
 
 let pool: IVectorPool = NoPool;
 
-
 /**
  * Represents a 3-dimensional vector or point.
  * Implementation uses gl-matrix for optimal performance.
@@ -298,19 +297,15 @@ export class Vec3 {
         // If a new pool is provided, ensure all vectors are allocated from it
         pool = newPool || NoPool;
     }
-
-    static BLACK = new Vec3(0, 0, 0);
-    static WHITE = new Vec3(1, 1, 1);
-    static BLUE = new Vec3(0.5, 0.7, 1.0);
 }
 
-// Type aliases
-export type Point3 = Vec3;
-export type Color = Vec3;
-
-// NOTE: point3 and color are type aliases for vec3.
-// Always use the 'new vec3(...)' constructor for instantiation.
-// These aliases provide semantic clarity in function signatures and variables.
+// Classes that extend Vec3 for semantic clarity
+export class Point3 extends Vec3 {}
+export class Color extends Vec3 {
+    static BLACK = new Color(0, 0, 0);
+    static WHITE = new Color(1, 1, 1);
+    static BLUE = new Color(0.5, 0.7, 1.0);
+}
 
 /**
  * A pool of reusable vectors to reduce memory allocations during ray tracing
