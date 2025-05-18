@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import { fileURLToPath } from 'url';
-import { generateScene, SceneConfig } from './sceneGenerator.js';
+import { generateScene, SceneConfig } from './scenes/scenes.js';
 import { RenderStats } from './camera.js';
 import fs from 'fs';
 

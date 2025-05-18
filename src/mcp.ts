@@ -8,7 +8,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { generateImageBuffer } from "./raytracer.js";
 import { CameraOptions } from "./camera.js";
-import { SpheresSceneOptions, RainSceneOptions } from "./sceneGenerator.js";
+import { SpheresSceneOptions } from "./scenes/scenes-spheres.js";
+import { RainSceneOptions } from "./scenes/scenes-rain.js";
 
 // Helper to get the root directory (assuming mcp.ts is in src)
 const __filename = fileURLToPath(import.meta.url);

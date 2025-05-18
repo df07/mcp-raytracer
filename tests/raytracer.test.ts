@@ -1,6 +1,6 @@
 import { generateImageBuffer, RaytracerOptions } from '../src/raytracer.js';
 import sharp from 'sharp';
-import { SceneConfig } from '../src/sceneGenerator.js';
+import { SceneConfig } from '../src/scenes/scenes.js';
 
 describe('generateImageBuffer', () => {
 

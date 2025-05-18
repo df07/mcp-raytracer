@@ -2,7 +2,7 @@
 
 import { generateImageBuffer, RaytracerOptions } from './raytracer.js';
 import { CameraOptions } from './camera.js';
-import { SpheresSceneOptions, SceneConfig, RainSceneOptions } from './sceneGenerator.js';
+import { SpheresSceneOptions, SceneConfig, RainSceneOptions } from './scenes/scenes.js';
 import fs from 'fs/promises';
 import path from 'path';
 

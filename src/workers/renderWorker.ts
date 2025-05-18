@@ -1,5 +1,5 @@
 import { parentPort, workerData } from 'worker_threads';
-import { generateScene, SceneConfig } from '../sceneGenerator.js';
+import { generateScene, SceneConfig } from '../scenes/scenes.js';
 import { Region, WorkerResponse } from '../raytracer.js';
 
 // Worker receives: scene config, region to render, thread ID, and shared buffer

@@ -1,16 +1,14 @@
-import { generateSpheresScene, SpheresSceneOptions } from '../src/sceneGenerator.js';
-import { Sphere } from '../src/entities/sphere.js';
-import { Vec3 } from '../src/geometry/vec3.js';
-import { CameraOptions } from '../src/camera.js';
-import { generateScene, SceneConfig } from '../src/sceneGenerator.js';
-import { Metal } from '../src/materials/metal.js';
+import { Sphere } from '../../src/entities/sphere.js';
+import { Vec3 } from '../../src/geometry/vec3.js';
+import { CameraOptions } from '../../src/camera.js';
+import { generateSpheresScene, SpheresSceneOptions } from '../../src/scenes/scenes-spheres.js';
 
-describe('SceneGenerator', () => {
+describe('Spheres Scene Generator', () => {
   const defaultCamera: CameraOptions = {
     imageWidth: 9,
-        imageHeight: 6,
-        samples: 1
-    };    
+    imageHeight: 6,
+    samples: 1
+  };    
 
   describe('generateSpheresScene', () => {
     it('should generate a scene with the specified number of spheres', () => {
@@ -87,64 +85,6 @@ describe('SceneGenerator', () => {
       
       // Max radius should be smaller in the scene with more spheres
       expect(largeSceneMaxRadius).toBeLessThan(smallSceneMaxRadius);
-    });
-  });
-
-  describe('Rain Scene', () => {
-    it('should generate a rain scene with the specified number of metallic spheres', () => {
-      // Arrange
-      const config: SceneConfig = {
-        type: 'rain',
-        options: {
-          count: 20,
-          sphereRadius: 0.1
-        }
-      };
-
-      // Act
-      const scene = generateScene(config);
-
-      // Assert
-      expect(scene).toBeDefined();
-      expect(scene.world).toBeDefined();
-      expect(scene._objects.length).toBe(21); // 20 rain spheres + 1 ground sphere
-      
-      // Check that spheres are metallic
-      let metallicCount = 0;
-      for (let i = 0; i < scene._objects.length; i++) {
-        const sphere = scene._objects[i] as Sphere;
-        if (sphere.material instanceof Metal) {
-          metallicCount++;
-        }
-      }
-      
-      // All rain drops should be metallic (the other object is the ground sphere)
-      expect(metallicCount).toBe(20);
-    });
-
-    it('should respect the provided camera options', () => {
-      // Arrange
-      const cameraOptions = {
-        vfov: 60,
-        lookFrom: new Vec3(0, 1, 3),
-        lookAt: new Vec3(0, 0, -2)
-      };
-      
-      const config: SceneConfig = {
-        type: 'rain',
-        camera: cameraOptions,
-        options: {
-          count: 5
-        }
-      };
-
-      // Act
-      const scene = generateScene(config);
-
-      // Assert
-      expect(scene.camera).toBeDefined();
-      // We don't check specific camera properties as they're internal
-      // Just verify the camera object exists
     });
   });
 });
