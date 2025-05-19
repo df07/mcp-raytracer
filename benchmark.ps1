@@ -24,7 +24,19 @@ if (-not (Test-Path $outputDir)) {
 }
 
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$logFile = Join-Path $outputDir "benchmark_${timestamp}.log"
+
+# Create descriptive filename base with key parameters
+$sceneType = if ($rain -gt 0) { "rain" } elseif ($spheres -gt 0) { "spheres" } else { "default" }
+$fileBase = "${sceneType}_${timestamp}_w${width}_s${samples}"
+if ($spheres -gt 0) { $fileBase += "_c${spheres}" }  # c for count of spheres
+if ($seed -gt 0) { $fileBase += "_sd${seed}" }
+if ($ab -gt 0) { $fileBase += "_ab${ab}" }
+if ($at -gt 0) { $fileBase += "_at${at}" }
+# Don't include parallel or threads in the filename, they don't change the results
+
+# Set output and log filenames with the same base
+$outputFile = Join-Path $outputDir "${fileBase}.png"
+$logFile = Join-Path $outputDir "${fileBase}.log"
 
 # Prepare node command with or without profiling
 $nodeCmd = "node"
@@ -63,7 +75,6 @@ if ($threads -gt 0) {
 }
 
 # Add output file
-$outputFile = Join-Path $outputDir "raytracing_${timestamp}.png"
 $cmd += " --output $outputFile"
 
 # Run raytracer benchmark
@@ -106,7 +117,7 @@ if ($profile) {
     if ($isolateFiles.Count -gt 0) {
         # Get the most recent isolate file
         $latestIsolateFile = $isolateFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        $profileOutputFile = Join-Path $outputDir "profile_${timestamp}.txt"
+        $profileOutputFile = Join-Path $outputDir "${fileBase}_profile.txt"
         
         Write-Host "Processing profile data from $($latestIsolateFile.Name)"
         
@@ -115,10 +126,8 @@ if ($profile) {
         
         Write-Host "Profile analysis saved to $profileOutputFile"
         
-        # Move the isolate file to the output directory to keep it organized
-        $isolateDestination = Join-Path $outputDir $latestIsolateFile.Name
-        Move-Item -Path $latestIsolateFile.FullName -Destination $isolateDestination
-        Write-Host "Moved isolate file to $isolateDestination for reference"
+        # Remove the isolate file as it's no longer needed
+        Remove-Item -Path $latestIsolateFile.FullName
     } else {
         Write-Host "No profiler output files (isolate-*.log) found. Make sure profiling was enabled correctly."
     }
