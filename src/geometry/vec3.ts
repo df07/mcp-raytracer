@@ -297,6 +297,25 @@ export class Vec3 {
         // If a new pool is provided, ensure all vectors are allocated from it
         pool = newPool || NoPool;
     }
+
+    /**
+     * Generates a random direction following a cosine distribution.
+     * This is useful for importance sampling in PDF-based ray tracing.
+     * @returns A new vector representing a random direction with cosine distribution
+     */
+    static randomCosineDirection(): Vec3 {
+        const r1 = Math.random();
+        const r2 = Math.random();
+        
+        const phi = 2 * Math.PI * r1;
+        const sqrtR2 = Math.sqrt(r2);
+        
+        const x = Math.cos(phi) * sqrtR2;
+        const y = Math.sin(phi) * sqrtR2;
+        const z = Math.sqrt(1 - r2);
+        
+        return new Vec3(x, y, z);
+    }
 }
 
 // Classes that extend Vec3 for semantic clarity
