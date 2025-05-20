@@ -30,7 +30,6 @@ We'll implement PDF-based sampling in incremental steps to ensure working code a
 
 2. **Tests**
    * Unit tests for ONB and PDF classes
-   * Visual verification of random distributions
    * Test that CosinePDF follows proper cosine distribution
 
 ### Phase 2: Material Integration
@@ -46,6 +45,9 @@ We'll implement PDF-based sampling in incremental steps to ensure working code a
      * Metal: Returns attenuation + ray
      * Dielectric: Returns attenuation + ray
      * DiffuseLight: Returns null (no scattering)
+   * The transition is straightforward as all materials currently return {attenuation, scattered},
+     which can be directly mapped to a valid ScatterResult by setting the ray field to scattered.
+     We only need to update the Lambertian material to return a PDF instead.
 
 3. **Tests**
    * Unit tests for each material's scatter method
@@ -61,12 +63,11 @@ We'll implement PDF-based sampling in incremental steps to ensure working code a
 
 2. **HittablePDF Implementation**
    * Create HittablePDF class that samples towards hittable objects
-   * Create light registry mechanism to track emissive objects
+   * Light registry will be implemented as a list of emissive objects passed to the camera render function
 
 3. **Tests**
    * Tests for sampling towards different shapes
-   * Visual verification of light sampling
-   * Debug visualizations of sampling distribution
+   * Tests for proper PDF value calculations
 
 ### Phase 4: Path Tracer Integration
 
@@ -76,17 +77,16 @@ We'll implement PDF-based sampling in incremental steps to ensure working code a
    * Mix light sampling and BRDF sampling for optimal results
 
 2. **Scene Setup**
-   * Update scene creation to register lights
+   * Update scene creation to pass lights list to camera
    * Create test scenes that demonstrate improvements
 
 3. **Optimization** (if needed)
    * Add Multiple Importance Sampling for better weight distribution
-   * Russian Roulette for optimal path termination
+   * Keep using fixed max bounce depth for now (can improve later)
 
 4. **Final Tests**
-   * Comparison with previous implementation at same sample count
-   * Benchmark rendering performance and convergence rate
-   * Visual quality assessment
+   * Comparison with previous implementation
+   * Basic correctness tests
 
 ## Detailed Technical Specifications
 
@@ -147,16 +147,10 @@ export interface PDF {
   generate(): Vec3;
 }
 
-export abstract class DefaultPDF implements PDF {
-  abstract value(direction: Vec3): number;
-  abstract generate(): Vec3;
-}
-
-export class CosinePDF extends DefaultPDF {
+export class CosinePDF implements PDF {
   private readonly uvw: ONBasis;
   
   constructor(w: Vec3) {
-    super();
     this.uvw = new ONBasis(w);
   }
   
@@ -326,7 +320,10 @@ rayColor(r: Ray, depth: number = this.maxDepth, lights: Hittable[] = []): Color 
   
   // Get the PDF value for this direction
   const pdfValue = pdf.value(direction);
-  if (pdfValue <= 0) {
+  
+  // Use an epsilon to avoid division by very small values
+  const EPSILON = 0.0001;
+  if (pdfValue <= EPSILON) {
     return emitted;
   }
   
@@ -344,9 +341,8 @@ rayColor(r: Ray, depth: number = this.maxDepth, lights: Hittable[] = []): Color 
 ## Performance Considerations
 
 1. **Vector Pooling**: Continue using the vector pool for all vector operations
-2. **Early Termination**: Use Russian Roulette to terminate paths probabilistically
-3. **PDF Caching**: Consider caching PDF values for directions that are sampled frequently
-4. **Optimized ONB**: Implement an efficient ONB (Orthonormal Basis) calculation
+2. **PDF Caching**: Consider caching PDF values for directions that are sampled frequently
+3. **Optimized ONB**: Implement an efficient ONB (Orthonormal Basis) calculation
 
 ## Testing Strategy
 
@@ -355,14 +351,9 @@ rayColor(r: Ray, depth: number = this.maxDepth, lights: Hittable[] = []): Color 
    * Verify conservation of energy
    * Check for proper importance sampling
 
-2. **Visual Tests**:
-   * Compare render output with previous implementation
-   * Check for noise reduction at the same sample count
+2. **Integration Tests**:
+   * Test the complete render pipeline
    * Verify correct handling of direct illumination
-
-3. **Benchmark Tests**:
-   * Compare convergence rates
-   * Measure performance improvements
 
 ## Future Extensions
 
@@ -371,9 +362,9 @@ rayColor(r: Ray, depth: number = this.maxDepth, lights: Hittable[] = []): Color 
    * Support anisotropic materials
    * Add PDF for environment light sampling
 
-2. **Dynamic PDF Selection**:
-   * Adaptive PDF weighting based on scene characteristics
-   * Scene analysis to automatically identify important light sources 
+2. **Path Termination**:
+   * Implement Russian Roulette for optimal path termination
+   * Adaptive termination based on contribution
 
 ## Future Considerations
 
