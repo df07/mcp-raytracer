@@ -1,4 +1,4 @@
-/* Specs: hittable.md, aabb-bvh.md */
+/* Specs: hittable.md, aabb-bvh.md, pdf-sampling.md */
 
 import { Ray } from './ray.js';
 import { Point3, Vec3, VectorPool } from './vec3.js';
@@ -40,4 +40,30 @@ export interface Hittable {
    * @returns The bounding box for this object
    */
   boundingBox(): AABB;
+}
+
+/**
+ * Interface for hittable objects that can be directly sampled for importance sampling.
+ * This extends the basic Hittable interface with methods for PDF-based sampling.
+ * Only objects that make sense to sample towards (like light sources) should implement this.
+ */
+export interface PDFHittable extends Hittable {
+  /**
+   * Calculates the probability density function value for a ray from the given origin
+   * towards this object in the specified direction.
+   * 
+   * @param origin The origin point from which to evaluate PDF
+   * @param direction The direction to evaluate
+   * @returns The PDF value for sampling this object from the origin in the given direction
+   */
+  pdfValue(origin: Point3, direction: Vec3): number;
+  
+  /**
+   * Generates a random direction from the origin towards this object.
+   * Used for PDF-based importance sampling of light sources.
+   * 
+   * @param origin The origin point from which to sample a direction
+   * @returns A random direction from the origin towards this object
+   */
+  pdfRandomVec(origin: Point3): Vec3;
 }

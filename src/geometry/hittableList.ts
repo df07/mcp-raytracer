@@ -1,16 +1,17 @@
-/* Specs: hittable.md, aabb-bvh.md */
+/* Specs: hittable.md, aabb-bvh.md, pdf-sampling.md */
 
-import { HitRecord, Hittable } from './hittable.js';
+import { HitRecord, Hittable, PDFHittable } from './hittable.js';
 import { Ray } from './ray.js';
 import { Interval } from './interval.js';
 import { AABB } from './aabb.js';
+import { Point3, Vec3 } from './vec3.js';
 
 /**
  * Represents a list of Hittable objects.
  * Implements the Hittable interface to check for intersections
  * against all objects in the list.
  */
-export class HittableList implements Hittable {
+export class HittableList implements PDFHittable {
   public objects: Hittable[] = [];
   private _boundingBox?: AABB; // Cached bounding box
 
@@ -109,5 +110,59 @@ export class HittableList implements Hittable {
    */
   public get count(): number {
     return this.objects.length;
+  }
+
+  /**
+   * Calculates the probability density function value for a ray from the given origin
+   * towards this list of objects in the specified direction.
+   * 
+   * Only considers SampleableHittable objects in the list.
+   * Each object's contribution is weighted equally.
+   * 
+   * @param origin The origin point from which to evaluate PDF
+   * @param direction The direction to evaluate
+   * @returns The combined PDF value across all sampleable objects in the list
+   */
+  public pdfValue(origin: Point3, direction: Vec3): number {
+    // Filter for objects that implement SampleableHittable
+    const sampleableObjects = this.objects.filter(
+      (obj): obj is PDFHittable => 'pdfValue' in obj && 'random' in obj
+    );
+    
+    const count = sampleableObjects.length;
+    if (count === 0) return 0;
+    
+    // Sum PDF values from all sampleable objects
+    let sum = 0;
+    for (const object of sampleableObjects) {
+      sum += object.pdfValue(origin, direction);
+    }
+    
+    // Return average PDF value across all objects
+    return sum / count;
+  }
+  
+  /**
+   * Generates a random direction from the origin towards one of the objects in the list.
+   * Randomly selects one sampleable object from the list and uses its random() method.
+   * 
+   * @param origin The origin point from which to sample a direction
+   * @returns A random direction from the origin towards a sampleable object in the list
+   */
+  public pdfRandomVec(origin: Point3): Vec3 {
+    // Filter for objects that implement SampleableHittable
+    const sampleableObjects = this.objects.filter(
+      (obj): obj is PDFHittable => 'pdfValue' in obj && 'random' in obj
+    );
+    
+    const count = sampleableObjects.length;
+    if (count === 0) {
+      // If the list has no sampleable objects, return a default direction (up)
+      return new Vec3(0, 1, 0);
+    }
+    
+    // Select a random object from the sampleable objects
+    const randomIndex = Math.floor(Math.random() * count);
+    return sampleableObjects[randomIndex].pdfRandomVec(origin);
   }
 }

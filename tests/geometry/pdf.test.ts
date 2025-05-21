@@ -1,7 +1,11 @@
 /* Specs: pdf-sampling.md */
 
-import { PDF, CosinePDF, MixturePDF } from '../../src/geometry/pdf.js';
-import { Vec3 } from '../../src/geometry/vec3.js';
+import { Vec3, Point3 } from '../../src/geometry/vec3.js';
+import { CosinePDF, HittablePDF, MixturePDF, PDF } from '../../src/geometry/pdf.js';
+import { ONBasis } from '../../src/geometry/onbasis.js';
+import { Sphere } from '../../src/entities/sphere.js';
+import { HittableList } from '../../src/geometry/hittableList.js';
+import { Lambertian } from '../../src/materials/lambertian.js';
 
 // Mock PDF for testing the MixturePDF
 class MockPDF implements PDF {
@@ -172,6 +176,65 @@ describe('PDF', () => {
       // Average z component should be approximately 2/3 for cosine distribution
       const averageZ = dotProductSum / numSamples;
       expect(averageZ).toBeCloseTo(2/3, 1);
+    });
+  });
+
+  describe('HittablePDF', () => {
+    test('should sample towards a sphere', () => {
+      // Create a sphere at (0,0,-5) with radius 1
+      const center = new Point3(0, 0, -5);
+      const radius = 1.0;
+      const material = new Lambertian(new Vec3(1, 1, 1));
+      const sphere = new Sphere(center, radius, material);
+      
+      // Create PDF sampling from origin
+      const origin = new Point3(0, 0, 0);
+      const pdf = new HittablePDF(sphere, origin);
+      
+      // Generate samples and check they point towards the sphere
+      const SAMPLES = 1000;
+      let hitCount = 0;
+      
+      for (let i = 0; i < SAMPLES; i++) {
+        const direction = pdf.generate();
+        expect(direction.length()).toBeCloseTo(1.0); // Should be unit vector
+        
+        // Check if direction points roughly towards the sphere
+        // The dot product with the vector to center should be positive and large
+        const toCenter = center.subtract(origin).unitVector();
+        const dotProduct = direction.dot(toCenter);
+        expect(dotProduct).toBeGreaterThan(0.9); // Should be pointing close to center
+        
+        // PDF value should be non-zero for this direction
+        expect(pdf.value(direction)).toBeGreaterThan(0);
+      }
+    });
+    
+    test('should work with HittableList', () => {
+      // Create a list with a few spheres
+      const list = new HittableList();
+      const material = new Lambertian(new Vec3(1, 1, 1));
+      
+      // Add spheres at different positions
+      list.add(new Sphere(new Point3(0, 0, -5), 1.0, material));
+      list.add(new Sphere(new Point3(2, 0, -5), 1.0, material));
+      list.add(new Sphere(new Point3(-2, 0, -5), 1.0, material));
+      
+      // Create PDF sampling from origin
+      const origin = new Point3(0, 0, 0);
+      const pdf = new HittablePDF(list, origin);
+      
+      // Sample directions and verify they're valid
+      const SAMPLES = 1000;
+      
+      for (let i = 0; i < SAMPLES; i++) {
+        const direction = pdf.generate();
+        expect(direction.length()).toBeCloseTo(1.0); // Should be unit vector
+        
+        // Direction should have a non-zero PDF value
+        const pdfValue = pdf.value(direction);
+        expect(pdfValue).toBeGreaterThanOrEqual(0);
+      }
     });
   });
 }); 
