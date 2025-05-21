@@ -75,6 +75,11 @@ We'll implement PDF-based sampling in incremental steps to ensure working code a
    * Rewrite `rayColor` to use PDF-based sampling
    * Handle specular vs. non-specular materials appropriately
    * Mix light sampling and BRDF sampling for optimal results
+   * IMPORTANT: Ensure proper handling of the cosine term in the BRDF calculation:
+     * For diffuse materials, BRDF = albedo/π * cos(θ)
+     * The cos(θ) term is crucial as it accounts for Lambert's law (light hitting surfaces at angles contributes less)
+     * When using cosine-weighted PDFs, the cos(θ) term in BRDF numerator cancels with cos(θ) in PDF denominator
+     * This cancellation must be properly handled to avoid washed-out images and excess light accumulation
 
 2. **Scene Setup**
    * Update scene creation to pass lights list to camera
@@ -267,74 +272,84 @@ export class HittablePDF extends DefaultPDF {
 ### 4. Camera Update
 
 ```typescript
-rayColor(r: Ray, depth: number = this.maxDepth, lights: Hittable[] = []): Color {
-  // Exit condition
-  if (depth <= 0) return Color.BLACK;
-  
-  // Check if ray hits anything
-  const rec = this.world.hit(r, new Interval(0.001, Infinity));
-  if (rec === null) {
-    // Return background
-    // ...existing background code...
-  }
-  
-  // Get emitted light from hit point
-  const emitted = rec.material.emitted(rec);
-  
-  // Get scatter result from material
-  const scatterResult = rec.material.scatter(r, rec);
-  if (!scatterResult) {
-    return emitted; // Ray was absorbed
-  }
-  
-  // Check if this is a specular scatter (direct ray provided)
-  if (scatterResult.ray) {
-    // For specular materials, use the provided ray directly
-    return emitted.add(
-      scatterResult.attenuation.multiplyVec(
-        this.rayColor(scatterResult.ray, depth - 1, lights)
-      )
-    );
-  }
-  
-  // For non-specular materials, use PDF sampling
-  
-  // Material must provide a PDF
-  if (!scatterResult.pdf) {
-    return emitted;
-  }
-  
-  // Create light PDF for sampling if lights are available
-  const lightPdf = lights.length > 0
-    ? new HittablePDF(new HittableList(lights), rec.p)
-    : null;
-  
-  // Create the final PDF for sampling (mixture or material only)
-  const pdf = lightPdf
-    ? new MixturePDF([lightPdf, scatterResult.pdf])
-    : scatterResult.pdf;
-  
-  // Generate ray direction using the PDF
-  const direction = pdf.generate();
-  const scattered = new Ray(rec.p, direction);
-  
-  // Get the PDF value for this direction
-  const pdfValue = pdf.value(direction);
-  
-  // Use an epsilon to avoid division by very small values
-  const EPSILON = 0.0001;
-  if (pdfValue <= EPSILON) {
-    return emitted;
-  }
-  
-  // Calculate material's BRDF value divided by PDF value
-  const brdfOverPdf = scatterResult.attenuation.multiply(1 / pdfValue);
-  
-  // Trace the scattered ray and calculate contribution
-  const incomingLight = this.rayColor(scattered, depth - 1, lights);
-  
-  // Final contribution is attenuation * incoming light * (brdf/pdf)
-  return emitted.add(brdfOverPdf.multiplyVec(incomingLight));
+/**
+ * Camera Update
+ */
+export class Camera {
+    // ...existing methods...
+
+    rayColor(r: Ray, depth: number = this.maxDepth, lights: Hittable[] = []): Color {
+        // Exit condition
+        if (depth <= 0) return Color.BLACK;
+        
+        // Check if ray hits anything
+        const rec = this.world.hit(r, new Interval(0.001, Infinity));
+        if (rec === null) {
+            // Return background
+            // ...existing background code...
+        }
+        
+        // Get emitted light from hit point
+        const emitted = rec.material.emitted(rec);
+        
+        // Get scatter result from material
+        const scatterResult = rec.material.scatter(r, rec);
+        if (!scatterResult) {
+            return emitted; // Ray was absorbed
+        }
+        
+        // Check if this is a specular scatter (direct ray provided)
+        if (scatterResult.ray) {
+            // For specular materials, use the provided ray directly
+            return emitted.add(
+                scatterResult.attenuation.multiplyVec(
+                    this.rayColor(scatterResult.ray, depth - 1, lights)
+                )
+            );
+        }
+        
+        // For non-specular materials, use PDF sampling
+        
+        // Material must provide a PDF
+        if (!scatterResult.pdf) {
+            return emitted;
+        }
+        
+        // Create light PDF for sampling if lights are available
+        const lightPdf = lights.length > 0
+            ? new HittablePDF(new HittableList(lights), rec.p)
+            : null;
+        
+        // Create the final PDF for sampling (mixture or material only)
+        const pdf = lightPdf
+            ? new MixturePDF([lightPdf, scatterResult.pdf])
+            : scatterResult.pdf;
+        
+        // Generate ray direction using the PDF
+        const direction = pdf.generate();
+        const scattered = new Ray(rec.p, direction);
+        
+        // Get the PDF value for this direction
+        const pdfValue = pdf.value(direction);
+        
+        // Use an epsilon to avoid division by very small values
+        const EPSILON = 0.0001;
+        if (pdfValue <= EPSILON) {
+            return emitted;
+        }
+
+        // For diffuse materials, BRDF = albedo/π * cos(θ)
+        // For Lambertian surfaces, pdf = cos(θ) / π, so we use the pdf value directly
+        // We keep this explicit for clarity and to support other PDFs in the future.
+        const scatterPdfValue = pdfValue;
+        const brdfOverPdf = scatterResult.attenuation.multiply(scatterPdfValue / pdfValue);
+        
+        // Trace the scattered ray and calculate contribution
+        const incomingLight = this.rayColor(scattered, depth - 1, lights);
+        
+        // Final contribution is emitted light plus incoming light weighted by BRDF/PDF
+        return emitted.add(brdfOverPdf.multiplyVec(incomingLight));
+    }
 }
 ```
 

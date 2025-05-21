@@ -186,14 +186,16 @@ export class Camera {
                     
                     // Get the PDF value for this direction
                     const pdfValue = scatterResult.pdf.value(direction);
-                    const scatterPdfValue = pdfValue;
                     
                     // Avoid division by near-zero values
                     if (pdfValue <= 0.0001) {
                         return emitted;
                     }
                     
-                    // Calculate material's BRDF value divided by PDF value
+                    // For diffuse materials, BRDF = albedo/π * cos(θ)
+                    // For Lambertian surfaces, pdf = cos(θ) / π, so we use the pdf value directly
+                    // We keep this explicit for clarity and to support other PDFs in the future.
+                    const scatterPdfValue = pdfValue;
                     const brdfOverPdf = scatterResult.attenuation.multiply(scatterPdfValue / pdfValue);
 
                     // Trace the scattered ray and calculate contribution
