@@ -2,6 +2,7 @@ import { Dielectric } from '../../src/materials/dielectric.js';
 import { HitRecord } from '../../src/geometry/hittable.js';
 import { Ray } from '../../src/geometry/ray.js';
 import { Vec3 } from '../../src/geometry/vec3.js';
+import { ScatterResult } from '../../src/materials/material.js';
 
 describe('Dielectric Material', () => {
   // Set up common test variables
@@ -23,18 +24,22 @@ describe('Dielectric Material', () => {
       material: dielectric
     };
     
-    const scatterResult = dielectric.scatter(ray, hitRecord);
+    const scatterResult = dielectric.scatter(ray, hitRecord) as ScatterResult;
     
     // Check that scatter always produces a result
     expect(scatterResult).not.toBeNull();
     
     // Check that attenuation is white (1,1,1) for clear glass
-    expect(scatterResult!.attenuation.x).toBeCloseTo(1.0);
-    expect(scatterResult!.attenuation.y).toBeCloseTo(1.0);
-    expect(scatterResult!.attenuation.z).toBeCloseTo(1.0);
+    expect(scatterResult.attenuation.x).toBeCloseTo(1.0);
+    expect(scatterResult.attenuation.y).toBeCloseTo(1.0);
+    expect(scatterResult.attenuation.z).toBeCloseTo(1.0);
+    
+    // Should have a ray, not a PDF
+    expect(scatterResult.scattered).toBeDefined();
+    expect(scatterResult.pdf).toBeUndefined();
     
     // Check that scattered ray starts at hit point
-    expect(scatterResult!.scattered.origin.equals(hitRecord.p)).toBeTruthy();
+    expect(scatterResult.scattered?.origin.equals(hitRecord.p)).toBeTruthy();
   });
   
   test('scatter produces results for both entering and exiting rays', () => {
@@ -58,16 +63,20 @@ describe('Dielectric Material', () => {
       material: dielectric
     };
     
-    const scatterResultIn = dielectric.scatter(rayIn, hitRecordIn);
-    const scatterResultOut = dielectric.scatter(rayOut, hitRecordOut);
+    const scatterResultIn = dielectric.scatter(rayIn, hitRecordIn) as ScatterResult;
+    const scatterResultOut = dielectric.scatter(rayOut, hitRecordOut) as ScatterResult;
     
     // Both should produce valid results
     expect(scatterResultIn).not.toBeNull();
     expect(scatterResultOut).not.toBeNull();
     
+    // Verify that both have rays defined
+    expect(scatterResultIn.scattered).toBeDefined();
+    expect(scatterResultOut.scattered).toBeDefined();
+    
     // Verify that the directions are valid (non-zero)
-    expect(scatterResultIn!.scattered.direction.lengthSquared()).toBeGreaterThan(0);
-    expect(scatterResultOut!.scattered.direction.lengthSquared()).toBeGreaterThan(0);
+    expect(scatterResultIn.scattered?.direction.lengthSquared()).toBeGreaterThan(0);
+    expect(scatterResultOut.scattered?.direction.lengthSquared()).toBeGreaterThan(0);
   });
 
   test('handles total internal reflection', () => {
@@ -88,13 +97,13 @@ describe('Dielectric Material', () => {
     };
     
     // We can't mock Math.random easily, so we'll just check the result
-    const scatterResult = highIndexMaterial.scatter(rayExiting, hitRecord);
+    const scatterResult = highIndexMaterial.scatter(rayExiting, hitRecord) as ScatterResult;
     
     // Should always produce a result
     expect(scatterResult).not.toBeNull();
     
     // Verify the scattered ray has a valid direction
-    expect(scatterResult!.scattered.direction.lengthSquared()).toBeGreaterThan(0);
+    expect(scatterResult.scattered?.direction.lengthSquared()).toBeGreaterThan(0);
   });
   
   test('uses Schlick approximation for reflectance at shallow angles', () => {

@@ -10,6 +10,8 @@ import { Sphere } from '../src/entities/sphere.js';
 import { AABB } from '../src/geometry/aabb.js';
 import { CameraOptions } from '../src/camera.js';
 import { DefaultMaterial } from '../src/materials/material.js';
+import { ScatterResult } from '../src/materials/material.js';
+import { CosinePDF } from '../src/geometry/pdf.js';
 
 // Mock Material for testing
 class MockMaterial implements Material {
@@ -37,6 +39,28 @@ class MockMaterial implements Material {
     
     emitted(rec: HitRecord): Color {
         return this.emissionColor;
+    }
+}
+
+// Mock Material with PDF for testing the PDF-based rendering pathway
+class MockPDFMaterial implements Material {
+    albedo: Color;
+    returnedPDF: CosinePDF;
+    
+    constructor(albedo: Color, normal: Vec3 = new Vec3(0, 1, 0)) {
+        this.albedo = albedo;
+        this.returnedPDF = new CosinePDF(normal);
+    }
+    
+    scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
+        return {
+            attenuation: this.albedo,
+            pdf: this.returnedPDF
+        };
+    }
+    
+    emitted(rec: HitRecord): Color {
+        return new Color(0, 0, 0);
     }
 }
 
@@ -469,6 +493,130 @@ describe('Camera', () => {
             expect(color.x).toBeCloseTo(0);
             expect(color.y).toBeCloseTo(0);
             expect(color.z).toBeCloseTo(0);
+        });
+    });
+
+    // New tests for PDF-based rendering
+    describe('PDF-based rendering', () => {
+        test('rayColor with PDF-based material produces correct brightness', () => {
+            // Create a material that returns a PDF
+            const normal = new Vec3(0, 1, 0);
+            const mockPDFMaterial = new MockPDFMaterial(new Color(0.8, 0.6, 0.2), normal);
+            const mockPDFWorld = new MockHittable(true, normal, mockPDFMaterial);
+            
+            // Create a camera with this world
+            const camera = new Camera(mockPDFWorld, defaultOptions);
+            
+            // Create a ray that will hit our mock object
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, -0.5, -1));
+            
+            // Set up a controlled test where we know the expected output
+            // Use manual mocking approach instead of jest.spyOn
+            const originalGenerate = mockPDFMaterial.returnedPDF.generate;
+            const originalValue = mockPDFMaterial.returnedPDF.value;
+            
+            mockPDFMaterial.returnedPDF.generate = () => normal;
+            mockPDFMaterial.returnedPDF.value = () => 1 / Math.PI;
+            
+            try {
+                // First with depth=2 to allow one bounce
+                const colorDepth2 = camera.rayColor(ray, 2);
+                
+                // Then with depth=1 to only get emitted light (should be black)
+                const colorDepth1 = camera.rayColor(ray, 1);
+                
+                // Expectations:
+                // - PDF value for normal should be 1/π
+                // - For depth=1, we expect just black (emitted only)
+                expect(colorDepth1.x).toBeCloseTo(0);
+                expect(colorDepth1.y).toBeCloseTo(0);
+                expect(colorDepth1.z).toBeCloseTo(0);
+                
+                // For depth=2:
+                // 1. First hit returns PDF material
+                // 2. PDF generates normal direction (simulated via mock)
+                // 3. PDF value is 1/π (simulated via mock)
+                // 4. Camera calculates attenuation * incomingLight
+                // 5. incomingLight is black because depth=1 for next bounce
+                // Result should be black again (albedo * black = black)
+                expect(colorDepth2.x).toBeCloseTo(0);
+                expect(colorDepth2.y).toBeCloseTo(0);
+                expect(colorDepth2.z).toBeCloseTo(0);
+            } finally {
+                // Restore original methods
+                mockPDFMaterial.returnedPDF.generate = originalGenerate;
+                mockPDFMaterial.returnedPDF.value = originalValue;
+            }
+        });
+        
+        test('PDF calculation preserves energy conservation', () => {
+            // Create a world with an emitting sphere and a diffuse sphere
+            const emissiveMaterial = new MockMaterial(new Color(1, 1, 1), false, new Color(4, 4, 4));
+            const diffuseMaterial = new MockPDFMaterial(new Color(0.8, 0.8, 0.8));
+            
+            const emissiveSphere = new MockHittable(true, new Vec3(0, 0, 1), emissiveMaterial);
+            const diffuseSphere = new MockHittable(true, new Vec3(0, 1, 0), diffuseMaterial);
+            
+            // Create a world that always returns the diffuse sphere first
+            const mockWorld = {
+                hit: (r: Ray, rayT: Interval): HitRecord | null => {
+                    return diffuseSphere.hit(r, rayT);
+                },
+                boundingBox: () => { throw new Error('Not implemented'); }
+            };
+            
+            // Create a camera with this world
+            const camera = new Camera(mockWorld, defaultOptions);
+            
+            // Test ray that will hit the diffuse sphere
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0.5, -1));
+            
+            // Setup PDF behavior using direct method override
+            const originalGenerate = diffuseMaterial.returnedPDF.generate;
+            const originalValue = diffuseMaterial.returnedPDF.value;
+            const originalHit = mockWorld.hit;
+            
+            diffuseMaterial.returnedPDF.generate = () => {
+                // Generate a direction toward the emissive sphere
+                return new Vec3(0, -0.5, 1).unitVector();
+            };
+            
+            diffuseMaterial.returnedPDF.value = () => {
+                return 1 / (2 * Math.PI); // Some arbitrary PDF value
+            };
+            
+            // Override hit method
+            mockWorld.hit = (r: Ray, rayT: Interval): HitRecord | null => {
+                // First call returns diffuse sphere (original behavior)
+                if (r === ray) {
+                    return originalHit(r, rayT);
+                }
+                
+                // Second call returns emissive sphere
+                return emissiveSphere.hit(r, rayT);
+            };
+            
+            try {
+                // Test with moderate depth
+                const color = camera.rayColor(ray, 3);
+                
+                // With a diffuse reflectance of 0.8 and emissive intensity of 4,
+                // the received light should be attenuated by the diffuse material
+                // The diffuse material should NOT multiply by π or we lose energy conservation
+                // Expected: roughly albedo * emissive = 0.8 * 4 = 3.2 (for each channel)
+                // Allow some tolerance due to floating point
+                expect(color.x).toBeGreaterThan(2.5);
+                expect(color.x).toBeLessThan(3.5);
+                expect(color.y).toBeGreaterThan(2.5);
+                expect(color.y).toBeLessThan(3.5);
+                expect(color.z).toBeGreaterThan(2.5);
+                expect(color.z).toBeLessThan(3.5);
+            } finally {
+                // Restore original methods
+                diffuseMaterial.returnedPDF.generate = originalGenerate;
+                diffuseMaterial.returnedPDF.value = originalValue;
+                mockWorld.hit = originalHit;
+            }
         });
     });
 });

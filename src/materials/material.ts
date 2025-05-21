@@ -1,8 +1,26 @@
-/* Specs: material.md, light-emissive.md */
+/* Specs: material.md, light-emissive.md, pdf-sampling.md */
 
 import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
+import { PDF } from '../geometry/pdf.js';
+
+/**
+ * Result of a ray scatter event.
+ * Contains the attenuation (color) and either:
+ * - a specific ray direction (for specular materials)
+ * - a PDF (for diffuse materials that use importance sampling)
+ */
+export interface ScatterResult {
+  /** The amount of light attenuated at each wavelength */
+  attenuation: Color;
+  
+  /** The PDF for sampling directions (for diffuse materials) */
+  pdf?: PDF | null;
+  
+  /** The scattered ray (for specular materials) */
+  scattered?: Ray | null;
+}
 
 /**
  * Interface for materials that determine how rays interact with surfaces.
@@ -12,9 +30,9 @@ export interface Material {
    * Determines if and how a ray scatters when hitting the material.
    * @param rIn The incoming ray that hit the surface.
    * @param rec The hit record containing information about the intersection.
-   * @returns An object with the scattered ray and attenuation if scattering occurs, or null if absorbed.
+   * @returns A ScatterResult object if scattering occurs, or null if absorbed.
    */
-  scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null;
+  scatter(rIn: Ray, rec: HitRecord): ScatterResult | null;
 
   /**
    * Determines the light emitted by the material.
@@ -33,7 +51,7 @@ export class DefaultMaterial implements Material {
    * Default scatter implementation returns null (no scattering).
    * Should be overridden by materials that scatter light.
    */
-  scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
+  scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
     return null;
   }
 

@@ -139,7 +139,7 @@ export class Camera {
 
     /**
      * Calculates the color of a ray by tracing it into the world.
-     * If the ray hits an object, it recursively traces scattered rays up to max depth.
+     * If the ray hits an object, it uses the material's PDF or scattered ray to calculate the color.
      * Otherwise, it returns a background gradient color.
      * @param r The ray.
      * @param depth Maximum recursion depth.
@@ -159,15 +159,49 @@ export class Camera {
             // Get the emitted light from the material at hit point
             const emitted = rec.material.emitted(rec);
             
-            // If the ray hits an object with a material, compute scattered ray
+            // If the ray hits an object with a material, compute scatter result
             const scatterResult = rec.material.scatter(r, rec);
+
+            // If the material doesn't scatter, return the emitted light
+            if (!scatterResult) {
+                return emitted;
+            }
+
             if (scatterResult) {
-                // Recursively trace scattered ray, multiply by attenuation, and add emitted light
-                return emitted.add(
-                    scatterResult.attenuation.multiplyVec(
-                        this.rayColor(scatterResult.scattered, depth - 1)
-                    )
-                );
+                // Handle specular materials that return a specific ray
+                if (scatterResult.scattered) {
+                    // Recursively trace the specular ray, multiply by attenuation, and add emitted light
+                    return emitted.add(
+                        scatterResult.attenuation.multiplyVec(
+                            this.rayColor(scatterResult.scattered, depth - 1)
+                        )
+                    );
+                }
+                
+                // Handle diffuse materials that return a PDF for sampling
+                if (scatterResult.pdf) {
+                    // Generate a direction using the material's PDF
+                    const direction = scatterResult.pdf.generate();
+                    const scattered = new Ray(rec.p, direction);
+                    
+                    // Get the PDF value for this direction
+                    const pdfValue = scatterResult.pdf.value(direction);
+                    const scatterPdfValue = pdfValue;
+                    
+                    // Avoid division by near-zero values
+                    if (pdfValue <= 0.0001) {
+                        return emitted;
+                    }
+                    
+                    // Calculate material's BRDF value divided by PDF value
+                    const brdfOverPdf = scatterResult.attenuation.multiply(scatterPdfValue / pdfValue);
+
+                    // Trace the scattered ray and calculate contribution
+                    const incomingLight = this.rayColor(scattered, depth - 1);
+
+                    // Final contribution is attenuation * incoming light * (brdf/pdf)
+                    return emitted.add(incomingLight.multiplyVec(brdfOverPdf));
+                }
             }
             
             // If no scattering occurs but the material emits light, return emitted color

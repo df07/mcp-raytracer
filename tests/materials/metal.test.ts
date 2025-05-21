@@ -1,10 +1,11 @@
-/* Specs: metal.md */
+/* Specs: metal.md, pdf-sampling.md */
 
 import { describe, it, expect } from '@jest/globals';
 import { Metal } from '../../src/materials/metal.js';
 import { Vec3, Color } from '../../src/geometry/vec3.js';
 import { Ray } from '../../src/geometry/ray.js';
 import { HitRecord } from '../../src/geometry/hittable.js';
+import { ScatterResult } from '../../src/materials/material.js';
 
 describe('Metal Material', () => {
   // Test Metal constructor
@@ -25,164 +26,133 @@ describe('Metal Material', () => {
     expect(metal3.fuzz).toBe(1.0);
     expect(metal4.fuzz).toBe(0.0);
   });
-
-  // Test Metal scatter method
-  it('should scatter rays correctly when hitting surface', () => {
+  
+  // Test scattering with perfect reflection (no fuzz)
+  it('should produce scattered ray with perfect reflection when fuzz is 0', () => {
     // Arrange
     const albedo = new Color(0.8, 0.6, 0.2);
-    const metal = new Metal(albedo, 0.0); // Perfect reflection
+    const metal = new Metal(albedo, 0);
     
-    const origin = new Vec3(0, 0, 0);
-    const direction = new Vec3(1, -1, 0).unitVector(); // 45-degree angle downward
-    const ray = new Ray(origin, direction);
-    
-    const p = new Vec3(1, -1, 0); // Hit point
-    const normal = new Vec3(0, 1, 0); // Straight up normal
-
+    const normal = new Vec3(0, 1, 0); // Up direction
     const hitRecord: HitRecord = {
-      p: p,
+      p: new Vec3(0, 0, 0), // Hit at origin
       normal: normal,
-      t: 1.414, // √2
+      t: 1.0,
       frontFace: true,
       material: metal
     };
-
+    
+    // Ray coming in at 45-degree angle
+    const inDirection = new Vec3(1, -1, 0).unitVector();
+    const inRay = new Ray(new Vec3(-1, 1, 0), inDirection);
+    
     // Act
-    const scatterResult = metal.scatter(ray, hitRecord);
+    const result = metal.scatter(inRay, hitRecord) as ScatterResult;
     
     // Assert
-    expect(scatterResult).not.toBeNull();
-    if (scatterResult) {
-      // For perfect reflection with this 45-degree angle and upward normal,
-      // the reflection should be 45 degrees upward
-      const expectedDirection = new Vec3(1, 1, 0).unitVector();
+    expect(result).not.toBeNull();
+    if (result) {
+      expect(result.attenuation).toEqual(albedo);
       
-      // Check that scattered ray starts at hit point
-      expect(scatterResult.scattered.origin).toEqual(hitRecord.p);
+      // Should have a ray, not a PDF
+      expect(result.scattered).toBeDefined();
+      expect(result.pdf).toBeUndefined();
       
-      // Check reflection direction (allow small floating-point differences)
-      const dotProduct = scatterResult.scattered.direction.dot(expectedDirection);
-      expect(dotProduct).toBeCloseTo(1.0, 5); // vectors are parallel if dot product is 1
+      // Ray should start from hit point
+      expect(result.scattered?.origin).toEqual(hitRecord.p);
       
-      // Check attenuation matches albedo
-      expect(scatterResult.attenuation).toEqual(albedo);
+      // Reflection should be symmetric around normal
+      // If incoming is (1, -1, 0), reflected should be (1, 1, 0) normalized
+      const expectedReflection = new Vec3(1, 1, 0).unitVector();
+      
+      // Check direction of scattered ray
+      const actualDirection = result.scattered?.direction as Vec3;
+      expect(actualDirection.x).toBeCloseTo(expectedReflection.x, 5);
+      expect(actualDirection.y).toBeCloseTo(expectedReflection.y, 5);
+      expect(actualDirection.z).toBeCloseTo(expectedReflection.z, 5);
     }
-  });  // Test internal behavior - reflection into the surface calculation
-  it('should correctly detect when reflection goes into the surface', () => {
-    // Create a simple mock implementation to test the core reflection logic
-    class MockMetal extends Metal {
-      testReflectionDirection(inDir: Vec3, normal: Vec3): boolean {
-        const reflected = inDir.unitVector().reflect(normal);
-        // Return true if the reflection is valid (dot product > 0)
-        return reflected.dot(normal) > 0;
-      }
-    }
-
-    // Create test instances
-    const metal = new MockMetal(new Color(1, 1, 1));
-
-    // Case 1: Ray reflects properly (should return true)
-    const validIn = new Vec3(0, -1, 0); // Straight down
-    const normalUp = new Vec3(0, 1, 0); // Straight up
-    expect(metal.testReflectionDirection(validIn, normalUp)).toBe(true);
-
-    // Case 2: Ray reflects into surface (should return false)
-    const invalidIn = new Vec3(0, 1, 0); // Straight up
-    expect(metal.testReflectionDirection(invalidIn, normalUp)).toBe(false);
   });
   
-  // Test absorption when ray reflects into the surface
-  it('should return null when ray reflects into the surface', () => {
+  // Test scattering with fuzzy reflection
+  it('should add fuzziness to the reflected ray', () => {
     // Arrange
     const albedo = new Color(0.8, 0.6, 0.2);
-    const metal = new Metal(albedo, 0.0); // Perfect reflection
+    const metal = new Metal(albedo, 0.5); // Significant fuzz
     
-    // Use a case we know should fail (ray coming from same direction as normal)
-    const origin = new Vec3(0, 0, 0);
-    const direction = new Vec3(0, 1, 0); // Going straight up
-    const ray = new Ray(origin, direction);
-    
-    const p = new Vec3(0, 1, 0); // Hit point
-    const normal = new Vec3(0, 1, 0); // Normal pointing up
-
+    const normal = new Vec3(0, 1, 0);
     const hitRecord: HitRecord = {
-      p: p,
+      p: new Vec3(0, 0, 0),
       normal: normal,
       t: 1.0,
       frontFace: true,
       material: metal
     };
-
-    // Act
-    const scatterResult = metal.scatter(ray, hitRecord);
     
-    // Assert
-    expect(scatterResult).toBeNull(); // Ray should be absorbed
-  });
-
-  // Test fuzzy reflection
-  it('should create fuzzy reflections when fuzz > 0', () => {
-    // Arrange
-    const albedo = new Color(0.8, 0.6, 0.2);
-    const fuzz = 0.5;
-    const metal = new Metal(albedo, fuzz);
+    // Ray coming straight down
+    const inRay = new Ray(new Vec3(0, 1, 0), new Vec3(0, -1, 0));
     
-    const origin = new Vec3(0, 0, 0);
-    const direction = new Vec3(0, -1, 0); // Straight down
-    const ray = new Ray(origin, direction);
+    // Collect multiple scatter results to test fuzzy behavior
+    const numSamples = 100;
+    let perfectReflections = 0;
     
-    const p = new Vec3(0, -1, 0); // Hit point
-    const normal = new Vec3(0, 1, 0); // Straight up normal
-
-    const hitRecord: HitRecord = {
-      p: p,
-      normal: normal,
-      t: 1.0,
-      frontFace: true,
-      material: metal
-    };
-
-    // Act - Run multiple scatter calculations to test fuzzy behavior
-    const results: Ray[] = [];
-    for (let i = 0; i < 10; i++) {
-      const scatterResult = metal.scatter(ray, hitRecord);
-      if (scatterResult) {
-        results.push(scatterResult.scattered);
-      }
-    }
-    
-    // Assert
-    // Perfect reflection would be straight up (0, 1, 0)
-    // With fuzz, we should get variation but still generally upward
-    
-    // Check that we got some results
-    expect(results.length).toBeGreaterThan(0);
-    
-    // Check all scattered rays start from hit point
-    for (const scattered of results) {
-      expect(scattered.origin).toEqual(hitRecord.p);
-    }
-    
-    // Check that directions vary (not all the same) if we have multiple results
-    if (results.length > 1) {
-      let allSame = true;
-      const firstDir = results[0].direction;
+    for (let i = 0; i < numSamples; i++) {
+      const result = metal.scatter(inRay, hitRecord) as ScatterResult;
       
-      for (let i = 1; i < results.length; i++) {
-        if (!results[i].direction.equals?.(firstDir) && 
-            Math.abs(results[i].direction.dot(firstDir) - 1) > 1e-6) {
-          allSame = false;
-          break;
+      // All results should have a ray defined
+      expect(result).not.toBeNull();
+      expect(result.scattered).toBeDefined();
+      
+      if (result && result.scattered) {
+        // Without fuzz, perfect reflection would be (0, 1, 0)
+        // With fuzz, it should be perturbed
+        const direction = result.scattered.direction;
+        
+        // Ensure direction is outward-facing
+        expect(direction.dot(normal)).toBeGreaterThan(0);
+        
+        // Check if this is a perfect reflection (very unlikely with fuzz)
+        if (Math.abs(direction.x) < 0.001 && 
+            Math.abs(direction.y - 1.0) < 0.001 && 
+            Math.abs(direction.z) < 0.001) {
+          perfectReflections++;
         }
       }
-      
-      expect(allSame).toBe(false); // With fuzz, directions should vary
     }
     
-    // All scattered rays should have y > 0 (upward) because they shouldn't reflect downward
-    for (const scattered of results) {
-      expect(scattered.direction.y).toBeGreaterThan(0);
-    }
+    // With fuzz=0.5, nearly all reflections should be perturbed
+    expect(perfectReflections).toBeLessThan(numSamples / 10);
+  });
+  
+  // Test absorption (ray reflected beneath surface)
+  it('should return null when ray is reflected beneath surface', () => {
+    // Arrange
+    const albedo = new Color(0.8, 0.6, 0.2);
+    const metal = new Metal(albedo, 0.8); // High fuzz to increase chance of beneath-surface reflection
+    
+    const normal = new Vec3(0, 1, 0);
+    const hitRecord: HitRecord = {
+      p: new Vec3(0, 0, 0),
+      normal: normal,
+      t: 1.0,
+      frontFace: true,
+      material: metal
+    };
+    
+    // Ray nearly parallel to surface (grazing angle)
+    const inRay = new Ray(new Vec3(0, 0.1, 0), new Vec3(1, -0.01, 0).unitVector());
+    
+    // Mock randomInUnitSphere to always return a vector pointing downward
+    const originalRandomInUnitSphere = Vec3.randomInUnitSphere;
+    Vec3.randomInUnitSphere = () => new Vec3(0, -1, 0);
+    
+    // Act
+    const result = metal.scatter(inRay, hitRecord);
+    
+    // Restore original method
+    Vec3.randomInUnitSphere = originalRandomInUnitSphere;
+    
+    // Assert - should be absorbed (null) since fuzz will push reflection below surface
+    expect(result).toBeNull();
   });
 });
 

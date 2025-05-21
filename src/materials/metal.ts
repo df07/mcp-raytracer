@@ -1,9 +1,9 @@
-/* Specs: metal.md */
+/* Specs: metal.md, pdf-sampling.md */
 
 import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
-import { DefaultMaterial } from './material.js';
+import { DefaultMaterial, ScatterResult } from './material.js';
 
 /**
  * Metal material that reflects light according to the law of reflection.
@@ -24,9 +24,9 @@ export class Metal extends DefaultMaterial {
    * Scatters the incoming ray according to the metal reflection model.
    * @param rIn The incoming ray.
    * @param rec The hit record.
-   * @returns An object containing the scattered ray and albedo as attenuation, or null if absorbed.
+   * @returns A ScatterResult with the scattered ray and albedo, or null if absorbed.
    */
-  override scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
+  override scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
     // Calculate perfect reflection vector
     const reflected = rIn.direction.unitVector().reflect(rec.normal);
     
@@ -37,7 +37,6 @@ export class Metal extends DefaultMaterial {
         : reflected;
     
     // Check if the reflection direction is valid (points outward from the surface)
-    // This must be checked BEFORE creating the scattered ray
     if (fuzzyReflection.dot(rec.normal) <= 0) {
       // Ray was reflected into the surface (absorption)
       return null;
@@ -45,8 +44,8 @@ export class Metal extends DefaultMaterial {
     
     // Return the scattered ray and attenuation
     return {
-      scattered: new Ray(rec.p, Vec3.clone(fuzzyReflection)),
-      attenuation: this.albedo
+      attenuation: this.albedo,
+      scattered: new Ray(rec.p, fuzzyReflection)
     };
   }
 }

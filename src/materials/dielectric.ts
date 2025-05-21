@@ -1,9 +1,9 @@
-/* Specs: dielectric.md */
+/* Specs: dielectric.md, pdf-sampling.md */
 
 import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
-import { DefaultMaterial } from './material.js';
+import { DefaultMaterial, ScatterResult } from './material.js';
 
 /**
  * Dielectric material that simulates transparent substances like glass, water, and diamonds.
@@ -30,9 +30,9 @@ export class Dielectric extends DefaultMaterial {
      * Scatters the incoming ray according to the dielectric refraction and reflection model.
      * @param rIn The incoming ray.
      * @param rec The hit record.
-     * @returns An object containing the scattered ray and attenuation, or null if absorbed.
+     * @returns A ScatterResult with the ray and attenuation, or null if absorbed.
      */
-    override scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
+    override scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
         // For a pure dielectric, light isn't absorbed - attenuation is always 1.0
         const attenuation = new Color(1.0, 1.0, 1.0);
         
@@ -64,10 +64,10 @@ export class Dielectric extends DefaultMaterial {
             direction = unitDirection.refract(rec.normal, refractionRatio);
         }
         
-        // Create the scattered ray
-        const scattered = new Ray(rec.p, Vec3.clone(direction));
-        
-        return { scattered, attenuation };
+        return { 
+            attenuation: attenuation,
+            scattered: new Ray(rec.p, direction)
+        };
     }
     
     /**
