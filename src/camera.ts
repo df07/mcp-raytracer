@@ -1,9 +1,11 @@
-/* Specs: camera.md */
+/* Specs: camera.md, pdf-sampling.md */
 import { Vec3, Point3, Color } from './geometry/vec3.js';
 import { Ray } from './geometry/ray.js';
-import { Hittable } from './geometry/hittable.js';
+import { Hittable, PDFHittable } from './geometry/hittable.js';
 import { Interval } from './geometry/interval.js';
 import { VectorPool } from './geometry/vec3.js';
+import { HittableList } from './geometry/hittableList.js';
+import { HittablePDF, MixturePDF } from './geometry/pdf.js';
 
 /**
  * Camera configuration options for scene generation
@@ -18,6 +20,7 @@ export interface CameraOptions {
   samples?: number;              // Anti-aliasing samples per pixel (default: 100)
   adaptiveTolerance?: number;    // Tolerance for convergence in adaptive sampling (default: 0.05)
   adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
+  lights?: PDFHittable[];        // Light sources for importance sampling (default: [])
 }
 
 /**
@@ -42,6 +45,7 @@ export class Camera {
         samples: 100,
         adaptiveTolerance: 0.05,
         adaptiveBatchSize: 10,
+        lights: [],
     }
 
     public readonly imageWidth: number;
@@ -55,6 +59,7 @@ export class Camera {
     private readonly v: Vec3;
     private readonly w: Vec3;
     private readonly world: Hittable;
+    private lights: PDFHittable[];
     private readonly maxDepth: number = 10; // Maximum recursion depth for ray bounces
     private readonly samples: number; // Maximum number of samples per pixel
     private readonly adaptiveTolerance: number; // Tolerance for convergence
@@ -74,6 +79,7 @@ export class Camera {
         this.samples = loptions.samples;
         this.adaptiveTolerance = loptions.adaptiveTolerance;
         this.adaptiveSampleBatchSize = loptions.adaptiveBatchSize;
+        this.lights = loptions.lights || [];
 
         // Determine viewport dimensions.
         const focalLength = 1.0; // Fixed focal length
@@ -155,67 +161,84 @@ export class Camera {
         // Use tMin = 0.001 to avoid shadow acne
         const rec = this.world.hit(r, new Interval(0.001, Infinity));
 
-        if (rec !== null) {
-            // Get the emitted light from the material at hit point
-            const emitted = rec.material.emitted(rec);
-            
-            // If the ray hits an object with a material, compute scatter result
-            const scatterResult = rec.material.scatter(r, rec);
+        // If no hit, return background color
+        if (rec === null) {
+            // Compute background gradient color
+            const unitDirection = r.direction.unitVector();
+            const a = 0.5 * (unitDirection.y + 1.0);
+            // Linear interpolation (lerp) between white and blue based on y-coordinate
+            return Color.WHITE.multiply(1.0 - a).add(Color.BLUE.multiply(a));
+        }
 
-            // If the material doesn't scatter, return the emitted light
-            if (!scatterResult) {
-                return emitted;
-            }
+        // Get emitted light from the hit material
+        const emitted = rec.material.emitted(rec);
+        
+        // If the ray hits an object with a material, compute scatter result
+        const scatterResult = rec.material.scatter(r, rec);
 
-            if (scatterResult) {
-                // Handle specular materials that return a specific ray
-                if (scatterResult.scattered) {
-                    // Recursively trace the specular ray, multiply by attenuation, and add emitted light
-                    return emitted.add(
-                        scatterResult.attenuation.multiplyVec(
-                            this.rayColor(scatterResult.scattered, depth - 1)
-                        )
-                    );
-                }
-                
-                // Handle diffuse materials that return a PDF for sampling
-                if (scatterResult.pdf) {
-                    // Generate a direction using the material's PDF
-                    const direction = scatterResult.pdf.generate();
-                    const scattered = new Ray(rec.p, direction);
-                    
-                    // Get the PDF value for this direction
-                    const pdfValue = scatterResult.pdf.value(direction);
-                    
-                    // Avoid division by near-zero values
-                    if (pdfValue <= 0.0001) {
-                        return emitted;
-                    }
-                    
-                    // For diffuse materials, BRDF = albedo/π * cos(θ)
-                    // For Lambertian surfaces, pdf = cos(θ) / π, so we use the pdf value directly
-                    // We keep this explicit for clarity and to support other PDFs in the future.
-                    const scatterPdfValue = pdfValue;
-                    const brdfOverPdf = scatterResult.attenuation.multiply(scatterPdfValue / pdfValue);
-
-                    // Trace the scattered ray and calculate contribution
-                    const incomingLight = this.rayColor(scattered, depth - 1);
-
-                    // Final contribution is attenuation * incoming light * (brdf/pdf)
-                    return emitted.add(incomingLight.multiplyVec(brdfOverPdf));
-                }
-            }
-            
-            // If no scattering occurs but the material emits light, return emitted color
+        // If the material doesn't scatter, return the emitted light only
+        if (!scatterResult) {
             return emitted;
         }
 
-        // If the ray doesn't hit anything, compute background gradient color
-        const unitDirection = r.direction.unitVector();
-        const a = 0.5 * (unitDirection.y + 1.0);
-        // Linear interpolation (lerp) between white and blue based on y-coordinate
-        return Color.WHITE.multiply(1.0 - a).add(Color.BLUE.multiply(a));
-    }    
+        // Handle specular materials that return a specific ray
+        if (scatterResult.scattered) {
+            // Recursively trace the specular ray, multiply by attenuation, and add emitted light
+            return emitted.add(
+                scatterResult.attenuation.multiplyVec(
+                    this.rayColor(scatterResult.scattered, depth - 1)
+                )
+            );
+        }
+        
+        // Handle diffuse materials that return a PDF for sampling
+        if (scatterResult.pdf) {
+            // Create a light source PDF if we have lights available
+            let lightPdf = null;
+            if (this.lights.length > 0) {
+                const lightsList = new HittableList();
+                for (const light of this.lights) {
+                    lightsList.add(light);
+                }
+                lightPdf = new HittablePDF(lightsList, rec.p);
+            }
+
+            // Determine which PDF to use for sampling - material only or mixture
+            const pdf = lightPdf
+                ? new MixturePDF([lightPdf, scatterResult.pdf], [0.5, 0.5]) // Equal weight for balanced sampling
+                : scatterResult.pdf;
+            
+            // Generate a direction using the PDF
+            const direction = pdf.generate();
+            const scattered = new Ray(rec.p, direction);
+            
+            // Get the PDF value for this direction
+            const pdfValue = pdf.value(direction);
+            
+            // Avoid division by near-zero values
+            const EPSILON = 0.0001;
+            if (pdfValue <= EPSILON) {
+                return emitted;
+            }
+            
+            // For diffuse materials, BRDF = albedo/π * cos(θ)
+            // For Lambertian surfaces with cosine PDF, we compute:
+            // BRDF / PDF = (albedo/π * cos(θ)) / (cos(θ)/π) = albedo
+            
+            // Get the material's BRDF value divided by its PDF value
+            const scatterPdfValue = scatterResult.pdf.value(direction);
+            const brdfOverPdf = scatterResult.attenuation.multiply(scatterPdfValue / pdfValue);
+
+            // Trace the scattered ray and calculate contribution
+            const incomingLight = this.rayColor(scattered, depth - 1);
+
+            // Final contribution is emitted light + (incoming light * brdf/pdf)
+            return emitted.add(incomingLight.multiplyVec(brdfOverPdf));
+        }
+        
+        // Fallback - just return emitted light
+        return emitted;
+    }
 
     /**
      * Renders a specific region of the scene and writes the pixel data to the buffer.

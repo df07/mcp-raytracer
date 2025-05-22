@@ -8,6 +8,7 @@ import { Metal } from "../materials/metal.js";
 import { DiffuseLight } from "../materials/diffuseLight.js";
 import { Camera } from "../camera.js";
 import { Scene } from "./scenes.js";
+import { DefaultMaterial } from "../materials/material.js";
 
 /**
  * Generates the default scene with four spheres: ground, center, and two metal spheres.
@@ -30,7 +31,8 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   const sunLight = new DiffuseLight(new Color(15.0, 14.0, 13.0));
 
   // Create spheres with materials
-  worldList.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround)); // Ground sphere
+  const groundSphere = new Sphere(new Vec3(0, -100.5, -1), 100, materialGround); // Ground sphere
+  worldList.add(groundSphere);
   worldList.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialRed));         // Center sphere
   worldList.add(new Sphere(new Vec3(-1,0,-1), 0.5, materialSilver));       // Left sphere (silver)
   worldList.add(new Sphere(new Vec3(1, 0, -1), 0.5, materialGold));        // Right sphere (fuzzy metal)
@@ -40,17 +42,19 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), 0.20, materialBlue));  // Blue sphere inside glass sphere
   
   // Add a sun-like sphere high in the sky but out of direct view
-  worldList.add(new Sphere(new Vec3(30, 30, 15), 10, sunLight));
+  const sunSphere = new Sphere(new Vec3(30, 30, 15), 10, sunLight);
+  worldList.add(sunSphere);
 
-  // Create a hollow glass sphere by adding a negative sphere inside the left sphere
-  // Using negative radius creates an inverted sphere with inward-facing normals
-  //worldList.add(new Sphere(new Vec3(-1, 0, -1), -0.3, materialGlass)); // Inner sphere (negative radius)
+  // add a second light source 
+  //const sunSphere2 = new Sphere(new Vec3(-30, -30, -15), 10, sunLight);
+  //worldList.add(sunSphere2);
 
   // Default camera options that match the scene
   const defaultCameraOptions: CameraOptions = {
     vfov: 40,
     lookFrom: new Vec3(0, 0, 2),
-    lookAt: new Vec3(0, 0, -1)
+    lookAt: new Vec3(0, 0, -1),
+    lights: [sunSphere]
   };
   
   // Create camera

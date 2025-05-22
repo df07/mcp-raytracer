@@ -36,6 +36,13 @@ export class Vec3 {
         return this.glVec[2];
     }
 
+    set(x: number, y: number, z: number): Vec3 {
+        this.glVec[0] = x;
+        this.glVec[1] = y;
+        this.glVec[2] = z;
+        return this;
+    }
+
     /**
      * Checks if this vector is equal to another vector.
      * @param v The vector to compare with.
@@ -248,7 +255,9 @@ export class Vec3 {
             result.glVec[i] = min + (max - min) * Math.random();
         }
         return result;
-    }    /**
+    }    
+    
+    /**
      * Creates a random vector inside the unit sphere.
      * @param pool Optional vector pool to use for result allocation
      * @returns A random vector inside the unit sphere
@@ -314,7 +323,21 @@ export class Vec3 {
         const y = Math.sin(phi) * sqrtR2;
         const z = Math.sqrt(1 - r2);
         
-        return new Vec3(x, y, z);
+        return pool.get().set(x, y, z);
+    }
+
+    /**
+     * Creates a random vector on the surface of a sphere.
+     * @param radius The radius of the sphere.
+     * @param distanceSquared The square of the distance from the origin to the point on the sphere.
+     * @returns A random vector on the surface of the sphere.
+     */
+    static randomToSphere(radius: number, distanceSquared: number): Vec3 {
+        const r1 = Math.random();
+        const r2 = Math.random();
+        const z = 1 + r2 * (Math.sqrt(1 - radius * radius / distanceSquared) - 1);
+        const phi = 2 * Math.PI * r1;
+        return new Vec3(Math.cos(phi) * Math.sqrt(1 - z * z), Math.sin(phi) * Math.sqrt(1 - z * z), z);
     }
 }
 

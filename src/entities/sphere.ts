@@ -6,6 +6,7 @@ import { HitRecord, Hittable, PDFHittable } from '../geometry/hittable.js';
 import { Interval } from '../geometry/interval.js';
 import { Material } from '../materials/material.js';
 import { AABB } from '../geometry/aabb.js';
+import { ONBasis } from '../geometry/onbasis.js';
 
 /** Represents a sphere in 3D space that can be intersected by rays */
 export class Sphere implements PDFHittable {
@@ -114,6 +115,13 @@ export class Sphere implements PDFHittable {
     
     // Calculate the solid angle subtended by the sphere from the origin
     const distanceSquared = this.center.subtract(origin).lengthSquared();
+    
+    // Make sure we don't divide by zero or have numerical issues
+    if (distanceSquared <= this.radius * this.radius) {
+      // If we're inside or very close to the sphere, use a reasonable default
+      return 1.0 / (4.0 * Math.PI); // Uniform distribution over a sphere
+    }
+    
     const cosTheta = Math.sqrt(1 - this.radius * this.radius / distanceSquared);
     const solidAngle = 2 * Math.PI * (1 - cosTheta);
     
@@ -133,25 +141,7 @@ export class Sphere implements PDFHittable {
     const originToCenter = this.center.subtract(origin);
     const distanceSquared = originToCenter.lengthSquared();
     
-    // Create a local orthonormal basis with w pointing towards the sphere
-    const w = originToCenter.unitVector();
-    const a = Math.abs(w.x) > 0.9 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
-    const v = w.cross(a).unitVector();
-    const u = v.cross(w);
-    
-    // Compute a random direction towards the sphere
-    
-    // Calculate the cosine of the maximum angle subtended by the sphere from the origin
-    const cosTheta = Math.sqrt(1 - this.radius * this.radius / distanceSquared);
-    
-    // Sample a random direction within the cone subtended by the sphere
-    const phi = 2 * Math.PI * Math.random();
-    const z = cosTheta + (1 - cosTheta) * Math.random();
-    const sinTheta = Math.sqrt(1 - z * z);
-    const x = Math.cos(phi) * sinTheta;
-    const y = Math.sin(phi) * sinTheta;
-    
-    // Transform from local coordinates to world coordinates
-    return u.multiply(x).add(v.multiply(y)).add(w.multiply(z)).unitVector();
+    const uvw = new ONBasis(originToCenter);
+    return uvw.local(Vec3.randomToSphere(this.radius, distanceSquared));
   }
 }
