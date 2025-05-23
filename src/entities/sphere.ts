@@ -7,6 +7,7 @@ import { Interval } from '../geometry/interval.js';
 import { Material } from '../materials/material.js';
 import { AABB } from '../geometry/aabb.js';
 import { ONBasis } from '../geometry/onbasis.js';
+import { PDF } from '../geometry/pdf.js';
 
 /** Represents a sphere in 3D space that can be intersected by rays */
 export class Sphere implements PDFHittable {
@@ -143,5 +144,12 @@ export class Sphere implements PDFHittable {
     
     const uvw = new ONBasis(originToCenter);
     return uvw.local(Vec3.randomToSphere(this.radius, distanceSquared));
+  }
+
+  public pdf(origin: Point3): PDF {
+    return {
+      value: (direction: Vec3) => this.pdfValue(origin, direction),
+      generate: () => this.pdfRandomVec(origin)
+    }
   }
 }

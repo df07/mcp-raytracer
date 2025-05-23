@@ -5,6 +5,7 @@ import { Point3, Vec3, VectorPool } from './vec3.js';
 import { Interval } from './interval.js';
 import { Material } from '../materials/material.js';
 import { AABB } from './aabb.js';
+import { PDF } from './pdf.js';
 
 /**
  * Stores information about a ray-object intersection.
@@ -66,4 +67,6 @@ export interface PDFHittable extends Hittable {
    * @returns A random direction from the origin towards this object
    */
   pdfRandomVec(origin: Point3): Vec3;
+
+  pdf(origin: Point3): PDF;
 }

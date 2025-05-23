@@ -36,7 +36,8 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   worldList.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialRed));         // Center sphere
   worldList.add(new Sphere(new Vec3(-1,0,-1), 0.5, materialSilver));       // Left sphere (silver)
   worldList.add(new Sphere(new Vec3(1, 0, -1), 0.5, materialGold));        // Right sphere (fuzzy metal)
-  worldList.add(new Sphere(new Vec3( 0.5, -0.25, -0.5), 0.25, materialGlass));// Left glass sphere (foreground)
+  const solidGlass = new Sphere(new Vec3( 0.5, -0.25, -0.5), 0.25, materialGlass);
+  worldList.add(solidGlass);// Left glass sphere (foreground)
   worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), 0.25, materialGlass)); // Right glass sphere (foreground)
   worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), -0.24, materialGlass)); // Right glass sphere (foreground)
   worldList.add(new Sphere(new Vec3(-0.5, -0.25, -0.5), 0.20, materialBlue));  // Blue sphere inside glass sphere
@@ -54,7 +55,7 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
     vfov: 40,
     lookFrom: new Vec3(0, 0, 2),
     lookAt: new Vec3(0, 0, -1),
-    lights: [sunSphere]
+    lights: [sunSphere, solidGlass]
   };
   
   // Create camera

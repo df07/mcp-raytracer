@@ -4,8 +4,7 @@ import { Ray } from './geometry/ray.js';
 import { Hittable, PDFHittable } from './geometry/hittable.js';
 import { Interval } from './geometry/interval.js';
 import { VectorPool } from './geometry/vec3.js';
-import { HittableList } from './geometry/hittableList.js';
-import { HittablePDF, MixturePDF } from './geometry/pdf.js';
+import { MixturePDF } from './geometry/pdf.js';
 
 /**
  * Camera configuration options for scene generation
@@ -194,19 +193,8 @@ export class Camera {
         // Handle diffuse materials that return a PDF for sampling
         if (scatterResult.pdf) {
             // Create a light source PDF if we have lights available
-            let lightPdf = null;
-            if (this.lights.length > 0) {
-                const lightsList = new HittableList();
-                for (const light of this.lights) {
-                    lightsList.add(light);
-                }
-                lightPdf = new HittablePDF(lightsList, rec.p);
-            }
-
-            // Determine which PDF to use for sampling - material only or mixture
-            const pdf = lightPdf
-                ? new MixturePDF([lightPdf, scatterResult.pdf], [0.5, 0.5]) // Equal weight for balanced sampling
-                : scatterResult.pdf;
+            let lightPdfs = this.lights.map(light => light.pdf(rec.p));
+            const pdf = new MixturePDF([scatterResult.pdf, ...lightPdfs], [0.5, ...lightPdfs.map(l => 0.5 / lightPdfs.length)]);
             
             // Generate a direction using the PDF
             const direction = pdf.generate();

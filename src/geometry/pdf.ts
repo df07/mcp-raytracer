@@ -3,6 +3,7 @@
 import { Vec3, Point3 } from './vec3.js';
 import { ONBasis } from './onbasis.js';
 import { PDFHittable } from './hittable.js';
+import { Sphere } from '../entities/sphere.js';
 
 /**
  * Probability Density Function (PDF) interface for importance sampling
@@ -46,33 +47,6 @@ export class CosinePDF implements PDF {
   
   generate(): Vec3 {
     return this.uvw.local(Vec3.randomCosineDirection());
-  }
-}
-
-/**
- * A PDF that samples towards a hittable object from a given origin point.
- * Useful for importance sampling of light sources.
- */
-export class HittablePDF implements PDF {
-  private readonly origin: Point3;
-  private readonly hittable: PDFHittable;
-  
-  /**
-   * Creates a PDF that samples towards a hittable object.
-   * @param object The sampleable hittable object to sample towards
-   * @param origin The origin point from which to sample directions
-   */
-  constructor(object: PDFHittable, origin: Point3) {
-    this.hittable = object;
-    this.origin = origin;
-  }
-  
-  value(direction: Vec3): number {
-    return this.hittable.pdfValue(this.origin, direction);
-  }
-  
-  generate(): Vec3 {
-    return this.hittable.pdfRandomVec(this.origin);
   }
 }
 
@@ -123,4 +97,4 @@ export class MixturePDF implements PDF {
     // Fallback to last PDF
     return this.pdfs[this.pdfs.length - 1].generate();
   }
-} 
+}
