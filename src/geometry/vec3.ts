@@ -307,6 +307,14 @@ export class Vec3 {
         pool = newPool || NoPool;
     }
 
+    static fromPool(x: number, y: number, z: number): Vec3 {
+        const result = pool.get();
+        result.glVec[0] = x;
+        result.glVec[1] = y;
+        result.glVec[2] = z;
+        return result;
+    }
+
     /**
      * Generates a random direction following a cosine distribution.
      * This is useful for importance sampling in PDF-based ray tracing.

@@ -19,7 +19,7 @@ export class ONBasis {
     this.w_vec = n.unitVector();
     
     // Create orthonormal basis from w
-    const a = Math.abs(this.w_vec.x) > 0.9 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
+    const a = Math.abs(this.w_vec.x) > 0.9 ? Vec3.fromPool(0, 1, 0) : Vec3.fromPool(1, 0, 0);
     this.v_vec = this.w_vec.cross(a).unitVector();
     this.u_vec = this.w_vec.cross(this.v_vec);
   }
