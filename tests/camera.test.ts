@@ -1,7 +1,9 @@
 import { Camera } from '../src/camera.js';
-import { Vec3, Color } from '../src/geometry/vec3.js';
+import { Vec3, Point3, Color } from '../src/geometry/vec3.js';
+import { Ray } from '../src/geometry/ray.js';
 import { Hittable, HitRecord } from '../src/geometry/hittable.js';
 import { HittableList } from '../src/geometry/hittableList.js';
+import { Interval } from '../src/geometry/interval.js';
 import { Material } from '../src/materials/material.js';
 import { Lambertian } from '../src/materials/lambertian.js';
 import { Sphere } from '../src/entities/sphere.js';
@@ -23,14 +25,14 @@ class MockMaterial implements Material {
         this.emissionColor = emissionColor;
     }
     
-    scatter(origin: Vec3, direction: Vec3, rec: HitRecord) {
+    scatter(rIn: Ray, rec: HitRecord): { scattered: Ray; attenuation: Color } | null {
         if (!this.shouldScatter) {
             return null;
         }
         
         const scatterDir = rec.normal.add(Vec3.randomUnitVector());
         return {
-            scattered: { origin: rec.p, direction: scatterDir },
+            scattered: new Ray(rec.p, scatterDir),
             attenuation: this.albedo
         };
     }
@@ -50,7 +52,7 @@ class MockPDFMaterial implements Material {
         this.returnedPDF = new CosinePDF(normal);
     }
     
-    scatter(origin: Vec3, direction: Vec3, rec: HitRecord): ScatterResult | null {
+    scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
         return {
             attenuation: this.albedo,
             pdf: this.returnedPDF
@@ -74,10 +76,10 @@ class MockHittable implements Hittable {
         this.material = material;
     }
 
-    hit(origin: Vec3, direction: Vec3, minT: number, maxT: number): HitRecord | null {
-        if (this.shouldHit && minT < 1.0 && maxT > 1.0) { // Assume hit at t=1 for simplicity
+    hit(r: Ray, rayT: Interval): HitRecord | null {
+        if (this.shouldHit && rayT.contains(1.0)) { // Assume hit at t=1 for simplicity
             const rec: HitRecord = {
-                p: origin.add(direction.multiply(1.0)),
+                p: r.at(1.0),
                 normal: this.hitNormal,
                 t: 1.0,
                 frontFace: true,
@@ -105,8 +107,8 @@ describe('Camera', () => {
     };
 
     // Test cases for rayColor
-    const backgroundRay = { origin: new Vec3(0,0,0), direction: new Vec3(0, 0.5, -1) };
-    const hittingRay = { origin: new Vec3(0,0,0), direction: new Vec3(0, 0, -1) };
+    const backgroundRay = new Ray(new Vec3(0,0,0), new Vec3(0, 0.5, -1));
+    const hittingRay = new Ray(new Vec3(0,0,0), new Vec3(0, 0, -1));
     const hitNormal = new Vec3(0, 0, 1);
     
     // Materials for testing
@@ -210,7 +212,7 @@ describe('Camera', () => {
     // Tests for rayColor
     test('rayColor returns background color when ray misses', () => {
         // ... test using cameraMiss ...
-        const colorResult = cameraMiss.rayColor(backgroundRay.origin, backgroundRay.direction);
+        const colorResult = cameraMiss.rayColor(backgroundRay);
         // Calculate expected background color for the backgroundRay direction
         const unitDirection = backgroundRay.direction.unitVector();
         const a = 0.5 * (unitDirection.y + 1.0);
@@ -251,14 +253,14 @@ describe('Camera', () => {
     // New tests for material-based rayColor behavior
     describe('rayColor with materials', () => {
         test('rayColor returns black at max depth', () => {
-            const depthExceededColor = cameraHitScatter.rayColor(hittingRay.origin, hittingRay.direction, 0);
+            const depthExceededColor = cameraHitScatter.rayColor(hittingRay, 0);
             expect(depthExceededColor.x).toBeCloseTo(0);
             expect(depthExceededColor.y).toBeCloseTo(0);
             expect(depthExceededColor.z).toBeCloseTo(0);
         });        test('rayColor with scattering material', () => {
             // Red material that scatters, should recurse once and multiply by red
             // We'll use a depth of 1 to make calculation simple
-            const color = cameraHitScatter.rayColor(hittingRay.origin, hittingRay.direction, 1);
+            const color = cameraHitScatter.rayColor(hittingRay, 1);
             
             // With depth=1, it should hit once and return black (no more recursion)
             // First hit with red material, then depth is 0, returning black
@@ -269,7 +271,7 @@ describe('Camera', () => {
         });
 
         test('rayColor with non-scattering material returns black', () => {
-            const color = cameraHitNoScatter.rayColor(hittingRay.origin, hittingRay.direction, 50);
+            const color = cameraHitNoScatter.rayColor(hittingRay, 50);
             
             expect(color.x).toBeCloseTo(0);
             expect(color.y).toBeCloseTo(0);
@@ -321,7 +323,7 @@ describe('Camera', () => {
         // We'll mock the getRay method to verify it's called multiple times
         const originalGetRay = cameraWithAA.getRay;
         let getRayCalls = 0;
-        cameraWithAA.getRay = (i: number, j: number) => {
+        cameraWithAA.getRay = (i: number, j: number): Ray => {
             getRayCalls++;
             return originalGetRay.call(cameraWithAA, i, j);
         };
@@ -442,8 +444,8 @@ describe('Camera', () => {
         });
         
         test('rayColor returns emission color for non-scattering emissive material', () => {
-            const ray = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, 0, -1) };
-            const color = cameraWithEmissive.rayColor(ray.origin, ray.direction, 10);
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const color = cameraWithEmissive.rayColor(ray, 10);
             
             // Should return the emission color directly
             expect(color.x).toBeCloseTo(1);
@@ -471,8 +473,8 @@ describe('Camera', () => {
             
             // With depth=1, it will hit once, emit, and scatter once more but then return black
             // So result should be emit + (albedo * black) = emit + (0.5,0.5,0.5) * (0,0,0) = emit
-            const ray = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, 0, -1) };
-            const color = camera.rayColor(ray.origin, ray.direction, 1);
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const color = camera.rayColor(ray, 1);
             
             // Restore original method
             Vec3.randomUnitVector = originalRandomUnitVector;
@@ -484,8 +486,8 @@ describe('Camera', () => {
         });
         
         test('rayColor with zero depth returns black even for emissive materials', () => {
-            const ray = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, 0, -1) };
-            const color = cameraWithEmissive.rayColor(ray.origin, ray.direction, 0);
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const color = cameraWithEmissive.rayColor(ray, 0);
             
             // Should return black because max depth is reached
             expect(color.x).toBeCloseTo(0);
@@ -506,7 +508,7 @@ describe('Camera', () => {
             const camera = new Camera(mockPDFWorld, defaultOptions);
             
             // Create a ray that will hit our mock object
-            const ray = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, -0.5, -1) };
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, -0.5, -1));
             
             // Set up a controlled test where we know the expected output
             // Use manual mocking approach instead of jest.spyOn
@@ -518,10 +520,10 @@ describe('Camera', () => {
             
             try {
                 // First with depth=2 to allow one bounce
-                const colorDepth2 = camera.rayColor(ray.origin, ray.direction, 2);
+                const colorDepth2 = camera.rayColor(ray, 2);
                 
                 // Then with depth=1 to only get emitted light (should be black)
-                const colorDepth1 = camera.rayColor(ray.origin, ray.direction, 1);
+                const colorDepth1 = camera.rayColor(ray, 1);
                 
                 // Expectations:
                 // - PDF value for normal should be 1/π
@@ -557,8 +559,8 @@ describe('Camera', () => {
             
             // Create a world that always returns the diffuse sphere first
             const mockWorld = {
-                hit: (origin: Vec3, direction: Vec3, minT: number, maxT: number): HitRecord | null => {
-                    return diffuseSphere.hit(origin, direction, minT, maxT);
+                hit: (r: Ray, rayT: Interval): HitRecord | null => {
+                    return diffuseSphere.hit(r, rayT);
                 },
                 boundingBox: () => { throw new Error('Not implemented'); }
             };
@@ -567,7 +569,7 @@ describe('Camera', () => {
             const camera = new Camera(mockWorld, defaultOptions);
             
             // Test ray that will hit the diffuse sphere
-            const ray = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, 0.5, -1) };
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0.5, -1));
             
             // Setup PDF behavior using direct method override
             const originalGenerate = diffuseMaterial.returnedPDF.generate;
@@ -584,19 +586,19 @@ describe('Camera', () => {
             };
             
             // Override hit method
-            mockWorld.hit = (origin: Vec3, direction: Vec3, minT: number, maxT: number): HitRecord | null => {
+            mockWorld.hit = (r: Ray, rayT: Interval): HitRecord | null => {
                 // First call returns diffuse sphere (original behavior)
-                if (origin === ray.origin && direction === ray.direction && minT === 0.0 && maxT === Infinity) {
-                    return originalHit(origin, direction, minT, maxT);
+                if (r === ray) {
+                    return originalHit(r, rayT);
                 }
                 
                 // Second call returns emissive sphere
-                return emissiveSphere.hit(origin, direction, minT, maxT);
+                return emissiveSphere.hit(r, rayT);
             };
             
             try {
                 // Test with moderate depth
-                const color = camera.rayColor(ray.origin, ray.direction, 3);
+                const color = camera.rayColor(ray, 3);
                 
                 // With a diffuse reflectance of 0.8 and emissive intensity of 4,
                 // the received light should be attenuated by the diffuse material
@@ -654,10 +656,10 @@ describe('Camera PDF Sampling', () => {
     });
     
     // Create a ray that hits the diffuse sphere
-    const ray = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, 0, -1) };
+    const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
     
     // Just verify that rayColor completes without errors when lights are available
-    expect(() => camera.rayColor(ray.origin, ray.direction)).not.toThrow();
+    expect(() => camera.rayColor(ray)).not.toThrow();
   });
   
   test('rayColor should calculate brdfOverPdf correctly', () => {
@@ -675,12 +677,12 @@ describe('Camera PDF Sampling', () => {
     const camera = new Camera(world);
     
     // Create a ray that hits the diffuse sphere
-    const ray = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, 0, -1) };
+    const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
     
     // In our current implementation, the result should be calculated using
     // CosinePDF sampling, and should not divide by π, which would cause energy loss
     
     // Force a simple behavior for this test - just check that rayColor runs without errors
-    expect(() => camera.rayColor(ray.origin, ray.direction)).not.toThrow();
+    expect(() => camera.rayColor(ray)).not.toThrow();
   });
 });

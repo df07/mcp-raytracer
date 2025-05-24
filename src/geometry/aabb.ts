@@ -1,6 +1,8 @@
 /* Specs: aabb-bvh.md */
 
+import { Ray } from './ray.js';
 import { Point3, Vec3 } from './vec3.js';
+import { Interval } from './interval.js';
 
 /**
  * Represents an axis-aligned bounding box (AABB) for efficient ray intersection testing.
@@ -25,17 +27,16 @@ export class AABB {
      * @param r The ray to test against
      * @param rayT The interval of valid t values along the ray
      * @returns True if the ray intersects the box within the interval, false otherwise
-     */    
-    hit(origin: Vec3, direction: Vec3, minT: number, maxT: number): boolean {
+     */    hit(r: Ray, rayT: Interval): boolean {
         // For each axis (x, y, z)
         for (let a = 0; a < 3; a++) {
             // Calculate inverse of ray direction for this axis
             // (avoids division and handles zero direction components)
-            const invD = 1.0 / direction.glVec[a];
+            const invD = 1.0 / r.direction.glVec[a];
             
             // Calculate intersection with the two slabs (min and max planes)
-            let t0 = (this.minimum.glVec[a] - origin.glVec[a]) * invD;
-            let t1 = (this.maximum.glVec[a] - origin.glVec[a]) * invD;
+            let t0 = (this.minimum.glVec[a] - r.origin.glVec[a]) * invD;
+            let t1 = (this.maximum.glVec[a] - r.origin.glVec[a]) * invD;
             
             // If ray is traveling in negative direction, swap t0 and t1
             if (invD < 0) {
@@ -45,8 +46,8 @@ export class AABB {
             }
             
             // Update interval with the intersection of the current interval and this axis's interval
-            const tMin = t0 > minT ? t0 : minT;
-            const tMax = t1 < maxT ? t1 : maxT;
+            const tMin = t0 > rayT.min ? t0 : rayT.min;
+            const tMax = t1 < rayT.max ? t1 : rayT.max;
             
             // If the updated interval is empty, there's no intersection
             if (tMax <= tMin)

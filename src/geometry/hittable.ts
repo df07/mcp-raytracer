@@ -1,6 +1,8 @@
 /* Specs: hittable.md, aabb-bvh.md, pdf-sampling.md */
 
-import { Point3, Vec3 } from './vec3.js';
+import { Ray } from './ray.js';
+import { Point3, Vec3, VectorPool } from './vec3.js';
+import { Interval } from './interval.js';
 import { Material } from '../materials/material.js';
 import { AABB } from './aabb.js';
 import { PDF } from './pdf.js';
@@ -31,7 +33,7 @@ export interface Hittable {
    * @param rayT The interval of valid t values along the ray.
    * @returns A HitRecord if an intersection occurs within the interval, null otherwise.
    */
-  hit(origin: Vec3, direction: Vec3, minT: number, maxT: number): HitRecord | null;
+  hit(r: Ray, rayT: Interval): HitRecord | null;
   
   /**
    * Returns the axis-aligned bounding box that encloses this object.

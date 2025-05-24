@@ -25,7 +25,7 @@ describe('Lambertian Material', () => {
 
         const incomingRay = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
 
-        const scatterResult = lambertian.scatter(incomingRay.origin, incomingRay.direction, hitRecord);
+        const scatterResult = lambertian.scatter(incomingRay, hitRecord);
 
         // Should always produce a scatter result (not null)
         expect(scatterResult).not.toBeNull();
@@ -69,7 +69,7 @@ describe('Lambertian Material', () => {
         const ray = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
         
         // Act
-        const result = material.scatter(ray.origin, ray.direction, hitRecord);
+        const result = material.scatter(ray, hitRecord);
         
         // Assert
         expect(result).not.toBeNull();
@@ -93,8 +93,8 @@ describe('Lambertian Material', () => {
     
     it('should generate directions in the correct hemisphere', () => {
         // Arrange
-        const ray = { origin: new Vec3(0, -1, 0), direction: new Vec3(0, 1, 0) };
-        const result = material.scatter(ray.origin, ray.direction, hitRecord);
+        const ray = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
+        const result = material.scatter(ray, hitRecord);
         
         expect(result).not.toBeNull();
         if (result && result.pdf) {

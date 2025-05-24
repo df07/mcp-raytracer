@@ -1,8 +1,10 @@
 /* Specs: hittable.md, aabb-bvh.md, pdf-sampling.md */
 
-import { HitRecord, Hittable } from './hittable.js';
+import { HitRecord, Hittable, PDFHittable } from './hittable.js';
+import { Ray } from './ray.js';
+import { Interval } from './interval.js';
 import { AABB } from './aabb.js';
-import { Vec3 } from './vec3.js';
+import { Point3, Vec3 } from './vec3.js';
 
 /**
  * Represents a list of Hittable objects.
@@ -66,16 +68,17 @@ export class HittableList implements Hittable {
    * @param rayT The interval of valid t values along the ray.
    * @returns The HitRecord for the closest hit found within the interval, or null if no object was hit.
    */
-  public hit(origin: Vec3, direction: Vec3, minT: number, maxT: number): HitRecord | null {
+  public hit(r: Ray, rayT: Interval): HitRecord | null {
     let closestHitRecord: HitRecord | null = null;
+    let interval = new Interval(rayT.min, rayT.max); // Start with the entire interval
 
     for (const object of this.objects) {
       // Pass a narrowed interval to each object's hit method.
       // This ensures we only consider hits closer than the closest one found so far.
-      const currentHitRecord = object.hit(origin, direction, minT, maxT);
+      const currentHitRecord = object.hit(r, interval);
 
       if (currentHitRecord) {
-        maxT = currentHitRecord.t;   // Update the upper bound for the next check
+        interval.max = currentHitRecord.t;   // Update the upper bound for the next check
         closestHitRecord = currentHitRecord; // Store the record of the closest hit found so far
       }
     }

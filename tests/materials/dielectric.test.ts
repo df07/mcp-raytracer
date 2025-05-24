@@ -24,7 +24,7 @@ describe('Dielectric Material', () => {
       material: dielectric
     };
     
-    const scatterResult = dielectric.scatter(ray.origin, ray.direction, hitRecord) as ScatterResult;
+    const scatterResult = dielectric.scatter(ray, hitRecord) as ScatterResult;
     
     // Check that scatter always produces a result
     expect(scatterResult).not.toBeNull();
@@ -63,8 +63,8 @@ describe('Dielectric Material', () => {
       material: dielectric
     };
     
-    const scatterResultIn = dielectric.scatter(rayIn.origin, rayIn.direction, hitRecordIn) as ScatterResult;
-    const scatterResultOut = dielectric.scatter(rayOut.origin, rayOut.direction, hitRecordOut) as ScatterResult;
+    const scatterResultIn = dielectric.scatter(rayIn, hitRecordIn) as ScatterResult;
+    const scatterResultOut = dielectric.scatter(rayOut, hitRecordOut) as ScatterResult;
     
     // Both should produce valid results
     expect(scatterResultIn).not.toBeNull();
@@ -97,7 +97,7 @@ describe('Dielectric Material', () => {
     };
     
     // We can't mock Math.random easily, so we'll just check the result
-    const scatterResult = highIndexMaterial.scatter(rayExiting.origin, rayExiting.direction, hitRecord) as ScatterResult;
+    const scatterResult = highIndexMaterial.scatter(rayExiting, hitRecord) as ScatterResult;
     
     // Should always produce a result
     expect(scatterResult).not.toBeNull();

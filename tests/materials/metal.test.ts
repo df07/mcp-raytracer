@@ -47,7 +47,7 @@ describe('Metal Material', () => {
     const inRay = new Ray(new Vec3(-1, 1, 0), inDirection);
     
     // Act
-    const result = metal.scatter(inRay.origin, inRay.direction, hitRecord) as ScatterResult;
+    const result = metal.scatter(inRay, hitRecord) as ScatterResult;
     
     // Assert
     expect(result).not.toBeNull();
@@ -96,7 +96,7 @@ describe('Metal Material', () => {
     let perfectReflections = 0;
     
     for (let i = 0; i < numSamples; i++) {
-      const result = metal.scatter(inRay.origin, inRay.direction, hitRecord) as ScatterResult;
+      const result = metal.scatter(inRay, hitRecord) as ScatterResult;
       
       // All results should have a ray defined
       expect(result).not.toBeNull();
@@ -146,7 +146,7 @@ describe('Metal Material', () => {
     Vec3.randomInUnitSphere = () => new Vec3(0, -1, 0);
     
     // Act
-    const result = metal.scatter(inRay.origin, inRay.direction, hitRecord);
+    const result = metal.scatter(inRay, hitRecord);
     
     // Restore original method
     Vec3.randomInUnitSphere = originalRandomInUnitSphere;

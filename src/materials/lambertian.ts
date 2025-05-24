@@ -1,5 +1,6 @@
 /* Specs: material.md, pdf-sampling.md */
 
+import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
 import { DefaultMaterial, ScatterResult } from './material.js';
@@ -22,7 +23,7 @@ export class Lambertian extends DefaultMaterial {
    * @param rec The hit record.
    * @returns A ScatterResult with the albedo and a cosine PDF.
    */
-  override scatter(origin: Vec3, direction: Vec3, rec: HitRecord): ScatterResult | null {
+  override scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
     return {
       attenuation: this.albedo,
       pdf: new CosinePDF(rec.normal)

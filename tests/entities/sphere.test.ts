@@ -1,6 +1,7 @@
 import { Sphere } from '../../src/entities/sphere.js';
 import { Vec3 } from '../../src/geometry/vec3.js'; // Use Vec3 directly
 import type { Point3 } from '../../src/geometry/vec3.js'; // Import Point3 as a type
+import { Ray } from '../../src/geometry/ray.js';
 import { Interval } from '../../src/geometry/interval.js';
 import { Lambertian } from '../../src/materials/lambertian.js';
 
@@ -19,9 +20,9 @@ describe('Sphere', () => {
     const sphere = new Sphere(center, radius, material);
 
     // Ray hitting the sphere
-    const ray1 = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, 0, -1) };
+    const ray1 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
     const interval1 = new Interval(0, Infinity);
-    const rec1 = sphere.hit(ray1.origin, ray1.direction, interval1.min, interval1.max);
+    const rec1 = sphere.hit(ray1, interval1);
     expect(rec1).not.toBeNull();
     if (rec1) {
       expect(rec1.t).toBeCloseTo(0.5);
@@ -38,15 +39,15 @@ describe('Sphere', () => {
     }
 
     // Ray missing the sphere
-    const ray2 = { origin: new Vec3(0, 1, 0), direction: new Vec3(0, 0, -1) };
+    const ray2 = new Ray(new Vec3(0, 1, 0), new Vec3(0, 0, -1));
     const interval2 = new Interval(0, Infinity);
-    const rec2 = sphere.hit(ray2.origin, ray2.direction, interval2.min, interval2.max);
+    const rec2 = sphere.hit(ray2, interval2);
     expect(rec2).toBeNull();
 
     // Ray starting inside the sphere
-    const ray3 = { origin: new Vec3(0, 0, -1), direction: new Vec3(0, 0, -1) };
+    const ray3 = new Ray(new Vec3(0, 0, -1), new Vec3(0, 0, -1));
     const interval3 = new Interval(0.001, Infinity); // tMin > 0 to avoid self-intersection at origin
-    const rec3 = sphere.hit(ray3.origin, ray3.direction, interval3.min, interval3.max);
+    const rec3 = sphere.hit(ray3, interval3);
     expect(rec3).not.toBeNull();
     if (rec3) {
       expect(rec3.t).toBeCloseTo(0.5);
@@ -64,9 +65,9 @@ describe('Sphere', () => {
 
     // Ray hitting tangentially (should technically hit, but floating point might be tricky)
     // Let's test a ray grazing the top
-    const ray4 = { origin: new Vec3(0, 0.5, 0), direction: new Vec3(0, 0, -1) };
+    const ray4 = new Ray(new Vec3(0, 0.5, 0), new Vec3(0, 0, -1));
     const interval4 = new Interval(0, Infinity);
-    const rec4 = sphere.hit(ray4.origin, ray4.direction, interval4.min, interval4.max);
+    const rec4 = sphere.hit(ray4, interval4);
     expect(rec4).not.toBeNull();
     if (rec4) {
         expect(rec4.t).toBeCloseTo(1.0);
@@ -77,13 +78,13 @@ describe('Sphere', () => {
     }
 
     // Ray hitting outside the interval [tMin, tMax]
-    const ray5 = { origin: new Vec3(0, 0, 0), direction: new Vec3(0, 0, -1) };
+    const ray5 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
     const interval5 = new Interval(0.6, 1.0); // t=0.5 is outside this interval
-    const rec5 = sphere.hit(ray5.origin, ray5.direction, interval5.min, interval5.max);
+    const rec5 = sphere.hit(ray5, interval5);
     expect(rec5).toBeNull();
 
     const interval6 = new Interval(0.0, 0.4); // t=0.5 is outside this interval
-    const rec6 = sphere.hit(ray5.origin, ray5.direction, interval6.min, interval6.max);
+    const rec6 = sphere.hit(ray5, interval6);
     expect(rec6).toBeNull();
 
   });
@@ -163,8 +164,8 @@ describe('Sphere PDF', () => {
         expect(randomVec.length()).toBeCloseTo(1.0, 5);
         
         // Create a ray and check if it hits the sphere
-        const ray = { origin: origin, direction: randomVec };
-        const hit = sphere.hit(ray.origin, ray.direction, 0.001, Infinity);
+        const ray = new Ray(origin, randomVec);
+        const hit = sphere.hit(ray, new Interval(0.001, Infinity));
         
         // The random vector should generally hit the sphere
         // But there might be floating point precision issues, so we don't expect 100%

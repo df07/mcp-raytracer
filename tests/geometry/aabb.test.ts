@@ -22,7 +22,7 @@ describe('AABB', () => {
       const interval = new Interval(0.1, 100);
       
       // The ray should hit the box
-      expect(box.hit(ray.origin, ray.direction, interval.min, interval.max)).toBe(true);
+      expect(box.hit(ray, interval)).toBe(true);
     });
     
     it('should not detect intersection when ray misses box', () => {
@@ -42,7 +42,7 @@ describe('AABB', () => {
       const interval = new Interval(0.1, 100);
       
       // The ray should not hit the box
-      expect(box.hit(ray.origin, ray.direction, interval.min, interval.max)).toBe(false);
+      expect(box.hit(ray, interval)).toBe(false);
     });
     
     it('should not detect intersection when ray interval is too short', () => {
@@ -62,7 +62,7 @@ describe('AABB', () => {
       const interval = new Interval(0.1, 3);
       
       // The ray should not hit the box because the interval ends before reaching it
-      expect(box.hit(ray.origin, ray.direction, interval.min, interval.max)).toBe(false);
+      expect(box.hit(ray, interval)).toBe(false);
     });
   });
   

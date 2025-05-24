@@ -1,6 +1,8 @@
 /* Specs: camera.md, pdf-sampling.md */
 import { Vec3, Point3, Color } from './geometry/vec3.js';
+import { Ray } from './geometry/ray.js';
 import { Hittable, PDFHittable } from './geometry/hittable.js';
+import { Interval } from './geometry/interval.js';
 import { VectorPool } from './geometry/vec3.js';
 import { MixturePDF } from './geometry/pdf.js';
 
@@ -117,7 +119,7 @@ export class Camera {
      * @param j The vertical pixel coordinate.
      * @returns A ray originating from the camera through the specified pixel.
      */
-    getRay(i: number, j: number): { origin: Vec3, direction: Vec3 } {
+    getRay(i: number, j: number): Ray {
         // Calculate pixel center
         const pixelCenter = this.pixel00Loc.add(this.pixelDeltaU.multiply(i)).add(this.pixelDeltaV.multiply(j));
 
@@ -137,7 +139,7 @@ export class Camera {
         // Calculate ray direction from camera center to the sample point
         const rayDirection = pixelSample.subtract(this.center);
 
-        return { origin: this.center, direction: rayDirection };
+        return new Ray(this.center, rayDirection);
     }
 
     /**
@@ -148,7 +150,7 @@ export class Camera {
      * @param depth Maximum recursion depth.
      * @returns The color of the ray.
      */
-    rayColor(origin: Vec3, direction: Vec3, depth: number = this.maxDepth): Color {
+    rayColor(r: Ray, depth: number = this.maxDepth): Color {
         // If we've exceeded the ray bounce limit, no more light is gathered
         if (depth <= 0) {
             return Color.BLACK;
@@ -156,12 +158,12 @@ export class Camera {
 
         // Check if the ray hits any object in the world
         // Use tMin = 0.001 to avoid shadow acne
-        const rec = this.world.hit(origin, direction, 0.001, Infinity);
+        const rec = this.world.hit(r, new Interval(0.001, Infinity));
 
         // If no hit, return background color
         if (rec === null) {
             // Compute background gradient color
-            const unitDirection = direction.unitVector();
+            const unitDirection = r.direction.unitVector();
             const a = 0.5 * (unitDirection.y + 1.0);
             // Linear interpolation (lerp) between white and blue based on y-coordinate
             return Color.WHITE.multiply(1.0 - a).add(Color.BLUE.multiply(a));
@@ -171,7 +173,7 @@ export class Camera {
         const emitted = rec.material.emitted(rec);
         
         // If the ray hits an object with a material, compute scatter result
-        const scatterResult = rec.material.scatter(origin, direction, rec);
+        const scatterResult = rec.material.scatter(r, rec);
 
         // If the material doesn't scatter, return the emitted light only
         if (!scatterResult) {
@@ -183,7 +185,7 @@ export class Camera {
             // Recursively trace the specular ray, multiply by attenuation, and add emitted light
             return emitted.add(
                 scatterResult.attenuation.multiplyVec(
-                    this.rayColor(scatterResult.scattered.origin, scatterResult.scattered.direction, depth - 1)
+                    this.rayColor(scatterResult.scattered, depth - 1)
                 )
             );
         }
@@ -196,6 +198,7 @@ export class Camera {
             
             // Generate a direction using the PDF
             const direction = pdf.generate();
+            const scattered = new Ray(rec.p, direction);
             
             // Get the PDF value for this direction
             const pdfValue = pdf.value(direction);
@@ -215,7 +218,7 @@ export class Camera {
             const brdfOverPdf = scatterResult.attenuation.multiply(scatterPdfValue / pdfValue);
 
             // Trace the scattered ray and calculate contribution
-            const incomingLight = this.rayColor(rec.p, direction, depth - 1);
+            const incomingLight = this.rayColor(scattered, depth - 1);
 
             // Final contribution is emitted light + (incoming light * brdf/pdf)
             return emitted.add(incomingLight.multiplyVec(brdfOverPdf));
@@ -285,7 +288,7 @@ export class Camera {
                         
                         // Get and trace a ray through this pixel with jitter
                         const r = this.getRay(i + Math.random(), j + Math.random());
-                        const color = this.rayColor(r.origin, r.direction, this.maxDepth);
+                        const color = this.rayColor(r, this.maxDepth);
                         
                         // Release the vector pool
                         Vec3.usePool(null);
