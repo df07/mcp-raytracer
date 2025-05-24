@@ -8,10 +8,6 @@ import { Material } from '../materials/material.js';
 import { AABB } from '../geometry/aabb.js';
 import { ONBasis } from '../geometry/onbasis.js';
 import { PDF } from '../geometry/pdf.js';
-import * as glMatrix from 'gl-matrix';
-
-// Global constant to switch between Vec3 and gl-matrix implementations
-const USE_GLMATRIX_HIT = false;
 
 /** Represents a sphere in 3D space that can be intersected by rays */
 export class Sphere implements PDFHittable {
@@ -35,81 +31,6 @@ export class Sphere implements PDFHittable {
   }
 
   /**
-   * Wrapper method that switches between Vec3 and gl-matrix implementations
-   * based on the USE_GLMATRIX_HIT constant.
-   */
-  public hit(r: Ray, rayT: Interval): HitRecord | null {
-    return USE_GLMATRIX_HIT ? this.hit_glmatrix(r, rayT) : this.hit_vec3(r, rayT);
-  }
-
-  private _tempOc = Vec3.fromPool().glVec;
-  private _tempScaled = Vec3.fromPool().glVec;
-
-  /**
-   * Optimized hit method using gl-matrix directly for better performance.
-   * Reuses temporary vec3 buffers to avoid allocations.
-   */
-  public hit_glmatrix(r: Ray, rayT: Interval): HitRecord | null {
-    // Create return values
-    const hitPoint = Vec3.fromPool();
-    const hitNormal = Vec3.fromPool();
-    
-    // Get underlying glVec buffers for calculations
-
-    const tempPoint = hitPoint.glVec;
-    const tempNormal = hitNormal.glVec;
-
-    // oc = ray.origin - sphere.center
-    glMatrix.vec3.subtract(this._tempOc, r.origin.glVec, this.center.glVec);
-    
-    // Calculate quadratic equation coefficients
-    const a = glMatrix.vec3.dot(r.direction.glVec, r.direction.glVec);
-    const halfB = glMatrix.vec3.dot(this._tempOc, r.direction.glVec);
-    const c = glMatrix.vec3.dot(this._tempOc, this._tempOc) - this.radius * this.radius;
-    const discriminant = halfB * halfB - a * c;
-
-    if (discriminant < 0) {
-      return null; // No real roots, ray misses the sphere
-    }
-
-    const sqrtd = Math.sqrt(discriminant);
-
-    // Find the nearest root that lies in the acceptable range.
-    let root = (-halfB - sqrtd) / a;
-    if (!rayT.surrounds(root)) { // Check if root is outside the open interval (tMin, tMax)
-      root = (-halfB + sqrtd) / a;
-      if (!rayT.surrounds(root)) {
-        return null; // Both roots are outside the acceptable range
-      }
-    }
-
-    // Root is valid, calculate the hit point: origin + t * direction
-    glMatrix.vec3.scale(this._tempScaled, r.direction.glVec, root);
-    glMatrix.vec3.add(tempPoint, r.origin.glVec, this._tempScaled);
-    
-    // Calculate the outward normal: (hitPoint - center) / radius
-    glMatrix.vec3.subtract(tempNormal, tempPoint, this.center.glVec);
-    glMatrix.vec3.scale(tempNormal, tempNormal, 1.0 / this.radius);
-    
-    // Check if ray hits from inside (front face determination)
-    const frontFace = glMatrix.vec3.dot(r.direction.glVec, tempNormal) <= 0;
-    
-    // If hitting from inside, negate the normal
-    if (!frontFace) {
-      glMatrix.vec3.negate(tempNormal, tempNormal);
-    }
-
-    return {
-      t: root,
-      p: hitPoint,
-      normal: hitNormal,
-      frontFace: frontFace,
-      material: this.material
-    };
-  }
-
-  /**
-   * Original Vec3-based hit method for comparison.
    * Checks if the ray intersects the sphere within the valid interval rayT.
    * Based on the quadratic equation derived from ray-sphere intersection.
    *
@@ -121,7 +42,7 @@ export class Sphere implements PDFHittable {
    * @param rayT The interval of valid t values along the ray.
    * @returns A HitRecord if an intersection occurs within the interval, null otherwise.
    */
-  public hit_vec3(r: Ray, rayT: Interval): HitRecord | null {
+  public hit(r: Ray, rayT: Interval): HitRecord | null {
     const oc: Vec3 = r.origin.subtract(this.center);
     const a = r.direction.lengthSquared();
     const halfB = oc.dot(r.direction);
