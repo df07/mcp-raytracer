@@ -307,6 +307,10 @@ export class Vec3 {
         pool = newPool || NoPool;
     }
 
+    static fromPool(): Vec3 {
+        return pool.get();
+    }
+
     /**
      * Generates a random direction following a cosine distribution.
      * This is useful for importance sampling in PDF-based ray tracing.
