@@ -70,15 +70,15 @@ export class HittableList implements Hittable {
    */
   public hit(r: Ray, rayT: Interval): HitRecord | null {
     let closestHitRecord: HitRecord | null = null;
-    let closestSoFar = rayT.max; // Start with the max of the interval
+    let interval = new Interval(rayT.min, rayT.max); // Start with the entire interval
 
     for (const object of this.objects) {
-      // Pass a narrowed interval [rayT.min, closestSoFar] to each object's hit method.
+      // Pass a narrowed interval to each object's hit method.
       // This ensures we only consider hits closer than the closest one found so far.
-      const currentHitRecord = object.hit(r, new Interval(rayT.min, closestSoFar));
+      const currentHitRecord = object.hit(r, interval);
 
       if (currentHitRecord) {
-        closestSoFar = currentHitRecord.t; // Update the upper bound for the next check
+        interval.max = currentHitRecord.t;   // Update the upper bound for the next check
         closestHitRecord = currentHitRecord; // Store the record of the closest hit found so far
       }
     }
