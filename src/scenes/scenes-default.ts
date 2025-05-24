@@ -8,7 +8,7 @@ import { Metal } from "../materials/metal.js";
 import { DiffuseLight } from "../materials/diffuseLight.js";
 import { Camera } from "../camera.js";
 import { Scene } from "./scenes.js";
-import { DefaultMaterial } from "../materials/material.js";
+import { BVHNode } from "../geometry/bvh.js";
 
 /**
  * Generates the default scene with four spheres: ground, center, and two metal spheres.
@@ -57,6 +57,8 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
     lookAt: new Vec3(0, 0, -1),
     lights: [sunSphere, solidGlass]
   };
+
+  const bvhWorld = BVHNode.fromList(worldList.objects);
   
   // Create camera
   const camera = new Camera(worldList, { ...defaultCameraOptions, ...cameraOpts });
@@ -64,7 +66,7 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   // Create and return the scene
   return {
     camera: camera,
-    world: worldList,
+    world: bvhWorld,
     _objects: [...worldList.objects] // Create a copy of the objects array for testing
   };
 }
