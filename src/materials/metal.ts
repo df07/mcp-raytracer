@@ -1,6 +1,5 @@
 /* Specs: metal.md, pdf-sampling.md */
 
-import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
 import { DefaultMaterial, ScatterResult } from './material.js';
@@ -26,9 +25,9 @@ export class Metal extends DefaultMaterial {
    * @param rec The hit record.
    * @returns A ScatterResult with the scattered ray and albedo, or null if absorbed.
    */
-  override scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
+  override scatter(origin: Vec3, direction: Vec3, rec: HitRecord): ScatterResult | null {
     // Calculate perfect reflection vector
-    const reflected = rIn.direction.unitVector().reflect(rec.normal);
+    const reflected = direction.unitVector().reflect(rec.normal);
     
     // Add fuzziness by perturbing the reflected vector with a random point in the unit sphere
     const fuzzyReflection = 
@@ -45,7 +44,7 @@ export class Metal extends DefaultMaterial {
     // Return the scattered ray and attenuation
     return {
       attenuation: this.albedo,
-      scattered: new Ray(rec.p, fuzzyReflection)
+      scattered: { origin: rec.p, direction: fuzzyReflection }
     };
   }
 }

@@ -2,7 +2,6 @@ import { BVHNode } from '../../src/geometry/bvh.js';
 import { Hittable } from '../../src/geometry/hittable.js';
 import { HittableList } from '../../src/geometry/hittableList.js';
 import { Sphere } from '../../src/entities/sphere.js';
-import { Ray } from '../../src/geometry/ray.js';
 import { Interval } from '../../src/geometry/interval.js';
 import { Vec3, Color } from '../../src/geometry/vec3.js';
 import { Lambertian } from '../../src/materials/lambertian.js';
@@ -54,13 +53,11 @@ describe('BVHNode', () => {
       const bvh = BVHNode.fromList(spheres);
       
       // Create a ray that should hit the middle sphere
-      const ray = new Ray(
-        new Vec3(0, 0, 0),     // Origin
-        new Vec3(0, 0, -1)     // Direction toward middle sphere
-      );
+      const origin = new Vec3(0, 0, 0);     // Origin
+      const direction = new Vec3(0, 0, -1);     // Direction toward middle sphere
       
       // Check if the ray hits anything in the BVH
-      const hit = bvh.hit(ray, new Interval(0.1, 100));
+      const hit = bvh.hit(origin, direction, 0.1, 100);
       
       // Should hit the middle sphere
       expect(hit).not.toBeNull();
@@ -74,13 +71,11 @@ describe('BVHNode', () => {
       const bvh = BVHNode.fromList(spheres);
       
       // Create a ray that misses all spheres
-      const ray = new Ray(
-        new Vec3(0, 5, 0),     // Origin above all spheres
-        new Vec3(0, 1, 0)      // Direction away from all spheres
-      );
+      const origin = new Vec3(0, 5, 0);     // Origin above all spheres
+      const direction = new Vec3(0, 1, 0);      // Direction away from all spheres
       
       // Check if the ray hits anything in the BVH
-      const hit = bvh.hit(ray, new Interval(0.1, 100));
+      const hit = bvh.hit(origin, direction, 0.1, 100);
       
       // Should not hit anything
       expect(hit).toBeNull();
@@ -97,15 +92,13 @@ describe('BVHNode', () => {
       }
       
       // Create a ray that should hit something
-      const ray = new Ray(
-        new Vec3(0, 0, 0),
-        new Vec3(0.5, -0.5, -1).unitVector()
-      );
+      const origin = new Vec3(0, 0, 0);
+      const direction = new Vec3(0.5, -0.5, -1).unitVector();
       
       // Check both BVH and direct list
       const interval = new Interval(0.1, 100);
-      const hitBVH = bvh.hit(ray, interval);
-      const hitList = list.hit(ray, interval);
+      const hitBVH = bvh.hit(origin, direction, interval.min, interval.max);
+      const hitList = list.hit(origin, direction, interval.min, interval.max);
       
       // Both should have the same result (either both hit or both miss)
       if (hitBVH === null) {
@@ -129,13 +122,11 @@ describe('BVHNode', () => {
       const bvh = BVHNode.fromList(manySmallSpheres);
       
       // Create a ray that should hit one of the spheres
-      const ray = new Ray(
-        new Vec3(0, 0, 0),     // Origin
-        new Vec3(0, 0, -1)     // Direction toward -z
-      );
+      const origin = new Vec3(0, 0, 0);     // Origin
+      const direction = new Vec3(0, 0, -1);     // Direction toward -z
       
       // Check if the ray hits anything in the BVH
-      const hit = bvh.hit(ray, new Interval(0.1, 100));
+      const hit = bvh.hit(origin, direction, 0.1, 100);
       
       // Should hit one of the spheres
       expect(hit).not.toBeNull();
@@ -147,7 +138,7 @@ describe('BVHNode', () => {
       }
       
       // Check that BVH gives same result as direct list
-      const hitList = list.hit(ray, new Interval(0.1, 100));
+      const hitList = list.hit(origin, direction, 0.1, 100);
       
       // Results should be the same
       if (hit && hitList) {

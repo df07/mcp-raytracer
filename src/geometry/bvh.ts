@@ -1,13 +1,12 @@
 /* Specs: aabb-bvh.md */
 
-import { Ray } from './ray.js';
 import { HitRecord, Hittable } from './hittable.js';
-import { Interval } from './interval.js';
 import { AABB } from './aabb.js';
 import { HittableList } from './hittableList.js';
+import { Vec3 } from './vec3.js';
 
 const _emptyHittable: Hittable = {
-    hit: (_r: Ray, _rayT: Interval): HitRecord | null => null,
+    hit: (_origin: Vec3, _direction: Vec3, _minT: number, _maxT: number): HitRecord | null => null,
     boundingBox: (): AABB => AABB.empty()
 };
 
@@ -125,21 +124,18 @@ export class BVHNode implements Hittable {
      * @param rayT The interval of valid t values along the ray
      * @returns A hit record for the closest intersection, or null if no intersection
      */
-    hit(r: Ray, rayT: Interval): HitRecord | null {
+    hit(origin: Vec3, direction: Vec3, minT: number, maxT: number): HitRecord | null {
         // If the ray doesn't hit the bounding box, there's no need to check children
-        if (!this.box.hit(r, rayT)) {
+        if (!this.box.hit(origin, direction, minT, maxT)) {
             return null;
         }
         
         // Check if the ray hits the left child
-        const hitLeft = this.left.hit(r, rayT);
+        const hitLeft = this.left.hit(origin, direction, minT, maxT);
         
         // Check if the ray hits the right child
         // If we hit the left child, only check for closer intersections
-        const rightInterval = hitLeft 
-            ? new Interval(rayT.min, hitLeft.t)
-            : rayT;
-        const hitRight = this.right.hit(r, rightInterval);
+        const hitRight = this.right.hit(origin, direction, minT, hitLeft ? hitLeft.t : maxT);
         
         // Return the closer of the two hits (or null if neither hit)
         return hitRight || hitLeft;

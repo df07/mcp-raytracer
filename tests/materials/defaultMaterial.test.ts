@@ -15,9 +15,9 @@ describe('DefaultMaterial', () => {
             material: defaultMaterial
         };
         
-        const incomingRay = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
+        const incomingRay = { origin: new Vec3(0, -1, 0), direction: new Vec3(0, 1, 0) };
         
-        const scatterResult = defaultMaterial.scatter(incomingRay, hitRecord);
+        const scatterResult = defaultMaterial.scatter(incomingRay.origin, incomingRay.direction, hitRecord);
         
         // DefaultMaterial should not scatter by default
         expect(scatterResult).toBeNull();

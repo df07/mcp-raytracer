@@ -1,6 +1,5 @@
 /* Specs: dielectric.md, pdf-sampling.md */
 
-import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
 import { DefaultMaterial, ScatterResult } from './material.js';
@@ -32,7 +31,7 @@ export class Dielectric extends DefaultMaterial {
      * @param rec The hit record.
      * @returns A ScatterResult with the ray and attenuation, or null if absorbed.
      */
-    override scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
+    override scatter(origin: Vec3, direction: Vec3, rec: HitRecord): ScatterResult | null {
         // For a pure dielectric, light isn't absorbed - attenuation is always 1.0
         const attenuation = new Color(1.0, 1.0, 1.0);
         
@@ -43,7 +42,7 @@ export class Dielectric extends DefaultMaterial {
             this.indexOfRefraction;
 
         // Normalize the incoming ray direction
-        const unitDirection = rIn.direction.unitVector();
+        const unitDirection = direction.unitVector();
         
         // Calculate the cosine of the angle between the ray and the normal
         const cosTheta = Math.min(unitDirection.negate().dot(rec.normal), 1.0);
@@ -54,19 +53,19 @@ export class Dielectric extends DefaultMaterial {
         const cannotRefract = refractionRatio * sinTheta > 1.0;
         
         // Determine whether to reflect or refract
-        let direction: Vec3;
+        let scatterDirection: Vec3;
         
         if (cannotRefract || this.reflectance(cosTheta, refractionRatio) > Math.random()) {
             // Reflect the ray
-            direction = unitDirection.reflect(rec.normal);
+            scatterDirection = unitDirection.reflect(rec.normal);
         } else {
             // Refract the ray
-            direction = unitDirection.refract(rec.normal, refractionRatio);
+            scatterDirection = unitDirection.refract(rec.normal, refractionRatio);
         }
         
         return { 
             attenuation: attenuation,
-            scattered: new Ray(rec.p, direction)
+            scattered: { origin: rec.p, direction: scatterDirection }
         };
     }
     

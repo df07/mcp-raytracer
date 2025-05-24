@@ -1,9 +1,7 @@
 /* Specs: sphere.md, hittable.md, aabb-bvh.md, pdf-sampling.md */
 
-import { Point3, Vec3, VectorPool } from '../geometry/vec3.js'; // Added VectorPool import
-import { Ray } from '../geometry/ray.js';
-import { HitRecord, Hittable, PDFHittable } from '../geometry/hittable.js';
-import { Interval } from '../geometry/interval.js';
+import { Point3, Vec3 } from '../geometry/vec3.js'; // Added VectorPool import
+import { HitRecord, PDFHittable } from '../geometry/hittable.js';
 import { Material } from '../materials/material.js';
 import { AABB } from '../geometry/aabb.js';
 import { ONBasis } from '../geometry/onbasis.js';
@@ -42,10 +40,10 @@ export class Sphere implements PDFHittable {
    * @param rayT The interval of valid t values along the ray.
    * @returns A HitRecord if an intersection occurs within the interval, null otherwise.
    */
-  public hit(r: Ray, rayT: Interval): HitRecord | null {
-    const oc: Vec3 = r.origin.subtract(this.center);
-    const a = r.direction.lengthSquared();
-    const halfB = oc.dot(r.direction);
+  public hit(origin: Vec3, direction: Vec3, minT: number, maxT: number): HitRecord | null {
+    const oc: Vec3 = origin.subtract(this.center);
+    const a = direction.lengthSquared();
+    const halfB = oc.dot(direction);
     const c = oc.lengthSquared() - this.radius * this.radius;
     const discriminant = halfB * halfB - a * c;
 
@@ -57,22 +55,22 @@ export class Sphere implements PDFHittable {
 
     // Find the nearest root that lies in the acceptable range.
     let root = (-halfB - sqrtd) / a;
-    if (!rayT.surrounds(root)) { // Check if root is outside the open interval (tMin, tMax)
+    if (!(minT < root && maxT > root)) { // Check if root is outside the open interval (tMin, tMax)
       root = (-halfB + sqrtd) / a;
-      if (!rayT.surrounds(root)) {
+      if (!(minT < root && maxT > root)) {
         return null; // Both roots are outside the acceptable range
       }
     }    
     
     // Root is valid, calculate the hit record
-    const pointAtT = r.at(root);
+    const pointAtT = origin.add(direction.multiply(root));
     
     // Calculate the outward normal using the vector pool
     let normal = pointAtT.subtract(this.center)
                          .divide(this.radius);
     
     // If the ray hits from the inside, negate the normal
-    const frontFace = r.direction.dot(normal) <= 0;
+    const frontFace = direction.dot(normal) <= 0;
     if (!frontFace) normal = normal.negate();
 
     return {
@@ -105,9 +103,7 @@ export class Sphere implements PDFHittable {
    */
   public pdfValue(origin: Point3, direction: Vec3): number {
     // Check if the ray origin->direction intersects the sphere
-    const ray = new Ray(origin, direction);
-    const rayT = new Interval(0.001, Infinity);
-    const hitRecord = this.hit(ray, rayT);
+    const hitRecord = this.hit(origin, direction, 0.001, Infinity);
     
     // If no intersection, PDF value is 0
     if (hitRecord === null) {

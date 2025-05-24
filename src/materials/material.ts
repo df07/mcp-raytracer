@@ -1,6 +1,5 @@
 /* Specs: material.md, light-emissive.md, pdf-sampling.md */
 
-import { Ray } from '../geometry/ray.js';
 import { Color, Vec3 } from '../geometry/vec3.js';
 import { HitRecord } from '../geometry/hittable.js';
 import { PDF } from '../geometry/pdf.js';
@@ -19,7 +18,7 @@ export interface ScatterResult {
   pdf?: PDF | null;
   
   /** The scattered ray (for specular materials) */
-  scattered?: Ray | null;
+  scattered?: {origin: Vec3, direction: Vec3} | null;
 }
 
 /**
@@ -32,7 +31,7 @@ export interface Material {
    * @param rec The hit record containing information about the intersection.
    * @returns A ScatterResult object if scattering occurs, or null if absorbed.
    */
-  scatter(rIn: Ray, rec: HitRecord): ScatterResult | null;
+  scatter(origin: Vec3, direction: Vec3, rec: HitRecord): ScatterResult | null;
 
   /**
    * Determines the light emitted by the material.
@@ -51,7 +50,7 @@ export class DefaultMaterial implements Material {
    * Default scatter implementation returns null (no scattering).
    * Should be overridden by materials that scatter light.
    */
-  scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
+  scatter(origin: Vec3, direction: Vec3, rec: HitRecord): ScatterResult | null {
     return null;
   }
 

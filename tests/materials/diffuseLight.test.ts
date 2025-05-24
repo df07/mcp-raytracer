@@ -48,9 +48,9 @@ describe('DiffuseLight Material', () => {
             material: light
         };
         
-        const incomingRay = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
+        const incomingRay = { origin: new Vec3(0, -1, 0), direction: new Vec3(0, 1, 0) };
         
-        const scatterResult = light.scatter(incomingRay, hitRecord);
+        const scatterResult = light.scatter(incomingRay.origin, incomingRay.direction, hitRecord);
         
         // DiffuseLight should never scatter rays, so scatter should always return null
         expect(scatterResult).toBeNull();
