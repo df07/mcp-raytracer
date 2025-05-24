@@ -345,7 +345,7 @@ export class Vec3 {
         const r2 = Math.random();
         const z = 1 + r2 * (Math.sqrt(1 - radius * radius / distanceSquared) - 1);
         const phi = 2 * Math.PI * r1;
-        return new Vec3(Math.cos(phi) * Math.sqrt(1 - z * z), Math.sin(phi) * Math.sqrt(1 - z * z), z);
+        return pool.get().set(Math.cos(phi) * Math.sqrt(1 - z * z), Math.sin(phi) * Math.sqrt(1 - z * z), z);
     }
 }
 
