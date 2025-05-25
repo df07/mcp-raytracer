@@ -4,6 +4,7 @@ import { Color, Vec3 } from "../geometry/vec3.js";
 import { HittableList } from "../geometry/hittableList.js";
 import { Sphere } from "../entities/sphere.js";
 import { Plane } from "../entities/plane.js";
+import { Quad } from "../entities/quad.js";
 import { Dielectric } from "../materials/dielectric.js";
 import { Metal } from "../materials/metal.js";
 import { DiffuseLight } from "../materials/diffuseLight.js";
@@ -49,6 +50,15 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), -0.24, materialGlass)); // Hollow glass sphere (moved up 0.5)
   worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), 0.20, materialBlue));  // Blue sphere inside glass (moved up 0.5)
   
+  // Add a quad light positioned above and to the side, out of camera view
+  const quadLight = new Quad(
+    new Vec3(-2, 2, 2),      // Position above and left of the spheres
+    new Vec3(0, -1, -1),      // 1 unit wide (X direction)
+    new Vec3(1, 1, 0),       // 1 unit deep (Z direction)
+    sunLight                 // Use the same bright light material
+  );
+  worldList.add(quadLight);
+  
   // Add a sun-like sphere high in the sky but out of direct view
   const sunSphere = new Sphere(new Vec3(30, 30.5, 15), 10, sunLight);  // Sun moved up 0.5
   worldList.add(sunSphere);
@@ -62,7 +72,7 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
     vfov: 40,
     lookFrom: new Vec3(0, 0.75, 2),    // Camera moved up 0.5 to match new coordinate system
     lookAt: new Vec3(0, 0.5, -1),     // Look at point moved up 0.5 to center of spheres
-    lights: [sunSphere, solidGlass]
+    lights: [sunSphere, solidGlass, quadLight]  // Add quad light to the lights list
   };
 
   const bvhWorld = BVHNode.fromList(worldList.objects);
