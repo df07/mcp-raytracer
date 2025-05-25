@@ -72,6 +72,8 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
     vfov: 40,
     lookFrom: new Vec3(0, 0.75, 2),    // Camera moved up 0.5 to match new coordinate system
     lookAt: new Vec3(0, 0.5, -1),     // Look at point moved up 0.5 to center of spheres
+    aperture: 0.1,                    // Small aperture for subtle depth of field
+    focusDistance: 3.0,               // Focus on the main spheres at distance ~3
     lights: [sunSphere, solidGlass, quadLight]  // Add quad light to the lights list
   };
 

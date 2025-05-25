@@ -16,6 +16,8 @@ export interface CameraOptions {
   lookFrom?: Point3;             // Camera position (default: origin)
   lookAt?: Point3;               // Look-at position (default: 0,0,-1)
   vUp?: Vec3;                    // Camera's up direction (default: 0,1,0)
+  aperture?: number;             // Camera aperture size for defocus blur (default: 0, no blur)
+  focusDistance?: number;        // Distance to focus plane (default: auto-calculated)
   samples?: number;              // Anti-aliasing samples per pixel (default: 100)
   adaptiveTolerance?: number;    // Tolerance for convergence in adaptive sampling (default: 0.05)
   adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
@@ -41,6 +43,8 @@ export class Camera {
         lookFrom: new Vec3(0, 0, 0),
         lookAt: new Vec3(0, 0, -1),
         vUp: new Vec3(0, 1, 0),
+        aperture: 0,                 // No defocus blur by default
+        focusDistance: 1.0,          // Default focus distance
         samples: 100,
         adaptiveTolerance: 0.05,
         adaptiveBatchSize: 10,
@@ -63,6 +67,12 @@ export class Camera {
     private readonly samples: number; // Maximum number of samples per pixel
     private readonly adaptiveTolerance: number; // Tolerance for convergence
     private readonly adaptiveSampleBatchSize: number = 32; // Number of samples to process in one batch
+    
+    // Defocus blur properties
+    private readonly aperture: number;
+    private readonly focusDistance: number;
+    private readonly defocusDiskU: Vec3;
+    private readonly defocusDiskV: Vec3;
 
     constructor(        
         world: Hittable,
@@ -80,11 +90,15 @@ export class Camera {
         this.adaptiveSampleBatchSize = loptions.adaptiveBatchSize;
         this.lights = loptions.lights || [];
 
+        // Initialize defocus blur properties
+        this.aperture = loptions.aperture;
+        // Auto-calculate focus distance if not provided
+        this.focusDistance = loptions.focusDistance || loptions.lookFrom.subtract(loptions.lookAt).length();
+
         // Determine viewport dimensions.
-        const focalLength = 1.0; // Fixed focal length
         const theta = loptions.vfov * (Math.PI / 180); // Convert vfov to radians
         const h = Math.tan(theta / 2);
-        const viewportHeight = 2 * h * focalLength;
+        const viewportHeight = 2 * h * this.focusDistance;
         const aspectRatio = this.imageWidth / this.imageHeight;
         const viewportWidth = viewportHeight * aspectRatio;
 
@@ -108,13 +122,18 @@ export class Camera {
         // Use vec3 methods instead of standalone functions
         const halfViewportU = viewportU.divide(2);
         const halfViewportV = viewportV.divide(2);
-        const viewportUpperLeft = this.center.subtract(this.w).subtract(halfViewportU).subtract(halfViewportV);
+        const viewportUpperLeft = this.center.subtract(this.w.multiply(this.focusDistance)).subtract(halfViewportU).subtract(halfViewportV);
         this.pixel00Loc = viewportUpperLeft.add(this.pixelDeltaU.add(this.pixelDeltaV).multiply(0.5));
+
+        // Initialize defocus disk vectors
+        this.defocusDiskU = this.u.multiply(this.aperture / 2);
+        this.defocusDiskV = this.v.multiply(this.aperture / 2);
     }    
     
     /**
      * Gets a camera ray for the pixel at location i,j.
      * If anti-aliasing is enabled, generates rays with random offsets within the pixel.
+     * If defocus blur is enabled, generates rays from random points on the aperture disk.
      * @param i The horizontal pixel coordinate.
      * @param j The vertical pixel coordinate.
      * @returns A ray originating from the camera through the specified pixel.
@@ -136,10 +155,23 @@ export class Camera {
             pixelSample = pixelCenter.add(this.pixelDeltaU.multiply(px)).add(this.pixelDeltaV.multiply(py));
         }
         
-        // Calculate ray direction from camera center to the sample point
-        const rayDirection = pixelSample.subtract(this.center);
+        // Calculate ray origin and direction for defocus blur
+        let rayOrigin = this.center;
+        let rayDirection = pixelSample.subtract(this.center);
+        
+        if (this.aperture > 0) {
+            // Sample a random point on the defocus disk
+            const rd = this.randomInUnitDisk();
+            const offset = this.defocusDiskU.multiply(rd.x).add(this.defocusDiskV.multiply(rd.y));
+            
+            // Offset the ray origin by the aperture sample
+            rayOrigin = this.center.add(offset);
+            
+            // Calculate the ray direction to hit the same point on the focus plane
+            rayDirection = pixelSample.subtract(rayOrigin);
+        }
 
-        return new Ray(this.center, rayDirection);
+        return new Ray(rayOrigin, rayDirection);
     }
 
     /**
@@ -360,6 +392,18 @@ export class Camera {
      */ 
     render(pixelData: Uint8ClampedArray): RenderStats {
         return this.renderRegion(pixelData, 0, 0, this.imageWidth, this.imageHeight);
+    }
+
+    /**
+     * Generates a random point on the unit disk using rejection sampling.
+     * @returns A random point on the unit disk.
+     */
+    private randomInUnitDisk(): Vec3 {
+        let p: Vec3;
+        do {
+            p = new Vec3(2 * Math.random() - 1, 2 * Math.random() - 1, 0);
+        } while (p.lengthSquared() >= 1);
+        return p;
     }
 }
 
