@@ -50,12 +50,12 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), -0.24, materialGlass)); // Hollow glass sphere (moved up 0.5)
   worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), 0.20, materialBlue));  // Blue sphere inside glass (moved up 0.5)
   
-  // Add a quad light positioned above and to the side, out of camera view
+  // Add a quad light positioned above and to the left, angled to face the spheres
   const quadLight = new Quad(
-    new Vec3(-2, 2, 2),      // Position above and left of the spheres
-    new Vec3(0, -1, -1),      // 1 unit wide (X direction)
-    new Vec3(1, 1, 0),       // 1 unit deep (Z direction)
-    sunLight                 // Use the same bright light material
+    new Vec3(-2, 3, 0),       // Position above and left of the spheres
+    new Vec3(1, 0, 0),        // 1 unit wide (horizontal edge)
+    new Vec3(0, -0.707, -0.707), // Angled down and forward at 45 degrees (vertical edge)
+    sunLight                  // Use the same bright light material
   );
   worldList.add(quadLight);
   
