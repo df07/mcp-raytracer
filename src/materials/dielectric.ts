@@ -6,6 +6,15 @@ import { HitRecord } from '../geometry/hittable.js';
 import { DefaultMaterial, ScatterResult } from './material.js';
 
 /**
+ * Enhanced scatter result for dielectric materials that includes information
+ * about whether the ray was reflected or refracted.
+ */
+export interface DielectricScatterResult extends ScatterResult {
+  /** True if the ray was reflected, false if refracted */
+  reflected: boolean;
+}
+
+/**
  * Dielectric material that simulates transparent substances like glass, water, and diamonds.
  * Exhibits both reflection and refraction based on angles and material properties.
  */
@@ -30,9 +39,9 @@ export class Dielectric extends DefaultMaterial {
      * Scatters the incoming ray according to the dielectric refraction and reflection model.
      * @param rIn The incoming ray.
      * @param rec The hit record.
-     * @returns A ScatterResult with the ray and attenuation, or null if absorbed.
+     * @returns A DielectricScatterResult with the ray, attenuation, and reflection info, or null if absorbed.
      */
-    override scatter(rIn: Ray, rec: HitRecord): ScatterResult | null {
+    override scatter(rIn: Ray, rec: HitRecord): DielectricScatterResult | null {
         // For a pure dielectric, light isn't absorbed - attenuation is always 1.0
         const attenuation = new Color(1.0, 1.0, 1.0);
         
@@ -55,18 +64,22 @@ export class Dielectric extends DefaultMaterial {
         
         // Determine whether to reflect or refract
         let direction: Vec3;
+        let wasReflected: boolean;
         
         if (cannotRefract || this.reflectance(cosTheta, refractionRatio) > Math.random()) {
             // Reflect the ray
             direction = unitDirection.reflect(rec.normal);
+            wasReflected = true;
         } else {
             // Refract the ray
             direction = unitDirection.refract(rec.normal, refractionRatio);
+            wasReflected = false;
         }
         
         return { 
             attenuation: attenuation,
-            scattered: new Ray(rec.p, direction)
+            scattered: new Ray(rec.p, direction),
+            reflected: wasReflected
         };
     }
     

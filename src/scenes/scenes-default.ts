@@ -11,6 +11,8 @@ import { DiffuseLight } from "../materials/diffuseLight.js";
 import { Camera } from "../camera.js";
 import { Scene } from "./scenes.js";
 import { BVHNode } from "../geometry/bvh.js";
+import { MixedMaterial } from "../materials/mixedMaterial.js";
+import { LayeredMaterial } from "../materials/layeredMaterial.js";
 
 /**
  * Generates the default scene with four spheres: ground, center, and two metal spheres.
@@ -29,6 +31,50 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   const materialSilver = new Metal(new Color(0.8, 0.8, 0.8), 0.0); // Shiny silver (no fuzz)
   const materialGold = new Metal(new Color(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
   
+  const paintedMetal = new MixedMaterial(
+    new Lambertian(new Color(0.7, 0.3, 0.3)),  // Diffuse: red matte base
+    new Metal(new Color(0.9, 0.9, 0.9), 0.1),  // Specular: white highlights with slight roughness
+    0.95  // 95% diffuse, 5% specular
+  );
+
+  const layeredMetal = new LayeredMaterial(
+    new Dielectric(Dielectric.GLASS_IOR),
+    new Metal(new Color(0.7, 0.3, 0.3), 0.1)
+  );
+
+  const layeredPaint = new LayeredMaterial(
+    new Dielectric(Dielectric.GLASS_IOR),
+    new Lambertian(new Color(0.7, 0.3, 0.3))
+  );
+  
+  // Plastic surface - balanced mix of diffuse and specular
+  const plastic = new MixedMaterial(
+    new Lambertian(new Color(0.2, 0.4, 0.8)),  // Diffuse: blue base color
+    new Metal(new Color(1.0, 1.0, 1.0), 0.05), // Specular: very smooth white highlights
+    0.5  // 50% diffuse, 50% specular
+  );
+  
+  // Rough metallic surface - mostly specular with some diffuse scattering
+  const roughMetal = new MixedMaterial(
+    new Lambertian(new Color(0.1, 0.1, 0.1)),  // Diffuse: dark absorption
+    new Metal(new Color(0.8, 0.8, 0.9), 0.3),  // Specular: metallic reflection with higher roughness
+    0.2  // 20% diffuse, 80% specular
+  );
+  
+  // Ceramic or porcelain - smooth surface with mixed properties
+  const ceramic = new MixedMaterial(
+    new Lambertian(new Color(0.9, 0.9, 0.9)),  // Diffuse: white base
+    new Metal(new Color(1.0, 1.0, 1.0), 0.0),  // Specular: very smooth white highlights
+    0.7  // 70% diffuse, 30% specular
+  );
+  
+  // Worn wood with some gloss - subtle specular component
+  const glossyWood = new MixedMaterial(
+    new Lambertian(new Color(0.6, 0.4, 0.2)),  // Diffuse: brown wood color
+    new Metal(new Color(0.8, 0.6, 0.4), 0.2),  // Specular: warm highlights with medium roughness
+    0.85 // 85% diffuse, 15% specular
+  );
+  
   // Create a bright sun-like light source - very bright (intensity > 1.0)
   const sunLight = new DiffuseLight(new Color(15.0, 14.0, 13.0));
 
@@ -41,7 +87,7 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
     materialGround
   );
   worldList.add(groundPlane);
-  worldList.add(new Sphere(new Vec3(0, 0.5, -1), 0.5, materialRed));         // Center sphere (moved up 0.5)
+  worldList.add(new Sphere(new Vec3(0, 0.5, -1), 0.5, layeredMetal));         // Center sphere (moved up 0.5)
   worldList.add(new Sphere(new Vec3(-1, 0.5, -1), 0.5, materialSilver));     // Left sphere (moved up 0.5)
   worldList.add(new Sphere(new Vec3(1, 0.5, -1), 0.5, materialGold));        // Right sphere (moved up 0.5)
   const solidGlass = new Sphere(new Vec3(0.5, 0.25, -0.5), 0.25, materialGlass);  // Glass sphere (moved up 0.5)
@@ -49,6 +95,8 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), 0.25, materialGlass)); // Right glass sphere (moved up 0.5)
   worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), -0.24, materialGlass)); // Hollow glass sphere (moved up 0.5)
   worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), 0.20, materialBlue));  // Blue sphere inside glass (moved up 0.5)
+  
+
   
   // Add a quad light positioned above and to the left, angled to face the spheres
   const quadLight = new Quad(
