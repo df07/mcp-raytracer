@@ -141,6 +141,10 @@ export class Vec3 {
         return Math.sqrt(this.lengthSquared());
     }
 
+    distanceTo(v: Vec3): number {
+        return this.subtract(v).length();
+    }
+
     /**
      * Computes the dot product of this vector with another vector.
      * @param v The other vector.

@@ -87,16 +87,20 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
     materialGround
   );
   worldList.add(groundPlane);
-  worldList.add(new Sphere(new Vec3(0, 0.5, -1), 0.5, layeredMetal));         // Center sphere (moved up 0.5)
-  worldList.add(new Sphere(new Vec3(-1, 0.5, -1), 0.5, materialSilver));     // Left sphere (moved up 0.5)
-  worldList.add(new Sphere(new Vec3(1, 0.5, -1), 0.5, materialGold));        // Right sphere (moved up 0.5)
-  const solidGlass = new Sphere(new Vec3(0.5, 0.25, -0.5), 0.25, materialGlass);  // Glass sphere (moved up 0.5)
-  worldList.add(solidGlass);
-  worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), 0.25, materialGlass)); // Right glass sphere (moved up 0.5)
-  worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), -0.24, materialGlass)); // Hollow glass sphere (moved up 0.5)
-  worldList.add(new Sphere(new Vec3(-0.5, 0.25, -0.5), 0.20, materialBlue));  // Blue sphere inside glass (moved up 0.5)
   
+  const centerSphere = new Sphere(new Vec3(0, 0.5, -1), 0.5, layeredPaint);
+  const leftSphere = new Sphere(new Vec3(-1, 0.5, -1), 0.5, materialSilver);
+  const rightSphere = new Sphere(new Vec3(1, 0.5, -1), 0.5, materialGold);
+  const solidGlass = new Sphere(new Vec3(0.5, 0.25, -0.5), 0.25, materialGlass);  // Glass sphere (moved up 0.5)
+  const hollowGlass = [
+    new Sphere(new Vec3(-0.5, 0.25, -0.5), 0.25, materialGlass),
+    new Sphere(new Vec3(-0.5, 0.25, -0.5), -0.24, materialGlass),
+    new Sphere(new Vec3(-0.5, 0.25, -0.5), 0.20, materialBlue)
+  ];
 
+  [centerSphere, leftSphere, rightSphere, solidGlass, ...hollowGlass].forEach(sphere => {
+    worldList.add(sphere);
+  });
   
   // Add a quad light positioned above and to the left, angled to face the spheres
   const quadLight = new Quad(
@@ -116,12 +120,13 @@ export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
   //worldList.add(sunSphere2);
 
   // Default camera options that match the scene
+  const lookFrom = new Vec3(0, 0.75, 2);
   const defaultCameraOptions: CameraOptions = {
     vfov: 40,
-    lookFrom: new Vec3(0, 0.75, 2),    // Camera moved up 0.5 to match new coordinate system
-    lookAt: new Vec3(0, 0.5, -1),     // Look at point moved up 0.5 to center of spheres
-    aperture: 0.1,                    // Small aperture for subtle depth of field
-    focusDistance: 3.0,               // Focus on the main spheres at distance ~3
+    lookFrom: lookFrom,    // Camera moved up 0.5 to match new coordinate system
+    lookAt: centerSphere.center,     // Look at point moved up 0.5 to center of spheres
+    aperture: 0.05,                    // Small aperture for subtle depth of field
+    focusDistance: lookFrom.distanceTo(centerSphere.center),               // Focus on the main spheres at distance ~3
     lights: [sunSphere, solidGlass, quadLight]  // Add quad light to the lights list
   };
 
