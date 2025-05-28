@@ -1,7 +1,7 @@
 /* Specs: mcp-server.md */
 
 import { generateImageBuffer, RaytracerOptions } from './raytracer.js';
-import { CameraOptions } from './camera.js';
+import { CameraOptions, RenderMode } from './camera.js';
 import { SpheresSceneOptions, SceneConfig, RainSceneOptions } from './scenes/scenes.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -49,6 +49,13 @@ export async function runRaytracerBenchmark() {
       generationOptions.parallel = true;
     } else if (arg === '--threads' || arg === '-t') {
       generationOptions.threads = parseInt(args[++i], 10);
+    } else if (arg === '--mode' || arg === '-m') {
+      const mode = args[++i] as RenderMode;
+      if (!Object.values(RenderMode).includes(mode)) {
+        console.error(`Invalid render mode: ${mode}`);
+        process.exit(1);
+      }
+      cameraOptions.renderMode = mode;
     } 
     // Rain scene - just the number of spheres
     else if (arg === '--rain') {

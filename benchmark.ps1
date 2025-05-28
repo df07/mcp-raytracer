@@ -14,6 +14,7 @@ param (
     [double]$ab = 0, # Default to 0 = disabled (will use Camera's default if > 0)
     [switch]$parallel = $false, # Use parallel rendering with worker threads
     [int]$threads = 0, # Number of threads to use for parallel rendering
+    [string]$mode = 'default', # Render mode (default, bounces, samples)
     [switch]$profile = $false # Parameter for enabling Node.js profiling (automatically processes the output)
 )
 
@@ -33,10 +34,6 @@ if ($seed -gt 0) { $fileBase += "_sd${seed}" }
 if ($ab -gt 0) { $fileBase += "_ab${ab}" }
 if ($at -gt 0) { $fileBase += "_at${at}" }
 # Don't include parallel or threads in the filename, they don't change the results
-
-# Set output and log filenames with the same base
-$outputFile = Join-Path $outputDir "${fileBase}.png"
-$logFile = Join-Path $outputDir "${fileBase}.log"
 
 # Prepare node command with or without profiling
 $nodeCmd = "node"
@@ -73,6 +70,14 @@ if ($parallel) {
 if ($threads -gt 0) {
     $cmd += " -t $threads"
 }
+if ($mode -ne 'default') {
+    $cmd += " -m $mode"
+    $fileBase += "_${mode}"
+}
+
+# Set output and log filenames with the same base
+$outputFile = Join-Path $outputDir "${fileBase}.png"
+$logFile = Join-Path $outputDir "${fileBase}.log"
 
 # Add output file
 $cmd += " --output $outputFile"

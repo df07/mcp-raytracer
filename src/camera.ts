@@ -7,6 +7,15 @@ import { VectorPool } from './geometry/vec3.js';
 import { MixturePDF } from './geometry/pdf.js';
 
 /**
+ * Render mode options for visualization
+ */
+export enum RenderMode {
+    Default = 'default',  // Normal color rendering (default)
+    Bounces = 'bounces',  // Visualize bounce count (bluescale)
+    Samples = 'samples'   // Visualize sample count (redscale)
+}
+
+/**
  * Camera configuration options for scene generation
  */
 export interface CameraOptions {
@@ -22,6 +31,7 @@ export interface CameraOptions {
   adaptiveTolerance?: number;    // Tolerance for convergence in adaptive sampling (default: 0.05)
   adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
   lights?: PDFHittable[];        // Light sources for importance sampling (default: [])
+  renderMode?: RenderMode;       // Render mode for visualization (default: Color)
 }
 
 /**
@@ -57,6 +67,7 @@ export class Camera {
         adaptiveTolerance: 0.05,
         adaptiveBatchSize: 10,
         lights: [],
+        renderMode: RenderMode.Default,
     }
 
     public readonly imageWidth: number;
@@ -75,6 +86,7 @@ export class Camera {
     private readonly samples: number; // Maximum number of samples per pixel
     private readonly adaptiveTolerance: number; // Tolerance for convergence
     private readonly adaptiveSampleBatchSize: number = 32; // Number of samples to process in one batch
+    private readonly renderMode: RenderMode; // Render mode for visualization
     
     // Defocus blur properties
     private readonly aperture: number;
@@ -97,6 +109,7 @@ export class Camera {
         this.adaptiveTolerance = loptions.adaptiveTolerance;
         this.adaptiveSampleBatchSize = loptions.adaptiveBatchSize;
         this.lights = loptions.lights || [];
+        this.renderMode = loptions.renderMode || RenderMode.Default;
 
         // Initialize defocus blur properties
         this.aperture = loptions.aperture;
@@ -274,6 +287,38 @@ export class Camera {
     }
 
     /**
+     * Determines the final pixel color based on the render mode.
+     * @param renderMode The current render mode
+     * @param pixelColor Accumulated color from ray tracing
+     * @param pixelBounces Total bounces for this pixel
+     * @param sampleCount Number of samples taken for this pixel
+     * @returns The final color to write to the buffer
+     */
+    private specialRenderModeColor(
+        pixelColor: Color, 
+        pixelBounces: number, 
+        sampleCount: number
+    ): Color {
+        switch (this.renderMode) {
+            case RenderMode.Bounces:
+                // Visualize average bounces per ray for this pixel (bluescale)
+                const avgBounces = sampleCount > 0 ? pixelBounces / sampleCount : 0;
+                const bounceIntensity = Math.min(avgBounces / this.maxDepth, 1.0); // Normalize to [0,1]
+                return new Color(0, 0, bounceIntensity); // Blue scale
+            
+            case RenderMode.Samples:
+                // Visualize sample count for this pixel (redscale)
+                const sampleIntensity = Math.min(sampleCount / this.samples, 1.0); // Normalize to [0,1]
+                return new Color(sampleIntensity, 0, 0); // Red scale
+            
+            case RenderMode.Default:
+            default:
+                // Normal color rendering
+                return pixelColor;
+        }
+    }
+
+    /**
      * Renders a specific region of the scene and writes the pixel data to the buffer.
      * Uses adaptive sampling if enabled to optimize rendering by focusing samples on complex areas.
      * 
@@ -317,6 +362,7 @@ export class Camera {
                 // Initialize pixel data
                 let pixelColor = new Color(0, 0, 0);
                 let sampleCount = 0;
+                let pixelBounces = 0;
                 
                 // Statistics for adaptive sampling
                 let s1 = 0; // Sum of illuminance values
@@ -349,6 +395,7 @@ export class Camera {
                         
                         // Track bounce statistics
                         totalBounces += rayStats.bounces;
+                        pixelBounces += rayStats.bounces;
                         minBouncesPerRay = Math.min(minBouncesPerRay, rayStats.bounces);
                         maxBouncesPerRay = Math.max(maxBouncesPerRay, rayStats.bounces);
                         
@@ -384,6 +431,11 @@ export class Camera {
                 
                 // Compute final pixel color by averaging all samples
                 pixelColor = pixelColor.divide(sampleCount);
+
+                // Determine final pixel color based on render mode
+                if (this.renderMode !== RenderMode.Default) {
+                    pixelColor = this.specialRenderModeColor(pixelColor, pixelBounces, sampleCount);
+                }
                 
                 // Update statistics
                 totalSamples += sampleCount;
