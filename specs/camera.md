@@ -5,11 +5,11 @@
 
 ## Goal
 
-Define a `Camera` class that renders 3D scenes with realistic camera effects including defocus blur (depth of field), anti-aliasing, and adaptive sampling for optimal image quality and performance.
+Define a `Camera` class that renders 3D scenes with realistic camera effects including defocus blur (depth of field), anti-aliasing, adaptive sampling, and Russian Roulette ray termination for optimal image quality and performance.
 
 ## Motivation
 
-Encapsulate modern camera rendering capabilities in a single class, supporting real-world camera effects like depth of field while maintaining high performance through adaptive sampling and importance sampling techniques.
+Encapsulate modern camera rendering capabilities in a single class, supporting real-world camera effects like depth of field while maintaining high performance through adaptive sampling, importance sampling techniques, and probabilistic ray termination.
 
 ## Requirements
 
@@ -19,14 +19,23 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 - **Defocus blur:** `aperture` and `focusDistance` parameters for depth of field effects
 - **Sampling quality:** `samples`, `adaptiveTolerance`, `adaptiveBatchSize` for image quality control
 - **Importance sampling:** Support for `lights` array to improve rendering efficiency
+- **Russian Roulette:** `russianRouletteDepth` and `russianRouletteEnabled` for probabilistic ray termination
 
-### 2. Defocus Blur (Depth of Field)
+### 2. Russian Roulette Ray Termination
+- **Purpose:** Probabilistically terminate rays early while maintaining unbiased results
+- **Energy-based termination:** Use material attenuation to calculate continuation probability
+- **Depth threshold:** Only apply Russian Roulette after a minimum number of bounces (default: 3)
+- **Maximum probability:** Cap continuation probability at 95% to avoid infinite rays
+- **Energy compensation:** Divide surviving ray contributions by continuation probability
+- **Performance benefit:** Reduce computation for rays that contribute little to final image
+
+### 3. Defocus Blur (Depth of Field)
 - **Aperture control:** Size of camera aperture (0 = no blur, larger = more blur)
 - **Focus distance:** Distance to the plane that appears perfectly sharp
 - **Disk sampling:** Generate rays from random points across the camera aperture
 - **Realistic blur:** Objects closer or farther than focus distance appear progressively blurred
 
-### 3. Core Methods
+### 4. Core Methods
 
 #### `getRay(i: number, j: number): Ray`
 - Generate camera rays through pixel coordinates
@@ -34,8 +43,9 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 - Apply defocus blur by sampling ray origins from aperture disk
 - Target rays through focus plane for correct depth of field
 
-#### `rayColor(r: Ray, depth: number): Color`
+#### `rayColor(r: Ray, stats?: { bounces: number }): Color`
 - Trace rays with recursive bouncing up to maximum depth
+- Apply Russian Roulette termination after minimum bounce threshold
 - Use importance sampling with material and light PDFs
 - Return background gradient when no intersection occurs
 - Support emissive materials and global illumination
@@ -46,19 +56,20 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 - Use vector pooling for memory efficiency
 - Apply gamma correction and tone mapping for final output
 
-### 4. Adaptive Sampling
+### 5. Adaptive Sampling
 - **Statistical convergence:** Use confidence interval testing per pixel
 - **Batch processing:** Sample pixels in configurable batch sizes
 - **Early termination:** Stop sampling when pixel converges or reaches maximum
 - **Quality control:** Balance between image quality and render time
 
-### 5. Performance Features
+### 6. Performance Features
 - **Vector pooling:** Reuse Vec3 objects to reduce memory allocations
 - **Region rendering:** Support rendering specific image regions
 - **Statistics tracking:** Monitor sampling efficiency and convergence rates
 - **Memory efficiency:** Direct buffer writing without intermediate allocations
+- **Russian Roulette:** Probabilistic ray termination for performance optimization
 
-### 6. Integration Points
+### 7. Integration Points
 - **World rendering:** Accept any `Hittable` object as the scene
 - **Material system:** Work with existing material and PDF classes
 - **Light sources:** Support `PDFHittable` objects for importance sampling
@@ -73,9 +84,15 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 - `5.0+` - Extreme artistic blur
 
 ### Quality Levels
-- **Preview:** 50-100 samples, tolerance 0.1
-- **Production:** 500-1000 samples, tolerance 0.01  
-- **Final:** 1000+ samples, tolerance 0.005
+- **Preview:** 50-100 samples, tolerance 0.1, Russian Roulette enabled
+- **Production:** 500-1000 samples, tolerance 0.01, Russian Roulette enabled
+- **Final:** 1000+ samples, tolerance 0.005, Russian Roulette enabled
+
+### Russian Roulette Settings
+- **Minimum depth:** 3-5 bounces before applying termination
+- **Maximum probability:** 0.95 to prevent infinite ray paths
+- **Energy threshold:** Use maximum RGB component of attenuation
+- **Performance impact:** 20-50% reduction in deep ray computations
 
 ### Focus Distance
 - Auto-calculate from camera-to-target distance
