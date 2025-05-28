@@ -85,19 +85,33 @@ export async function generateImageBuffer(
         
         const results = await Promise.all(workerPromises);
 
-        renderStats = results.reduce((acc, result) => {
-            return {
-                totalSamples: acc.totalSamples + result.totalSamples,
-                pixelCount: acc.pixelCount + result.pixelCount,
-                minSamplesPerPixel: Math.min(acc.minSamplesPerPixel, result.minSamplesPerPixel),
-                maxSamplesPerPixel: Math.max(acc.maxSamplesPerPixel, result.maxSamplesPerPixel),
-                avgSamplesPerPixel: (acc.avgSamplesPerPixel * acc.pixelCount + result.avgSamplesPerPixel * result.pixelCount) / (acc.pixelCount + result.pixelCount)
-            };
-        }, { totalSamples: 0, pixelCount: 0, minSamplesPerPixel: Infinity, maxSamplesPerPixel: 0, avgSamplesPerPixel: 0 });
+        // Aggregate statistics from all workers
+        renderStats = results.reduce((acc, result) => ({
+            pixels: acc.pixels + result.pixels,
+            samples: {
+                total: acc.samples.total + result.samples.total,
+                min: Math.min(acc.samples.min, result.samples.min),
+                max: Math.max(acc.samples.max, result.samples.max),
+                avg: (acc.samples.total + result.samples.total) / (acc.pixels + result.pixels)
+            },
+            bounces: {
+                total: acc.bounces.total + result.bounces.total,
+                min: Math.min(acc.bounces.min, result.bounces.min),
+                max: Math.max(acc.bounces.max, result.bounces.max),
+                avg: (acc.samples.total + result.samples.total) > 0 
+                    ? (acc.bounces.total + result.bounces.total) / (acc.samples.total + result.samples.total) 
+                    : 0
+            }
+        }), { 
+            pixels: 0, 
+            samples: { total: 0, min: Infinity, max: 0, avg: 0 }, 
+            bounces: { total: 0, min: Infinity, max: 0, avg: 0 } 
+        });
     }
 
     if (verbose) {
-        console.error(`Adaptive sampling stats: avg=${renderStats.avgSamplesPerPixel.toFixed(2)}, min=${renderStats.minSamplesPerPixel}, max=${renderStats.maxSamplesPerPixel}`);
+        console.error(`Adaptive sampling stats: avg=${renderStats.samples.avg.toFixed(2)}, min=${renderStats.samples.min}, max=${renderStats.samples.max}`);
+        console.error(`Ray bounce stats: avg=${renderStats.bounces.avg.toFixed(2)}, min=${renderStats.bounces.min}, max=${renderStats.bounces.max}`);
     }
     
     if (pixelData.length === 0) {

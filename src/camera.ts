@@ -28,11 +28,19 @@ export interface CameraOptions {
  * Statistics from the rendering process
  */
 export interface RenderStats {
-    totalSamples: number;        // Total number of samples taken
-    pixelCount: number;          // Total number of pixels rendered
-    minSamplesPerPixel: number;  // Minimum samples for any pixel
-    maxSamplesPerPixel: number;  // Maximum samples for any pixel
-    avgSamplesPerPixel: number;  // Average samples per pixel
+    pixels: number;              // Total number of pixels rendered
+    samples: {                   // Sample statistics
+        total: number;           // Total number of samples taken
+        min: number;             // Minimum samples for any pixel
+        max: number;             // Maximum samples for any pixel
+        avg: number;             // Average samples per pixel
+    };
+    bounces: {                   // Bounce statistics
+        total: number;           // Total number of bounces across all rays
+        min: number;             // Minimum bounces for any ray
+        max: number;             // Maximum bounces for any ray
+        avg: number;             // Average bounces per ray
+    };
 }
 
 export class Camera {
@@ -179,12 +187,17 @@ export class Camera {
      * If the ray hits an object, it uses the material's PDF or scattered ray to calculate the color.
      * Otherwise, it returns a background gradient color.
      * @param r The ray.
-     * @param depth Maximum recursion depth.
+     * @param stats Optional stats object to track bounce count.
      * @returns The color of the ray.
      */
-    rayColor(r: Ray, depth: number = this.maxDepth): Color {
+    rayColor(r: Ray, stats?: { bounces: number }): Color {
+        // Initialize stats if not provided
+        if (!stats) {
+            stats = { bounces: 0 };
+        }
+
         // If we've exceeded the ray bounce limit, no more light is gathered
-        if (depth <= 0) {
+        if (stats.bounces >= this.maxDepth) {
             return Color.BLACK;
         }
 
@@ -212,14 +225,14 @@ export class Camera {
             return emitted;
         }
 
+        // Increment bounce count for scattered rays
+        stats.bounces++;
+
         // Handle specular materials that return a specific ray
         if (scatterResult.scattered) {
             // Recursively trace the specular ray, multiply by attenuation, and add emitted light
-            return emitted.add(
-                scatterResult.attenuation.multiplyVec(
-                    this.rayColor(scatterResult.scattered, depth - 1)
-                )
-            );
+            const scatteredColor = this.rayColor(scatterResult.scattered, stats);
+            return emitted.add(scatterResult.attenuation.multiplyVec(scatteredColor));
         }
         
         // Handle diffuse materials that return a PDF for sampling
@@ -250,10 +263,10 @@ export class Camera {
             const brdfOverPdf = scatterResult.attenuation.multiply(scatterPdfValue / pdfValue);
 
             // Trace the scattered ray and calculate contribution
-            const incomingLight = this.rayColor(scattered, depth - 1);
+            const incomingColor = this.rayColor(scattered, stats);
 
             // Final contribution is emitted light + (incoming light * brdf/pdf)
-            return emitted.add(incomingLight.multiplyVec(brdfOverPdf));
+            return emitted.add(incomingColor.multiplyVec(brdfOverPdf));
         }
         
         // Fallback - just return emitted light
@@ -293,6 +306,11 @@ export class Camera {
         let maxSamplesPerPixel = 0;
         const pixelCount = (endX - startX) * (endY - startY);
 
+        // Bounce statistics tracking
+        let totalBounces = 0;
+        let minBouncesPerRay = this.maxDepth; // Start with max possible
+        let maxBouncesPerRay = 0;
+
         // Render loop for the region
         for (let j = startY; j < endY; ++j) {            
             for (let i = startX; i < endX; ++i) {
@@ -320,13 +338,19 @@ export class Camera {
                         
                         // Get and trace a ray through this pixel with jitter
                         const r = this.getRay(i + Math.random(), j + Math.random());
-                        const color = this.rayColor(r, this.maxDepth);
+                        const rayStats = { bounces: 0 };
+                        const color = this.rayColor(r, rayStats);
                         
                         // Release the vector pool
                         Vec3.usePool(null);
                         
                         // Accumulate color
                         pixelColor = pixelColor.add(color);
+                        
+                        // Track bounce statistics
+                        totalBounces += rayStats.bounces;
+                        minBouncesPerRay = Math.min(minBouncesPerRay, rayStats.bounces);
+                        maxBouncesPerRay = Math.max(maxBouncesPerRay, rayStats.bounces);
                         
                         // Track statistics for adaptive sampling
                         if (useAdaptiveSampling) {
@@ -372,15 +396,24 @@ export class Camera {
             }
         }
         
-        // Calculate average samples per pixel
+        // Calculate average samples per pixel and bounces per ray
         const avgSamplesPerPixel = totalSamples / pixelCount;
+        const avgBouncesPerRay = totalSamples > 0 ? totalBounces / totalSamples : 0;
         
         return {
-            totalSamples,
-            pixelCount,
-            minSamplesPerPixel,
-            maxSamplesPerPixel,
-            avgSamplesPerPixel
+            pixels: pixelCount,
+            samples: {
+                total: totalSamples,
+                min: minSamplesPerPixel,
+                max: maxSamplesPerPixel,
+                avg: avgSamplesPerPixel
+            },
+            bounces: {
+                total: totalBounces,
+                min: minBouncesPerRay,
+                max: maxBouncesPerRay,
+                avg: avgBouncesPerRay
+            }
         };
     }
 

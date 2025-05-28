@@ -289,11 +289,15 @@ describe('Camera', () => {
             
             const stats = camera.render(buffer);
             
-            expect(stats.totalSamples).toBe(100); // 10x10 pixels, 1 sample each
-            expect(stats.pixelCount).toBe(100);
-            expect(stats.minSamplesPerPixel).toBe(1);
-            expect(stats.maxSamplesPerPixel).toBe(1);
-            expect(stats.avgSamplesPerPixel).toBe(1);
+            expect(stats.samples.total).toBe(100); // 10x10 pixels, 1 sample each
+            expect(stats.pixels).toBe(100);
+            expect(stats.samples.min).toBe(1);
+            expect(stats.samples.max).toBe(1);
+            expect(stats.samples.avg).toBe(1);
+            expect(stats.bounces.total).toBeGreaterThanOrEqual(0);
+            expect(stats.bounces.min).toBeGreaterThanOrEqual(0);
+            expect(stats.bounces.max).toBeGreaterThanOrEqual(0);
+            expect(stats.bounces.avg).toBeGreaterThanOrEqual(0);
         });
 
         it('should render with defocus blur without errors', () => {
@@ -310,8 +314,8 @@ describe('Camera', () => {
             
             const stats = camera.render(buffer);
             
-            expect(stats.totalSamples).toBeGreaterThan(0);
-            expect(stats.pixelCount).toBe(100);
+            expect(stats.samples.total).toBeGreaterThan(0);
+            expect(stats.pixels).toBe(100);
             expect(buffer.length).toBe(300); // 10x10x3 channels
         });
 
@@ -328,8 +332,8 @@ describe('Camera', () => {
             // Render a 10x10 region starting at (5,5)
             const stats = camera.renderRegion(buffer, 5, 5, 10, 10);
             
-            expect(stats.pixelCount).toBe(100); // 10x10 region
-            expect(stats.totalSamples).toBe(100); // 1 sample per pixel
+            expect(stats.pixels).toBe(100); // 10x10 region
+            expect(stats.samples.total).toBe(100); // 1 sample per pixel
         });
     });
 
