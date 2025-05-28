@@ -18,11 +18,6 @@ const camera = scene.camera;
 // Use the shared buffer for pixel data
 const pixelData = new Uint8ClampedArray(sharedBuffer);
 
-// Log start if verbose
-if (verbose) {
-  console.error(`Worker ${workerId} rendering region: ${region.startX},${region.startY} to ${region.startX + region.width},${region.startY + region.height}`);
-}
-
 // Render the region directly to the shared buffer
 const stats = camera.renderRegion(
   pixelData,

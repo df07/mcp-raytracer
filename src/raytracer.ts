@@ -163,10 +163,6 @@ function runWorker(
             return;
         }
         
-        if (verbose) {
-            console.error(`Starting worker ${workerId} with script: ${workerScriptPath}`);
-        }
-        
         // Create the worker
         const worker = new Worker(workerScriptPath, {
             workerData: {
