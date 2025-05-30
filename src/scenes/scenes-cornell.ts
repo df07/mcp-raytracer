@@ -130,7 +130,9 @@ export function generateCornellScene(cameraOpts?: CameraOptions, sceneOpts?: Cor
     lookFrom: new Vec3(0, 0, halfSize * 4), // Moved camera further back
     lookAt: new Vec3(0, 0, 0),                 // Look at the center of the box
     vUp: new Vec3(0, 1, 0),                     // Up direction
-    lights: [ceilingLight]
+    lights: [ceilingLight],
+    backgroundTop: Color.BLACK,                 // No ambient light - black background
+    backgroundBottom: Color.BLACK               // No ambient light - black background
   };
 
   // Create camera

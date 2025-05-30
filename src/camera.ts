@@ -34,6 +34,8 @@ export interface CameraOptions {
   renderMode?: RenderMode;       // Render mode for visualization (default: Color)
   russianRouletteEnabled?: boolean;  // Enable Russian Roulette ray termination (default: true)
   russianRouletteDepth?: number;     // Minimum bounces before applying Russian Roulette (default: 3)
+  backgroundTop?: Color;         // Top color for background gradient (default: white)
+  backgroundBottom?: Color;      // Bottom color for background gradient (default: blue)
 }
 
 /**
@@ -72,6 +74,8 @@ export class Camera {
         renderMode: RenderMode.Default,
         russianRouletteEnabled: true,
         russianRouletteDepth: 3,
+        backgroundTop: Color.WHITE,
+        backgroundBottom: Color.BLUE,
     }
 
     public readonly imageWidth: number;
@@ -93,6 +97,8 @@ export class Camera {
     private readonly renderMode: RenderMode; // Render mode for visualization
     private readonly russianRouletteEnabled: boolean; // Whether Russian Roulette is enabled
     private readonly russianRouletteDepth: number; // Minimum bounces before applying Russian Roulette
+    private readonly backgroundTop: Color; // Top color for background gradient
+    private readonly backgroundBottom: Color; // Bottom color for background gradient
     
     // Defocus blur properties
     private readonly aperture: number;
@@ -118,6 +124,8 @@ export class Camera {
         this.renderMode = loptions.renderMode || RenderMode.Default;
         this.russianRouletteEnabled = loptions.russianRouletteEnabled || true;
         this.russianRouletteDepth = loptions.russianRouletteDepth || 3;
+        this.backgroundTop = loptions.backgroundTop || Color.WHITE;
+        this.backgroundBottom = loptions.backgroundBottom || Color.BLUE;
 
         // Initialize defocus blur properties
         this.aperture = loptions.aperture;
@@ -232,7 +240,7 @@ export class Camera {
             const unitDirection = r.direction.unitVector();
             const a = 0.5 * (unitDirection.y + 1.0);
             // Linear interpolation (lerp) between white and blue based on y-coordinate
-            return Color.WHITE.multiply(1.0 - a).add(Color.BLUE.multiply(a));
+            return this.backgroundTop.multiply(1.0 - a).add(this.backgroundBottom.multiply(a));
         }
 
         // Get emitted light from the hit material

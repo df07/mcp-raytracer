@@ -675,3 +675,231 @@ describe('Camera Russian Roulette', () => {
         });
     });
 });
+
+describe('Camera Background Colors', () => {
+    let emptyWorld: HittableList;
+    let defaultOptions: CameraOptions;
+
+    beforeEach(() => {
+        // Create an empty world to test background colors
+        emptyWorld = new HittableList();
+
+        defaultOptions = {
+            imageWidth: 10,
+            imageHeight: 10,
+            samples: 1,
+        };
+    });
+
+    describe('Default Background', () => {
+        it('should use white-to-blue gradient by default', () => {
+            const camera = new Camera(emptyWorld, defaultOptions);
+            
+            // Create rays pointing in different directions to test gradient
+            const rayUp = new Ray(new Vec3(0, 0, 0), new Vec3(0, 1, 0)); // Should be more blue (bottom color)
+            const rayDown = new Ray(new Vec3(0, 0, 0), new Vec3(0, -1, 0)); // Should be more white (top color)
+            
+            const colorUp = camera.rayColor(rayUp);
+            const colorDown = camera.rayColor(rayDown);
+            
+            // Down ray should have more white (higher overall brightness) - it gets the top color
+            const brightnessUp = colorUp.x + colorUp.y + colorUp.z;
+            const brightnessDown = colorDown.x + colorDown.y + colorDown.z;
+            
+            expect(brightnessDown).toBeGreaterThan(brightnessUp);
+            
+            // Up ray should have Color.BLUE characteristics (lower red and green components)
+            // Down ray should have Color.WHITE characteristics (all components equal to 1)
+            expect(colorDown.x).toBeCloseTo(1.0, 1); // White has R=1
+            expect(colorUp.x).toBeCloseTo(0.5, 1);   // Blue has R=0.5
+        });
+
+        it('should interpolate background colors based on ray direction', () => {
+            const camera = new Camera(emptyWorld, defaultOptions);
+            
+            // Test horizontal ray (should be middle of gradient)
+            const rayHorizontal = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
+            const colorHorizontal = camera.rayColor(rayHorizontal);
+            
+            // Should be a mix of white and blue
+            expect(colorHorizontal.x).toBeGreaterThan(0);
+            expect(colorHorizontal.y).toBeGreaterThan(0);
+            expect(colorHorizontal.z).toBeGreaterThan(0);
+        });
+    });
+
+    describe('Custom Background Colors', () => {
+        it('should use custom background colors when specified', () => {
+            const redTop = new Color(1, 0, 0);
+            const greenBottom = new Color(0, 1, 0);
+            
+            const options: CameraOptions = {
+                ...defaultOptions,
+                backgroundTop: redTop,
+                backgroundBottom: greenBottom,
+            };
+            
+            const camera = new Camera(emptyWorld, options);
+            
+            // Test ray pointing up (should be green - gets bottom color)
+            const rayUp = new Ray(new Vec3(0, 0, 0), new Vec3(0, 1, 0));
+            const colorUp = camera.rayColor(rayUp);
+            
+            // Should be predominantly green (bottom color)
+            expect(colorUp.y).toBeGreaterThan(colorUp.x);
+            expect(colorUp.y).toBeGreaterThan(colorUp.z);
+            
+            // Test ray pointing down (should be red - gets top color)
+            const rayDown = new Ray(new Vec3(0, 0, 0), new Vec3(0, -1, 0));
+            const colorDown = camera.rayColor(rayDown);
+            
+            // Should be predominantly red (top color)
+            expect(colorDown.x).toBeGreaterThan(colorDown.y);
+            expect(colorDown.x).toBeGreaterThan(colorDown.z);
+        });
+
+        it('should support black backgrounds for Cornell box scenarios', () => {
+            const options: CameraOptions = {
+                ...defaultOptions,
+                backgroundTop: Color.BLACK,
+                backgroundBottom: Color.BLACK,
+            };
+            
+            const camera = new Camera(emptyWorld, options);
+            
+            // Test rays in various directions
+            const directions = [
+                new Vec3(0, 1, 0),   // Up
+                new Vec3(0, -1, 0),  // Down
+                new Vec3(1, 0, 0),   // Right
+                new Vec3(-1, 0, 0),  // Left
+                new Vec3(0, 0, 1),   // Forward
+                new Vec3(0, 0, -1),  // Backward
+            ];
+            
+            directions.forEach(direction => {
+                const ray = new Ray(new Vec3(0, 0, 0), direction);
+                const color = camera.rayColor(ray);
+                
+                // All should be black (no ambient light)
+                expect(color.x).toBe(0);
+                expect(color.y).toBe(0);
+                expect(color.z).toBe(0);
+            });
+        });
+
+        it('should handle single color backgrounds', () => {
+            const purple = new Color(0.5, 0, 0.5);
+            
+            const options: CameraOptions = {
+                ...defaultOptions,
+                backgroundTop: purple,
+                backgroundBottom: purple,
+            };
+            
+            const camera = new Camera(emptyWorld, options);
+            
+            // Test rays in different directions - all should be purple
+            const rayUp = new Ray(new Vec3(0, 0, 0), new Vec3(0, 1, 0));
+            const rayDown = new Ray(new Vec3(0, 0, 0), new Vec3(0, -1, 0));
+            
+            const colorUp = camera.rayColor(rayUp);
+            const colorDown = camera.rayColor(rayDown);
+            
+            // Both should be the same purple color
+            expect(colorUp.x).toBeCloseTo(purple.x, 5);
+            expect(colorUp.y).toBeCloseTo(purple.y, 5);
+            expect(colorUp.z).toBeCloseTo(purple.z, 5);
+            
+            expect(colorDown.x).toBeCloseTo(purple.x, 5);
+            expect(colorDown.y).toBeCloseTo(purple.y, 5);
+            expect(colorDown.z).toBeCloseTo(purple.z, 5);
+        });
+    });
+
+    describe('Background Gradient Interpolation', () => {
+        it('should correctly interpolate between custom colors', () => {
+            const white = new Color(1, 1, 1);
+            const black = new Color(0, 0, 0);
+            
+            const options: CameraOptions = {
+                ...defaultOptions,
+                backgroundTop: white,
+                backgroundBottom: black,
+            };
+            
+            const camera = new Camera(emptyWorld, options);
+            
+            // Test horizontal ray (y = 0, should be middle gray)
+            const rayHorizontal = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
+            const colorHorizontal = camera.rayColor(rayHorizontal);
+            
+            // Should be approximately 50% gray
+            expect(colorHorizontal.x).toBeCloseTo(0.5, 1);
+            expect(colorHorizontal.y).toBeCloseTo(0.5, 1);
+            expect(colorHorizontal.z).toBeCloseTo(0.5, 1);
+        });
+
+        it('should handle extreme color values', () => {
+            const brightRed = new Color(10, 0, 0);
+            const darkBlue = new Color(0, 0, 0.1);
+            
+            const options: CameraOptions = {
+                ...defaultOptions,
+                backgroundTop: brightRed,
+                backgroundBottom: darkBlue,
+            };
+            
+            const camera = new Camera(emptyWorld, options);
+            
+            // Should not throw errors with extreme values
+            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0.5, 0));
+            expect(() => camera.rayColor(ray)).not.toThrow();
+        });
+    });
+
+    describe('Integration with Rendering', () => {
+        it('should render correctly with custom backgrounds', () => {
+            const options: CameraOptions = {
+                imageWidth: 5,
+                imageHeight: 5,
+                samples: 1,
+                backgroundTop: new Color(1, 0, 0),
+                backgroundBottom: new Color(0, 0, 1),
+            };
+            
+            const camera = new Camera(emptyWorld, options);
+            const buffer = new Uint8ClampedArray(5 * 5 * 3);
+            
+            const stats = camera.render(buffer);
+            
+            expect(stats.pixels).toBe(25);
+            expect(stats.samples.total).toBe(25);
+            
+            // Buffer should contain non-zero values (not all black)
+            const hasNonZero = Array.from(buffer).some(value => value > 0);
+            expect(hasNonZero).toBe(true);
+        });
+
+        it('should render black backgrounds correctly', () => {
+            const options: CameraOptions = {
+                imageWidth: 3,
+                imageHeight: 3,
+                samples: 1,
+                backgroundTop: Color.BLACK,
+                backgroundBottom: Color.BLACK,
+            };
+            
+            const camera = new Camera(emptyWorld, options);
+            const buffer = new Uint8ClampedArray(3 * 3 * 3);
+            
+            const stats = camera.render(buffer);
+            
+            expect(stats.pixels).toBe(9);
+            
+            // Buffer should be all zeros (black)
+            const allZero = Array.from(buffer).every(value => value === 0);
+            expect(allZero).toBe(true);
+        });
+    });
+});

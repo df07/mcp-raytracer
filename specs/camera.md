@@ -20,6 +20,7 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 - **Sampling quality:** `samples`, `adaptiveTolerance`, `adaptiveBatchSize` for image quality control
 - **Importance sampling:** Support for `lights` array to improve rendering efficiency
 - **Russian Roulette:** `russianRouletteDepth` and `russianRouletteEnabled` for probabilistic ray termination
+- **Background colors:** `backgroundTop` and `backgroundBottom` for customizable background gradients (default: white-to-blue sky gradient)
 
 ### 2. Russian Roulette Ray Termination
 - **Purpose:** Probabilistically terminate rays early while maintaining unbiased results
@@ -47,7 +48,7 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 - Trace rays with recursive bouncing up to maximum depth
 - Apply Russian Roulette termination after minimum bounce threshold
 - Use importance sampling with material and light PDFs
-- Return background gradient when no intersection occurs
+- Return custom background gradient when no intersection occurs
 - Support emissive materials and global illumination
 
 #### `renderRegion()` and `render()`
@@ -98,6 +99,11 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 - Auto-calculate from camera-to-target distance
 - Manual override for artistic control
 - Affects which objects appear sharp vs blurred
+
+### Background Colors
+- **Default:** White top, blue bottom (sky-like gradient)
+- **Cornell box:** Black top and bottom (no ambient light)
+- **Custom:** Any color combination for artistic effects
 
 ## Implementation Notes
 
