@@ -29,6 +29,14 @@ $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
 # Create descriptive filename base with key parameters
 $sceneType = if ($cornell -ne "") { "cornell" } elseif ($rain -gt 0) { "rain" } elseif ($spheres -gt 0) { "spheres" } else { "default" }
+
+# Create scene-specific subdirectory
+$sceneOutputDir = Join-Path $outputDir $sceneType
+if (-not (Test-Path $sceneOutputDir)) {
+    New-Item -ItemType Directory -Path $sceneOutputDir | Out-Null
+    Write-Host "Created scene output directory: $sceneOutputDir"
+}
+
 $fileBase = "${sceneType}_${timestamp}_w${width}_s${samples}"
 if ($spheres -gt 0) { $fileBase += "_c${spheres}" }  # c for count of spheres
 if ($cornell -ne "") { $fileBase += "_${cornell}" }  # Cornell variant
@@ -85,8 +93,8 @@ if ($mode -ne 'default') {
 }
 
 # Set output and log filenames with the same base
-$outputFile = Join-Path $outputDir "${fileBase}.png"
-$logFile = Join-Path $outputDir "${fileBase}.log"
+$outputFile = Join-Path $sceneOutputDir "${fileBase}.png"
+$logFile = Join-Path $sceneOutputDir "${fileBase}.log"
 
 # Add output file
 $cmd += " --output $outputFile"
@@ -131,7 +139,7 @@ if ($profile) {
     if ($isolateFiles.Count -gt 0) {
         # Get the most recent isolate file
         $latestIsolateFile = $isolateFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        $profileOutputFile = Join-Path $outputDir "${fileBase}_profile.txt"
+        $profileOutputFile = Join-Path $sceneOutputDir "${fileBase}_profile.txt"
         
         Write-Host "Processing profile data from $($latestIsolateFile.Name)"
         
