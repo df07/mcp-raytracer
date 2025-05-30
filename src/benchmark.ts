@@ -28,7 +28,6 @@ export async function runRaytracerBenchmark() {
     
     if (arg === '--width' || arg === '-w') {
       cameraOptions.imageWidth = parseInt(args[++i], 10);
-      cameraOptions.imageHeight = Math.ceil(cameraOptions.imageWidth / (16 / 9)); // Maintain 16:9 aspect ratios
     } else if (arg === '--samples' || arg === '-s') {
       cameraOptions.samples = parseInt(args[++i], 10);
     } else if (arg === '--output' || arg === '-o') {
@@ -98,7 +97,7 @@ Options:
     }
   }
   console.error(`Running raytracer with options:`);
-  console.error(`  Dimensions: ${cameraOptions.imageWidth}x${cameraOptions.imageHeight}`);
+  console.error(`  Dimensions: ${cameraOptions.imageWidth}`);
   console.error(`  Samples: ${cameraOptions.samples}`);
   console.error(`  Scene type: ${generationOptions.sceneType}`);
   if (generationOptions.sceneType === 'cornell') {

@@ -8,7 +8,6 @@ import { generateScene } from '../../src/scenes/scenes.js';
 describe('Rain Scene Generator', () => {
   const defaultCamera: CameraOptions = {
     imageWidth: 9,
-    imageHeight: 6,
     samples: 1
   };  
   

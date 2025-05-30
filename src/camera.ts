@@ -20,7 +20,7 @@ export enum RenderMode {
  */
 export interface CameraOptions {
   imageWidth?: number;           // Width of the rendered image (default: 400)
-  imageHeight?: number;          // Height of the rendered image (default: 225)
+  aspectRatio?: number;          // Aspect ratio of the rendered image (default: 16/9)
   vfov?: number;                 // Vertical field of view in degrees (default: 90)
   lookFrom?: Point3;             // Camera position (default: origin)
   lookAt?: Point3;               // Look-at position (default: 0,0,-1)
@@ -60,7 +60,7 @@ export interface RenderStats {
 export class Camera {
     static defaultOptions: Required<CameraOptions> = {
         imageWidth: 400,
-        imageHeight: 225, // 16:9 aspect ratio
+        aspectRatio: 16 / 9,
         vfov: 90,
         lookFrom: new Vec3(0, 0, 0),
         lookAt: new Vec3(0, 0, -1),
@@ -115,7 +115,7 @@ export class Camera {
         const loptions: Required<CameraOptions> = {...Camera.defaultOptions, ...options};
 
         this.imageWidth = loptions.imageWidth;
-        this.imageHeight = loptions.imageHeight;
+        this.imageHeight = Math.ceil(this.imageWidth / loptions.aspectRatio);
         this.center = loptions.lookFrom;
         this.samples = loptions.samples;
         this.adaptiveTolerance = loptions.adaptiveTolerance;

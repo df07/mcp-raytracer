@@ -11,6 +11,9 @@ import { AABB } from '../src/geometry/aabb.js';
 import { DefaultMaterial } from '../src/materials/material.js';
 import { ScatterResult } from '../src/materials/material.js';
 import { CosinePDF, MixturePDF } from '../src/geometry/pdf.js';
+import { generateCornellScene } from '../src/scenes/scenes-cornell.js';
+import { generateSpheresScene } from '../src/scenes/scenes-spheres.js';
+import { generateDefaultScene } from '../src/scenes/scenes-default.js';
 
 // Mock Material for testing
 class MockMaterial implements Material {
@@ -107,7 +110,7 @@ describe('Camera', () => {
 
         defaultOptions = {
             imageWidth: 100,
-            imageHeight: 100,
+            aspectRatio: 1.0,
             vfov: 90,
             lookFrom: new Vec3(0, 0, 0),
             lookAt: new Vec3(0, 0, -1),
@@ -279,7 +282,7 @@ describe('Camera', () => {
         it('should render without errors', () => {
             const options: CameraOptions = {
                 imageWidth: 10,
-                imageHeight: 10,
+                aspectRatio: 1.0,
                 samples: 1,
                 aperture: 0,
             };
@@ -303,7 +306,7 @@ describe('Camera', () => {
         it('should render with defocus blur without errors', () => {
             const options: CameraOptions = {
                 imageWidth: 10,
-                imageHeight: 10,
+                aspectRatio: 1.0,
                 samples: 2,
                 aperture: 1.0,
                 focusDistance: 1.0,
@@ -322,7 +325,7 @@ describe('Camera', () => {
         it('should render region correctly', () => {
             const options: CameraOptions = {
                 imageWidth: 20,
-                imageHeight: 20,
+                aspectRatio: 1.0,
                 samples: 1,
             };
             
@@ -460,7 +463,7 @@ describe('Camera Russian Roulette', () => {
 
         defaultOptions = {
             imageWidth: 10,
-            imageHeight: 10,
+            aspectRatio: 1.0,
             samples: 1,
         };
     });
@@ -686,7 +689,7 @@ describe('Camera Background Colors', () => {
 
         defaultOptions = {
             imageWidth: 10,
-            imageHeight: 10,
+            aspectRatio: 1.0,
             samples: 1,
         };
     });
@@ -862,7 +865,7 @@ describe('Camera Background Colors', () => {
         it('should render correctly with custom backgrounds', () => {
             const options: CameraOptions = {
                 imageWidth: 5,
-                imageHeight: 5,
+                aspectRatio: 1.0,
                 samples: 1,
                 backgroundTop: new Color(1, 0, 0),
                 backgroundBottom: new Color(0, 0, 1),
@@ -884,7 +887,7 @@ describe('Camera Background Colors', () => {
         it('should render black backgrounds correctly', () => {
             const options: CameraOptions = {
                 imageWidth: 3,
-                imageHeight: 3,
+                aspectRatio: 1.0,
                 samples: 1,
                 backgroundTop: Color.BLACK,
                 backgroundBottom: Color.BLACK,
@@ -901,5 +904,35 @@ describe('Camera Background Colors', () => {
             const allZero = Array.from(buffer).every(value => value === 0);
             expect(allZero).toBe(true);
         });
+    });
+});
+
+describe('Scene Aspect Ratios', () => {
+    it('should generate square images for Cornell box scenes', () => {
+        const scene = generateCornellScene({ imageWidth: 400 });
+        
+        expect(scene.camera.imageWidth).toBe(400);
+        expect(scene.camera.imageHeight).toBe(400); // Should be square (1:1 ratio)
+    });
+
+    it('should generate 16:9 images for spheres scenes when only width provided', () => {
+        const scene = generateSpheresScene({ imageWidth: 400 });
+        
+        expect(scene.camera.imageWidth).toBe(400);
+        expect(scene.camera.imageHeight).toBe(Math.ceil(400 / (16 / 9))); // Should be 16:9 ratio
+    });
+
+    it('should generate 16:9 images for default scenes when only width provided', () => {
+        const scene = generateDefaultScene({ imageWidth: 400 });
+        
+        expect(scene.camera.imageWidth).toBe(400);
+        expect(scene.camera.imageHeight).toBe(Math.ceil(400 / (16 / 9))); // Should be 16:9 ratio
+    });
+
+    it('should respect aspect ratio', () => {
+        const scene = generateCornellScene({ imageWidth: 400, aspectRatio: 4/3 });
+        
+        expect(scene.camera.imageWidth).toBe(400);
+        expect(scene.camera.imageHeight).toBe(300); // Should use explicit height
     });
 });

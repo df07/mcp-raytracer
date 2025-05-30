@@ -126,6 +126,7 @@ export function generateCornellScene(cameraOpts?: CameraOptions, sceneOpts?: Cor
 
   // Default camera options for Cornell box view
   const defaultCameraOptions: CameraOptions = {
+    aspectRatio: 1.0,
     vfov: 40,                                  // Increased FOV to see the entire box
     lookFrom: new Vec3(0, 0, halfSize * 4), // Moved camera further back
     lookAt: new Vec3(0, 0, 0),                 // Look at the center of the box

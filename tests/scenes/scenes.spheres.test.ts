@@ -6,7 +6,7 @@ import { generateSpheresScene, SpheresSceneOptions } from '../../src/scenes/scen
 describe('Spheres Scene Generator', () => {
   const defaultCamera: CameraOptions = {
     imageWidth: 9,
-    imageHeight: 6,
+    aspectRatio: 6 / 9,
     samples: 1
   };    
 

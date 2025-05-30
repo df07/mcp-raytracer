@@ -131,7 +131,7 @@ export const raytraceToolHandler = async (args: {
 // Define the schema for camera options
 const cameraOptionsSchema = z.object({
   imageWidth: z.number().optional().describe("Width of the rendered image"),
-  imageHeight: z.number().optional().describe("Height of the rendered image"),
+  aspectRatio: z.number().optional().describe("Aspect ratio of the rendered image"),
   vfov: z.number().optional().describe("Vertical field of view in degrees"),
   lookFrom: z.any().optional().describe("Camera position"),
   lookAt: z.any().optional().describe("Look-at position"),

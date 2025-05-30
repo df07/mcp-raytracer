@@ -8,7 +8,7 @@ describe('generateImageBuffer', () => {
         type: 'default',
         camera: {
             imageWidth: 9,
-            imageHeight: 6,
+            aspectRatio: 6 / 9,
             samples: 1
         }
     }
@@ -24,7 +24,7 @@ describe('generateImageBuffer', () => {
         type: 'spheres',
         camera: {
             imageWidth: 9,
-            imageHeight: 6,
+            aspectRatio: 6 / 9,
             samples: 1
         },
         options: {
@@ -32,10 +32,12 @@ describe('generateImageBuffer', () => {
         }
     };
 
+    function heightFromAspect(width: number, aspectRatio: number): number {
+        return Math.ceil(width / aspectRatio);
+    }
+
     it('should produce a valid PNG buffer with default scene', async () => {
         const imageWidth = 9; // Smaller size for faster testing
-        const imageHeight = 6; // Ensure height is at least 1
-        const samples = 1;
 
         const buffer = await generateImageBuffer(defaultScene); // Generate buffer, no verbose logging
 
@@ -47,7 +49,7 @@ describe('generateImageBuffer', () => {
         const metadata = await sharp(buffer).metadata();
         expect(metadata.format).toBe('png');
         expect(metadata.width).toBe(imageWidth);
-        expect(metadata.height).toBe(imageHeight);
+        expect(metadata.height).toBe(heightFromAspect(imageWidth, defaultScene.camera?.aspectRatio!));
         expect(metadata.channels).toBe(3); // RGB
     });
 
@@ -69,7 +71,7 @@ describe('generateImageBuffer', () => {
         const metadata = await sharp(buffer).metadata();
         expect(metadata.format).toBe('png');
         expect(metadata.width).toBe(randomScene.camera?.imageWidth);
-        expect(metadata.height).toBe(randomScene.camera?.imageHeight);
+        expect(metadata.height).toBe(heightFromAspect(randomScene.camera?.imageWidth!, randomScene.camera?.aspectRatio!));
     });
 
     // Parallel rendering tests
@@ -93,7 +95,7 @@ describe('generateImageBuffer', () => {
                 const metadata = await sharp(buffer).metadata();
                 expect(metadata.format).toBe('png');
                 expect(metadata.width).toBe(scene.camera?.imageWidth);
-                expect(metadata.height).toBe(scene.camera?.imageHeight);
+                expect(metadata.height).toBe(heightFromAspect(scene.camera?.imageWidth!, scene.camera?.aspectRatio!));
                 
                 return buffer;
             } catch (error) {
@@ -117,7 +119,7 @@ describe('generateImageBuffer', () => {
                 type: 'spheres',
                 camera: {
                     imageWidth: 20,
-                    imageHeight: 15,
+                    aspectRatio: 15 / 20,
                     samples: 10,
                     adaptiveTolerance: 0.2, // High tolerance for faster convergence
                     adaptiveBatchSize: 1
@@ -135,7 +137,7 @@ describe('generateImageBuffer', () => {
             // but we can verify we got a correctly rendered image
             const metadata = await sharp(buffer).metadata();
             expect(metadata.width).toBe(adaptiveScene.camera?.imageWidth);
-            expect(metadata.height).toBe(adaptiveScene.camera?.imageHeight);
+            expect(metadata.height).toBe(heightFromAspect(adaptiveScene.camera?.imageWidth!, adaptiveScene.camera?.aspectRatio!));
         }, 10000); // Longer timeout
     });
 });
