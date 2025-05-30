@@ -9,6 +9,7 @@ param (
     [string]$outputDir = "benchmark_results",
     [int]$spheres = 0,
     [int]$rain = 0,
+    [string]$cornell = "", # Cornell box variant: "spheres" or "empty"
     [int]$seed = 0,
     [double]$at = 0, # Default to 0 = disabled (will use Camera's default if > 0)
     [double]$ab = 0, # Default to 0 = disabled (will use Camera's default if > 0)
@@ -27,9 +28,10 @@ if (-not (Test-Path $outputDir)) {
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
 # Create descriptive filename base with key parameters
-$sceneType = if ($rain -gt 0) { "rain" } elseif ($spheres -gt 0) { "spheres" } else { "default" }
+$sceneType = if ($cornell -ne "") { "cornell" } elseif ($rain -gt 0) { "rain" } elseif ($spheres -gt 0) { "spheres" } else { "default" }
 $fileBase = "${sceneType}_${timestamp}_w${width}_s${samples}"
 if ($spheres -gt 0) { $fileBase += "_c${spheres}" }  # c for count of spheres
+if ($cornell -ne "") { $fileBase += "_${cornell}" }  # Cornell variant
 if ($seed -gt 0) { $fileBase += "_sd${seed}" }
 if ($ab -gt 0) { $fileBase += "_ab${ab}" }
 if ($at -gt 0) { $fileBase += "_at${at}" }
@@ -54,6 +56,13 @@ if ($spheres -gt 0) {
 }
 if ($rain -gt 0) {
     $cmd += " --rain $rain"
+}
+if ($cornell -ne "") {
+    if ($cornell -ne "spheres" -and $cornell -ne "empty") {
+        Write-Host "Error: Cornell variant must be 'spheres' or 'empty'"
+        exit 1
+    }
+    $cmd += " --cornell $cornell"
 }
 if ($seed -gt 0) {
     $cmd += " --seed $seed"

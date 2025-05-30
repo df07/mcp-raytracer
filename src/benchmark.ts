@@ -2,7 +2,7 @@
 
 import { generateImageBuffer, RaytracerOptions } from './raytracer.js';
 import { CameraOptions, RenderMode } from './camera.js';
-import { SpheresSceneOptions, SceneConfig, RainSceneOptions } from './scenes/scenes.js';
+import { SpheresSceneOptions, SceneConfig, RainSceneOptions, CornellSceneOptions } from './scenes/scenes.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -13,13 +13,14 @@ export async function runRaytracerBenchmark() {
   const cameraOptions: CameraOptions = {};
   const spheresSceneOptions: SpheresSceneOptions = {};
   const rainSceneOptions: RainSceneOptions = {};
+  const cornellSceneOptions: CornellSceneOptions = {};
   const generationOptions = {
     verbose: true,
     output: null as string | null,
     iterations: 1,
     parallel: false,
     threads: undefined as number | undefined,
-    sceneType: 'default' as 'default' | 'spheres' | 'rain'
+    sceneType: 'default' as 'default' | 'spheres' | 'rain' | 'cornell'
   };
   // Process args
   for (let i = 0; i < args.length; i++) {
@@ -61,6 +62,16 @@ export async function runRaytracerBenchmark() {
     else if (arg === '--rain') {
       rainSceneOptions.count = parseInt(args[++i], 10);
       generationOptions.sceneType = 'rain';
+    }
+    // Cornell scene - with variant option
+    else if (arg === '--cornell') {
+      const variant = args[++i] as 'spheres' | 'empty';
+      if (variant !== 'spheres' && variant !== 'empty') {
+        console.error(`Invalid Cornell variant: ${variant}. Use 'spheres' or 'empty'.`);
+        process.exit(1);
+      }
+      cornellSceneOptions.variant = variant;
+      generationOptions.sceneType = 'cornell';
     } 
     else if (arg === '--help' || arg === '-h') {
       console.log(`
@@ -75,6 +86,7 @@ Options:
   --iterations, -i <num>   Number of iterations to run (default: 1)
   --spheres <number>       Number of random spheres to generate (spheres scene)
   --rain <number>          Number of metallic raindrops to generate (rain scene)
+  --cornell <variant>      Cornell box scene ('spheres' or 'empty')
   --seed <number>          Random seed for deterministic scene generation
   --adaptive-tolerance <n> Convergence tolerance for adaptive sampling (default: 0.05)
   --adaptive-batch <n>     Number of samples to process in one batch (default: 32)
@@ -89,6 +101,9 @@ Options:
   console.error(`  Dimensions: ${cameraOptions.imageWidth}x${cameraOptions.imageHeight}`);
   console.error(`  Samples: ${cameraOptions.samples}`);
   console.error(`  Scene type: ${generationOptions.sceneType}`);
+  if (generationOptions.sceneType === 'cornell') {
+    console.error(`  Cornell variant: ${cornellSceneOptions.variant}`);
+  }
   if (spheresSceneOptions.seed !== undefined || rainSceneOptions.seed !== undefined) {
     console.error(`  Seed: ${spheresSceneOptions.seed || rainSceneOptions.seed}`);
   }
@@ -124,6 +139,12 @@ Options:
             type: 'rain',
             camera: Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined,
             options: rainSceneOptions
+          };
+        } else if (generationOptions.sceneType === 'cornell') {
+          sceneConfig = {
+            type: 'cornell',
+            camera: Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined,
+            options: cornellSceneOptions
           };
         } else {
           sceneConfig = { 
