@@ -75,7 +75,7 @@ export class Camera {
     private readonly world: Hittable;
     private lights: PDFHittable[];
     private readonly maxDepth: number; // Maximum recursion depth for ray bounces
-    private readonly samples: number; // Maximum number of samples per pixel
+    private readonly maxSamples: number; // Maximum number of samples per pixel
     private readonly adaptiveTolerance: number; // Tolerance for convergence
     private readonly adaptiveSampleBatchSize: number; // Number of samples to process in one batch
     private readonly renderMode: RenderMode; // Render mode for visualization
@@ -102,7 +102,7 @@ export class Camera {
         this.imageHeight = Math.ceil(this.imageWidth / loptions.aspectRatio);
         this.center = loptions.lookFrom;
         this.maxDepth = loptions.maxDepth;
-        this.samples = loptions.samples;
+        this.maxSamples = loptions.samples;
         this.adaptiveTolerance = loptions.adaptiveTolerance;
         this.adaptiveSampleBatchSize = loptions.adaptiveBatchSize;
         this.lights = loptions.lights;
@@ -168,7 +168,7 @@ export class Camera {
         // If samplesPerPixel is 1, we'll use the pixel center (no randomization)
         let pixelSample = pixelCenter;
         
-        if (this.samples > 1) {
+        if (this.maxSamples > 1) {
             // Calculate random offset within the pixel
             const px = -0.5 + Math.random(); // Random between -0.5 and 0.5
             const py = -0.5 + Math.random(); 
@@ -327,7 +327,7 @@ export class Camera {
             
             case RenderMode.Samples:
                 // Visualize sample count for this pixel (redscale)
-                const sampleIntensity = Math.min(sampleCount / this.samples, 1.0); // Normalize to [0,1]
+                const sampleIntensity = Math.min(sampleCount / this.maxSamples, 1.0); // Normalize to [0,1]
                 return Color.create(sampleIntensity, 0, 0); // Red scale
             
             case RenderMode.Default:
@@ -335,6 +335,47 @@ export class Camera {
                 // Normal color rendering
                 return pixelColor;
         }
+    }
+
+    private updatePixelStats(pixel: { color: Color, samples: number, bounces: number, sumIll: number, sumIll2: number }, rayColor: Color, rayStats: { bounces: number }, stats: RenderStats): void {
+        pixel.bounces += rayStats.bounces;
+        pixel.samples++;
+        stats.updateBounceStats(rayStats.bounces);
+
+        // Only update illuminance values if adaptive sampling is enabled
+        if (this.adaptiveTolerance > 0 && this.maxSamples > 1) {
+            const illuminance = rayColor.illuminance();
+            pixel.sumIll += illuminance;
+            pixel.sumIll2 += illuminance * illuminance;
+        }
+    }
+
+    /**
+     * Checks if the pixel has converged based on its illuminance statistics
+     * Only checks for convergence at batch intervals to avoid excessive computation
+     * @param pixel Pixel object containing illuminance statistics
+     * @returns Whether the pixel has converged
+     */
+    private pixelConverged(pixel: { samples: number, sumIll: number, sumIll2: number }): boolean {
+        // Only check convergence if adaptive sampling is enabled and we have enough samples
+        if (this.adaptiveTolerance <= 0 || this.maxSamples <= 1 || pixel.samples < 2) return false;
+        
+        // Only check convergence at batch intervals
+        if (pixel.samples % this.adaptiveSampleBatchSize !== 0) return false;
+
+        // Calculate mean and variance
+        const mean = pixel.sumIll / pixel.samples;
+        const variance = (pixel.sumIll2 - (pixel.sumIll * pixel.sumIll) / pixel.samples) / (pixel.samples - 1);
+        
+        // Skip convergence check if variance is invalid
+        if (variance <= 0 || isNaN(variance)) return true;
+        
+        // Calculate 95% confidence interval
+        const stdDev = Math.sqrt(variance);
+        const confidenceInterval = 1.96 * stdDev / Math.sqrt(pixel.samples);
+        
+        // Check if confidence interval is within tolerance of the mean
+        return confidenceInterval <= this.adaptiveTolerance * mean;
     }
 
     /**
@@ -361,95 +402,45 @@ export class Camera {
         // Ensure the region is within the image bounds
         const endX = Math.min(startX + width, this.imageWidth);
         const endY = Math.min(startY + height, this.imageHeight);
-        
-        // Determine if adaptive sampling should be used
-        const useAdaptiveSampling = this.adaptiveTolerance > 0 && this.samples > 1;
 
         // Render loop for the region
         for (let j = startY; j < endY; ++j) {            
             for (let i = startX; i < endX; ++i) {
-                // Initialize pixel data
-                let pixelColor = Color.create(0, 0, 0);
-                let sampleCount = 0;
-                let pixelBounces = 0;
+                const pixel = { color: Color.BLACK, samples: 0, bounces: 0, sumIll: 0, sumIll2: 0 };
                 
-                // Statistics for adaptive sampling
-                let s1 = 0; // Sum of illuminance values
-                let s2 = 0; // Sum of squared illuminance values
-                
-                // Sampling loop - unified approach for both adaptive and non-adaptive
-                while (sampleCount < this.samples) {
-                    // Determine batch size for this iteration
-                    const remainingSamples = this.samples - sampleCount;
-                    const batchSize = useAdaptiveSampling
-                        ? Math.min(this.adaptiveSampleBatchSize, remainingSamples)
-                        : remainingSamples;
+                // Sampling loop - continue until max samples or convergence
+                while (pixel.samples < this.maxSamples && !this.pixelConverged(pixel)) {
+                    // Set up vector pooling for this ray
+                    Vec3.usePool(pool);
+                    pool.reset();
                     
-                    // Process one batch of samples
-                    for (let s = 0; s < batchSize; ++s) {
-                        // Set up vector pooling for this ray
-                        Vec3.usePool(pool);
-                        pool.reset();
-                        
-                        // Get and trace a ray through this pixel with jitter
-                        const r = this.getRay(i + Math.random(), j + Math.random());
-                        const rayStats = { bounces: 0 };
-                        const color = this.rayColor(r, Color.WHITE, rayStats);
-                        
-                        // Release the vector pool
-                        Vec3.usePool(null);
-                        
-                        // Accumulate color
-                        pixelColor = pixelColor.add(color);
-                        
-                        // Track bounce statistics
-                        pixelBounces += rayStats.bounces;
-                        stats.updateBounceStats(rayStats.bounces);
-                        
-                        // Track statistics for adaptive sampling
-                        if (useAdaptiveSampling) {
-                            const illuminance = color.illuminance();
-                            s1 += illuminance;
-                            s2 += illuminance * illuminance;
-                        }
-                        
-                        sampleCount++;
-                    }
+                    // Get and trace a ray through this pixel with jitter
+                    const r = this.getRay(i + Math.random(), j + Math.random());
+                    const rayStats = { bounces: 0 };
+                    const rayColor = this.rayColor(r, Color.WHITE, rayStats);
                     
-                    // Only perform convergence check if using adaptive sampling and we have enough samples
-                    if (useAdaptiveSampling && sampleCount >= 2 && sampleCount < this.samples) {
-                        // Check if pixel has converged using statistical analysis
-                        const mean = s1 / sampleCount;
-                        const variance = (s2 - (s1 * s1) / sampleCount) / (sampleCount - 1);
-                        
-                        // Skip convergence check if variance is invalid (constant color or numerical issue)
-                        if (variance <= 0 || isNaN(variance)) break;
-                        
-                        // Calculate 95% confidence interval
-                        const stdDev = Math.sqrt(variance);
-                        const confidenceInterval = 1.96 * stdDev / Math.sqrt(sampleCount);
-                        
-                        // Check if confidence interval is within tolerance of the mean
-                        if (confidenceInterval <= this.adaptiveTolerance * mean) {
-                            break; // Pixel has converged, stop sampling
-                        }
-                    }
+                    // Release the vector pool
+                    Vec3.usePool(null);
+
+                    pixel.color = pixel.color.add(rayColor);
+
+                    this.updatePixelStats(pixel, rayColor, rayStats, stats);
                 }
                 
                 // Compute final pixel color by averaging all samples
-                pixelColor = pixelColor.divide(sampleCount);
+                pixel.color = pixel.color.divide(pixel.samples);
 
                 // Determine final pixel color based on render mode
                 if (this.renderMode !== RenderMode.Default) {
-                    pixelColor = this.specialRenderModeColor(pixelColor, pixelBounces, sampleCount);
+                    pixel.color = this.specialRenderModeColor(pixel.color, pixel.bounces, pixel.samples);
                 }
                 
                 // Update statistics
-                stats.updatePixelStats(sampleCount, pixelBounces);
+                stats.updatePixelStats(pixel.samples, pixel.bounces);
                 
                 // Write directly to the full image buffer at the correct position
                 const bufferIndex = (j * this.imageWidth + i) * this.channels;
-                this.writeColorToBuffer(buffer, bufferIndex, pixelColor);
+                this.writeColorToBuffer(buffer, bufferIndex, pixel.color);
             }
         }
         
