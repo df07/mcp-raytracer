@@ -60,6 +60,12 @@ export class Vec3 {
     negate(): Vec3 {
         const result = pool.get();
         glMatrix.vec3.negate(result.glVec, this.glVec);
+        
+        // normalize negative zeros
+        if (result.glVec[0] === 0) result.glVec[0] = 0;
+        if (result.glVec[1] === 0) result.glVec[1] = 0;
+        if (result.glVec[2] === 0) result.glVec[2] = 0;
+        
         return result;
     }
     
@@ -235,7 +241,27 @@ export class Vec3 {
         return 0.299 * this.x + 0.587 * this.y + 0.114 * this.z;
     }
 
+    // STATIC METHODS
+   
+    /**
+     * Sets the vector pool to use for all vector operations.
+     * @param newPool The new vector pool to use, or null to use the default pool
+     */
+    static usePool(newPool: VectorPool | null) {
+        // If a new pool is provided, ensure all vectors are allocated from it
+        pool = newPool || NoPool;
+    }
+    
+    static create(x: number, y: number, z: number): Vec3 {
+        const result = pool.get();
+        result.glVec[0] = x;
+        result.glVec[1] = y;
+        result.glVec[2] = z;
+        return result;
+    }
+
     // Static methods for random vector generation
+
     /**
      * Creates a random vector with components in the given range.
      * @param min Minimum value for components (default 0)
@@ -289,19 +315,6 @@ export class Vec3 {
         } else {
             return inUnitSphere.negate();
         }
-    }
-
-    static usePool(newPool: VectorPool | null) {
-        // If a new pool is provided, ensure all vectors are allocated from it
-        pool = newPool || NoPool;
-    }
-
-    static create(x: number, y: number, z: number): Vec3 {
-        const result = pool.get();
-        result.glVec[0] = x;
-        result.glVec[1] = y;
-        result.glVec[2] = z;
-        return result;
     }
 
     /**
@@ -365,13 +378,11 @@ export class Color extends Vec3 {
 export class VectorPool {
     private pool: Vec3[];
     private index: number;
-    private initialSize: number;
     private readonly maxSize: number = 640000; // Maximum pool size to prevent unbounded memory growth
     
     constructor(size: number = 100) {
         this.pool = [];
         this.index = 0;
-        this.initialSize = size;
         
         // Pre-allocate the initial pool
         this.expandPool(size);
@@ -389,7 +400,6 @@ export class VectorPool {
                 throw new Error(`Vector pool exceeded maximum size of ${this.maxSize}. This may indicate an issue with pool management or an excessive number of vectors needed.`);
             }
             
-            console.error(`Expanding vector pool from ${this.pool.length} to ${newSize} vectors`);
             this.expandPool(newSize - this.pool.length);
         }
         
