@@ -201,7 +201,7 @@ export class Camera {
         
         if (this.aperture > 0) {
             // Sample a random point on the defocus disk
-            const rd = this.randomInUnitDisk();
+            const rd = Vec3.randomInUnitDisk();
             const offset = this.defocusDiskU.multiply(rd.x).add(this.defocusDiskV.multiply(rd.y));
             
             // Offset the ray origin by the aperture sample
@@ -483,7 +483,7 @@ export class Camera {
                 
                 // Write directly to the full image buffer at the correct position
                 const bufferIndex = (j * this.imageWidth + i) * this.channels;
-                writeColorToBuffer(buffer, bufferIndex, pixelColor);
+                this.writeColorToBuffer(buffer, bufferIndex, pixelColor);
             }
         }
         
@@ -519,37 +519,25 @@ export class Camera {
     }
 
     /**
-     * Generates a random point on the unit disk using rejection sampling.
-     * @returns A random point on the unit disk.
+     * Writes the color components to the buffer at the specified offset.
+     * Applies gamma correction for a more accurate color representation.
+     * @param buffer The buffer to write to.
+     * @param offset The starting index in the buffer for the pixel.
+     * @param pixelColor The color to write.
      */
-    private randomInUnitDisk(): Vec3 {
-        let p: Vec3;
-        do {
-            p = new Vec3(2 * Math.random() - 1, 2 * Math.random() - 1, 0);
-        } while (p.lengthSquared() >= 1);
-        return p;
+    private writeColorToBuffer(
+      buffer: Uint8ClampedArray,
+      offset: number,
+      pixelColor: Color,
+    ): void {
+        // Apply gamma correction by taking the square root of each color component
+        const r = Math.sqrt(pixelColor.x);
+        const g = Math.sqrt(pixelColor.y);
+        const b = Math.sqrt(pixelColor.z);
+        
+        // Convert to 8-bit color
+        buffer[offset + 0] = Math.floor(255.999 * r); // R
+        buffer[offset + 1] = Math.floor(255.999 * g); // G
+        buffer[offset + 2] = Math.floor(255.999 * b); // B
     }
-}
-
-/**
- * Writes the color components to the buffer at the specified offset.
- * Applies gamma correction for a more accurate color representation.
- * @param buffer The buffer to write to.
- * @param offset The starting index in the buffer for the pixel.
- * @param pixelColor The color to write.
- */
-function writeColorToBuffer(
-  buffer: Uint8ClampedArray,
-  offset: number,
-  pixelColor: Color,
-): void {
-    // Apply gamma correction by taking the square root of each color component
-    const r = Math.sqrt(pixelColor.x);
-    const g = Math.sqrt(pixelColor.y);
-    const b = Math.sqrt(pixelColor.z);
-    
-    // Convert to 8-bit color
-    buffer[offset + 0] = Math.floor(255.999 * r); // R
-    buffer[offset + 1] = Math.floor(255.999 * g); // G
-    buffer[offset + 2] = Math.floor(255.999 * b); // B
 }

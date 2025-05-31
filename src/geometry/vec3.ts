@@ -351,6 +351,19 @@ export class Vec3 {
         const phi = 2 * Math.PI * r1;
         return pool.get().set(Math.cos(phi) * Math.sqrt(1 - z * z), Math.sin(phi) * Math.sqrt(1 - z * z), z);
     }
+
+    /**
+     * Creates a random point on the unit disk using rejection sampling.
+     * @returns A random point on the unit disk in the XY plane (z=0).
+     */
+    static randomInUnitDisk(): Vec3 {
+        while (true) {
+            const p = Vec3.fromPool(2 * Math.random() - 1, 2 * Math.random() - 1, 0);
+            if (p.lengthSquared() < 1) {
+                return p;
+            }
+        }
+    }
 }
 
 // Classes that extend Vec3 for semantic clarity
