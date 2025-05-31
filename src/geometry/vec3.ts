@@ -49,10 +49,7 @@ export class Vec3 {
      * @returns True if the vectors are equal, false otherwise.
      */
     equals(v: Vec3): boolean {
-        const s = 1e-8; // Small value threshold
-        return Math.abs(this.x - v.x) < s && 
-               Math.abs(this.y - v.y) < s && 
-               Math.abs(this.z - v.z) < s;
+        return glMatrix.vec3.equals(this.glVec, v.glVec);
     }
     
     /**
@@ -63,12 +60,8 @@ export class Vec3 {
     negate(): Vec3 {
         const result = pool.get();
         glMatrix.vec3.negate(result.glVec, this.glVec);
-        // Ensure -0 becomes 0 for consistent equality checks
-        for (let i = 0; i < 3; i++) {
-            if (result.glVec[i] === 0) result.glVec[i] = 0;
-        }
         return result;
-    }    
+    }
     
     /**
      * Add another vector to this vector.
@@ -126,7 +119,6 @@ export class Vec3 {
      */
     divide(t: number): Vec3 {
         const result = pool.get();
-        // Use direct scale with 1/t for better performance
         glMatrix.vec3.scale(result.glVec, this.glVec, 1/t);
         return result;
     }
@@ -138,10 +130,11 @@ export class Vec3 {
     }
 
     length(): number {
-        return Math.sqrt(this.lengthSquared());
+        return glMatrix.vec3.length(this.glVec);
     }
 
     distanceTo(v: Vec3): number {
+        // for some reason this is faster than glMatrix.vec3.distance
         return this.subtract(v).length();
     }
 
@@ -170,7 +163,6 @@ export class Vec3 {
     /**
      * Calculates the reflection of a vector around a normal vector.
      * @param n The normal vector to reflect around (assumed to be unit length).
-     * @param pool Optional vector pool to use for result allocation
      * @returns A new vector representing the reflection.
      */
     reflect(n: Vec3): Vec3 {
@@ -178,8 +170,6 @@ export class Vec3 {
         
         // Calculate dot product
         const dotProduct = this.dot(n);
-        
-        // Use a pooled vector for the intermediate n*2*dot calculation
         const scaledNormal = n.multiply(2 * dotProduct);
         
         // Subtract from v and store in result
@@ -291,7 +281,8 @@ export class Vec3 {
      * @returns A random vector in the hemisphere
      */
     static randomInHemisphere(normal: Vec3): Vec3 {
-        const inUnitSphere = Vec3.randomInUnitSphere();        // If the random vector is in the same hemisphere as the normal, return it
+        const inUnitSphere = Vec3.randomInUnitSphere();        
+        // If the random vector is in the same hemisphere as the normal, return it
         // otherwise return its negative
         if (inUnitSphere.dot(normal) > 0.0) {
             return inUnitSphere;
