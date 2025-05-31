@@ -383,7 +383,10 @@ export class Camera {
         width: number,
         height: number
     ): RenderStats {
-        const pool = new VectorPool(1600); // Create a vector pool for rendering
+        // Create a vector pool for rendering
+        const pool = new VectorPool(64000);
+        Vec3.usePool(pool);
+        
         const renderStats = new RenderStats();
         
         // Ensure the region is within the image bounds
@@ -395,13 +398,12 @@ export class Camera {
         // Render loop for the region
         for (let j = startY; j < endY; ++j) {            
             for (let i = startX; i < endX; ++i) {
+                const offsetPixel = pool.offset;
                 const pixel = new PixelStats();
                 
                 // Sampling loop - continue until max samples or convergence
                 while (pixel.samples < this.maxSamples && !this.pixelConverged(pixel)) {
-                    // Set up vector pooling for this ray
-                    Vec3.usePool(pool);
-                    pool.reset();
+                    const offsetSample = pool.offset;
                     
                     // Get and trace a ray through this pixel with jitter
                     const r = this.getRay(i + Math.random(), j + Math.random());
@@ -409,8 +411,8 @@ export class Camera {
                     const rayColor = this.rayColor(r, Color.WHITE, rayStats);
                     pixel.addSample(rayColor, rayStats.bounces, useAdaptiveSampling);
                     
-                    // Release the vector pool
-                    Vec3.usePool(null);
+                    // Reset the vector pool offset
+                    pool.reset(offsetSample);
 
                     pixel.color = pixel.color.add(rayColor);
                 }
@@ -429,8 +431,13 @@ export class Camera {
                 // Write directly to the full image buffer at the correct position
                 const bufferIndex = (j * this.imageWidth + i) * this.channels;
                 this.writeColorToBuffer(buffer, bufferIndex, pixel.color);
+
+                pool.reset(offsetPixel);
             }
         }
+
+        // Release the vector pool
+        Vec3.usePool(null);
         
         return renderStats;
     }

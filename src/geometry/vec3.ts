@@ -65,7 +65,7 @@ export class Vec3 {
         if (result.glVec[0] === 0) result.glVec[0] = 0;
         if (result.glVec[1] === 0) result.glVec[1] = 0;
         if (result.glVec[2] === 0) result.glVec[2] = 0;
-        
+
         return result;
     }
     
@@ -405,14 +405,19 @@ export class VectorPool {
         
         // Get the vector and increment the index
         return this.pool[this.index++];
+    }    
+
+    get offset(): number {
+        return this.index;
     }
     
     /**
      * Reset the pool index to zero
      */
-    reset(): void {
-        this.index = 0;
+    reset(index: number = 0): void {
+        this.index = index;
     }
+    
 
     size(): number {
         return this.pool.length;
