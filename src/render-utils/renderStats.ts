@@ -1,3 +1,5 @@
+import { Color } from "../geometry/vec3.js";
+
 /**
  * Statistics from the rendering process
  */
@@ -16,21 +18,20 @@ export class RenderStats {
         avg: 0
     };
 
-    updatePixelStats(sampleCount: number, pixelBounces: number): void {
-        this.samples.total += sampleCount;
-        this.samples.min = Math.min(this.samples.min, sampleCount);
-        this.samples.max = Math.max(this.samples.max, sampleCount);
-        this.bounces.total += pixelBounces;
+    addPixel(pixel: PixelStats): void {
         this.pixels++;
+
+        this.samples.total += pixel.samples;
+        this.samples.min = Math.min(this.samples.min, pixel.samples);
+        this.samples.max = Math.max(this.samples.max, pixel.samples);
+
+        this.bounces.total += pixel.bounces;
+        this.bounces.min = Math.min(this.bounces.min, pixel.minBounces);
+        this.bounces.max = Math.max(this.bounces.max, pixel.maxBounces);
 
         // Update averages
         this.samples.avg = this.samples.total / this.pixels;
         this.bounces.avg = this.samples.total > 0 ? this.bounces.total / this.samples.total : 0;
-    }
-
-    updateBounceStats(bounces: number): void {
-        this.bounces.min = Math.min(this.bounces.min, bounces);
-        this.bounces.max = Math.max(this.bounces.max, bounces);
     }
 
     /**
@@ -61,4 +62,27 @@ export class RenderStats {
 
         return merged;
     }
-} 
+}
+
+export class PixelStats {
+    public color = Color.BLACK;
+    public samples = 0;
+    public bounces = 0;
+    public minBounces = Infinity;
+    public maxBounces = 0;
+    public sumIll = 0;
+    public sumIll2 = 0;
+
+    public addSample(rayColor: Color, bounces: number, calcIlluminance: boolean = true): void {
+        this.samples++;
+        this.bounces += bounces;
+        this.minBounces = Math.min(this.minBounces, bounces);
+        this.maxBounces = Math.max(this.maxBounces, bounces);
+
+        if (calcIlluminance) {
+            const illuminance = rayColor.illuminance();
+            this.sumIll += illuminance;
+            this.sumIll2 += illuminance * illuminance;
+        }
+    }
+}

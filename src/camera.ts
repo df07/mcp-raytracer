@@ -5,7 +5,7 @@ import { Hittable, PDFHittable } from './geometry/hittable.js';
 import { Interval } from './geometry/interval.js';
 import { VectorPool } from './geometry/vec3.js';
 import { MixturePDF } from './geometry/pdf.js';
-import { RenderStats } from './render-utils/renderStats.js';
+import { PixelStats, RenderStats } from './render-utils/renderStats.js';
 
 /**
  * Render mode options for visualization
@@ -337,19 +337,6 @@ export class Camera {
         }
     }
 
-    private updatePixelStats(pixel: { color: Color, samples: number, bounces: number, sumIll: number, sumIll2: number }, rayColor: Color, rayStats: { bounces: number }, stats: RenderStats): void {
-        pixel.bounces += rayStats.bounces;
-        pixel.samples++;
-        stats.updateBounceStats(rayStats.bounces);
-
-        // Only update illuminance values if adaptive sampling is enabled
-        if (this.adaptiveTolerance > 0 && this.maxSamples > 1) {
-            const illuminance = rayColor.illuminance();
-            pixel.sumIll += illuminance;
-            pixel.sumIll2 += illuminance * illuminance;
-        }
-    }
-
     /**
      * Checks if the pixel has converged based on its illuminance statistics
      * Only checks for convergence at batch intervals to avoid excessive computation
@@ -397,16 +384,18 @@ export class Camera {
         height: number
     ): RenderStats {
         const pool = new VectorPool(1600); // Create a vector pool for rendering
-        const stats = new RenderStats();
+        const renderStats = new RenderStats();
         
         // Ensure the region is within the image bounds
         const endX = Math.min(startX + width, this.imageWidth);
         const endY = Math.min(startY + height, this.imageHeight);
 
+        const useAdaptiveSampling = this.adaptiveTolerance > 0 && this.maxSamples > 1;
+
         // Render loop for the region
         for (let j = startY; j < endY; ++j) {            
             for (let i = startX; i < endX; ++i) {
-                const pixel = { color: Color.BLACK, samples: 0, bounces: 0, sumIll: 0, sumIll2: 0 };
+                const pixel = new PixelStats();
                 
                 // Sampling loop - continue until max samples or convergence
                 while (pixel.samples < this.maxSamples && !this.pixelConverged(pixel)) {
@@ -418,13 +407,12 @@ export class Camera {
                     const r = this.getRay(i + Math.random(), j + Math.random());
                     const rayStats = { bounces: 0 };
                     const rayColor = this.rayColor(r, Color.WHITE, rayStats);
+                    pixel.addSample(rayColor, rayStats.bounces, useAdaptiveSampling);
                     
                     // Release the vector pool
                     Vec3.usePool(null);
 
                     pixel.color = pixel.color.add(rayColor);
-
-                    this.updatePixelStats(pixel, rayColor, rayStats, stats);
                 }
                 
                 // Compute final pixel color by averaging all samples
@@ -436,7 +424,7 @@ export class Camera {
                 }
                 
                 // Update statistics
-                stats.updatePixelStats(pixel.samples, pixel.bounces);
+                renderStats.addPixel(pixel);
                 
                 // Write directly to the full image buffer at the correct position
                 const bufferIndex = (j * this.imageWidth + i) * this.channels;
@@ -444,7 +432,7 @@ export class Camera {
             }
         }
         
-        return stats;
+        return renderStats;
     }
 
     /**
