@@ -24,11 +24,21 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 
 ### 2. Russian Roulette Ray Termination
 - **Purpose:** Probabilistically terminate rays early while maintaining unbiased results
-- **Energy-based termination:** Use material attenuation to calculate continuation probability
+- **Throughput-based termination:** Use cumulative ray energy (throughput) to make termination decisions
 - **Depth threshold:** Only apply Russian Roulette after a minimum number of bounces (default: 3)
 - **Maximum probability:** Cap continuation probability at 95% to avoid infinite rays
-- **Energy compensation:** Divide surviving ray contributions by continuation probability
+- **Energy compensation:** Divide surviving ray throughput by continuation probability
 - **Performance benefit:** Reduce computation for rays that contribute little to final image
+- **Stable variance:** Throughput approach reduces fireflies compared to per-bounce methods
+
+#### Implementation Strategy
+- **Throughput tracking:** Pass cumulative ray energy through recursive rayColor calls
+- **Early termination:** Apply Russian Roulette based on throughput magnitude before material interaction
+- **Cumulative attenuation:** Multiply throughput by material attenuation at each bounce
+- **Global termination:** Use `max(throughput.rgb)` for continuation probability across entire ray path
+- **Energy conservation:** Compensate surviving rays by dividing throughput by continuation probability
+- **Recursive propagation:** Pass updated throughput to child ray calls
+- **Background/emission scaling:** Apply throughput to background and emitted light contributions
 
 ### 3. Defocus Blur (Depth of Field)
 - **Aperture control:** Size of camera aperture (0 = no blur, larger = more blur)
@@ -118,3 +128,28 @@ Encapsulate modern camera rendering capabilities in a single class, supporting r
 - Apply 95% confidence interval formula
 - Skip convergence checks for constant-color pixels
 - Balance batch size vs convergence check frequency
+
+### Russian Roulette Algorithm
+```typescript
+// Throughput-based Russian Roulette
+rayColor(ray: Ray, throughput: Color, stats: Stats): Color {
+    // Apply Russian Roulette after minimum depth
+    if (stats.bounces >= this.russianRouletteDepth) {
+        const maxComponent = Math.max(throughput.x, throughput.y, throughput.z);
+        const continueProbability = Math.min(maxComponent, 0.95);
+        
+        if (Math.random() > continueProbability) {
+            return Color.BLACK; // Terminate ray
+        }
+        
+        // Compensate throughput for surviving rays
+        throughput = throughput.divide(continueProbability);
+    }
+    
+    // ... material interaction ...
+    
+    // Update throughput and recurse
+    const newThroughput = throughput.multiplyVec(materialAttenuation);
+    return rayColor(scatteredRay, newThroughput, stats);
+}
+```

@@ -32,6 +32,7 @@ export interface CameraOptions {
   adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
   lights?: PDFHittable[];        // Light sources for importance sampling (default: [])
   renderMode?: RenderMode;       // Render mode for visualization (default: Color)
+  maxDepth?: number;             // Maximum recursion depth for ray bounces (default: 100)
   russianRouletteEnabled?: boolean;  // Enable Russian Roulette ray termination (default: true)
   russianRouletteDepth?: number;     // Minimum bounces before applying Russian Roulette (default: 3)
   backgroundTop?: Color;         // Top color for background gradient (default: white)
@@ -72,6 +73,7 @@ export class Camera {
         adaptiveBatchSize: 10,
         lights: [],
         renderMode: RenderMode.Default,
+        maxDepth: 100,
         russianRouletteEnabled: true,
         russianRouletteDepth: 3,
         backgroundTop: Color.WHITE,
@@ -90,10 +92,10 @@ export class Camera {
     private readonly w: Vec3;
     private readonly world: Hittable;
     private lights: PDFHittable[];
-    private readonly maxDepth: number = 100; // Maximum recursion depth for ray bounces
+    private readonly maxDepth: number; // Maximum recursion depth for ray bounces
     private readonly samples: number; // Maximum number of samples per pixel
     private readonly adaptiveTolerance: number; // Tolerance for convergence
-    private readonly adaptiveSampleBatchSize: number = 32; // Number of samples to process in one batch
+    private readonly adaptiveSampleBatchSize: number; // Number of samples to process in one batch
     private readonly renderMode: RenderMode; // Render mode for visualization
     private readonly russianRouletteEnabled: boolean; // Whether Russian Roulette is enabled
     private readonly russianRouletteDepth: number; // Minimum bounces before applying Russian Roulette
@@ -117,15 +119,16 @@ export class Camera {
         this.imageWidth = loptions.imageWidth;
         this.imageHeight = Math.ceil(this.imageWidth / loptions.aspectRatio);
         this.center = loptions.lookFrom;
+        this.maxDepth = loptions.maxDepth;
         this.samples = loptions.samples;
         this.adaptiveTolerance = loptions.adaptiveTolerance;
         this.adaptiveSampleBatchSize = loptions.adaptiveBatchSize;
-        this.lights = loptions.lights || [];
-        this.renderMode = loptions.renderMode || RenderMode.Default;
-        this.russianRouletteEnabled = loptions.russianRouletteEnabled || true;
-        this.russianRouletteDepth = loptions.russianRouletteDepth || 3;
-        this.backgroundTop = loptions.backgroundTop || Color.WHITE;
-        this.backgroundBottom = loptions.backgroundBottom || Color.BLUE;
+        this.lights = loptions.lights;
+        this.renderMode = loptions.renderMode;
+        this.russianRouletteEnabled = loptions.russianRouletteEnabled;
+        this.russianRouletteDepth = loptions.russianRouletteDepth;
+        this.backgroundTop = loptions.backgroundTop;
+        this.backgroundBottom = loptions.backgroundBottom;
 
         // Initialize defocus blur properties
         this.aperture = loptions.aperture;
@@ -216,10 +219,11 @@ export class Camera {
      * If the ray hits an object, it uses the material's PDF or scattered ray to calculate the color.
      * Otherwise, it returns a background gradient color.
      * @param r The ray.
+     * @param throughput The cumulative energy/attenuation of the ray path.
      * @param stats Optional stats object to track bounce count.
      * @returns The color of the ray.
      */
-    rayColor(r: Ray, stats?: { bounces: number }): Color {
+    rayColor(r: Ray, throughput: Color = Color.WHITE, stats?: { bounces: number }): Color {
         // Initialize stats if not provided
         if (!stats) {
             stats = { bounces: 0 };
@@ -228,6 +232,21 @@ export class Camera {
         // If we've exceeded the ray bounce limit, no more light is gathered
         if (stats.bounces >= this.maxDepth) {
             return Color.BLACK;
+        }
+
+        // Apply Russian Roulette termination if enabled and after minimum depth
+        if (this.russianRouletteEnabled && stats.bounces >= this.russianRouletteDepth) {
+            // Use throughput to determine continuation probability
+            const maxComponent = Math.max(throughput.x, throughput.y, throughput.z);
+            const continueProbability = Math.min(maxComponent, 0.95); // Cap at 95%
+            
+            // Probabilistically terminate the ray
+            if (Math.random() > continueProbability) {
+                return Color.BLACK; // Terminate ray early
+            }
+            
+            // Compensate throughput for surviving rays to maintain unbiased result
+            throughput = throughput.divide(continueProbability);
         }
 
         // Check if the ray hits any object in the world
@@ -240,11 +259,11 @@ export class Camera {
             const unitDirection = r.direction.unitVector();
             const a = 0.5 * (unitDirection.y + 1.0);
             // Linear interpolation (lerp) between white and blue based on y-coordinate
-            return this.backgroundTop.multiply(1.0 - a).add(this.backgroundBottom.multiply(a));
+            return this.backgroundTop.multiply(1.0 - a).add(this.backgroundBottom.multiply(a)).multiplyVec(throughput);
         }
 
         // Get emitted light from the hit material
-        const emitted = rec.material.emitted(rec);
+        const emitted = rec.material.emitted(rec).multiplyVec(throughput);
         
         // If the ray hits an object with a material, compute scatter result
         const scatterResult = rec.material.scatter(r, rec);
@@ -259,45 +278,16 @@ export class Camera {
 
         // Handle specular materials that return a specific ray
         if (scatterResult.scattered) {
-            // Apply Russian Roulette termination if enabled and after minimum depth
-            let attenuation = scatterResult.attenuation;
-            if (this.russianRouletteEnabled && stats.bounces >= this.russianRouletteDepth) {
-                // Calculate continuation probability based on energy (max RGB component)
-                const maxComponent = Math.max(attenuation.x, attenuation.y, attenuation.z);
-                const continueProbability = Math.min(maxComponent, 0.95); // Cap at 95%
-                
-                // Probabilistically terminate the ray
-                if (Math.random() > continueProbability) {
-                    return emitted; // Terminate ray, return only emitted light
-                }
-                
-                // Compensate energy for surviving rays to maintain unbiased result
-                attenuation = attenuation.divide(continueProbability);
-            }
+            // Update throughput with material attenuation
+            const newThroughput = throughput.multiplyVec(scatterResult.attenuation);
             
-            // Recursively trace the specular ray, multiply by attenuation, and add emitted light
-            const scatteredColor = this.rayColor(scatterResult.scattered, stats);
-            return emitted.add(attenuation.multiplyVec(scatteredColor));
+            // Recursively trace the specular ray
+            const scatteredColor = this.rayColor(scatterResult.scattered, newThroughput, stats);
+            return emitted.add(scatteredColor);
         }
         
         // Handle diffuse materials that return a PDF for sampling
         if (scatterResult.pdf) {
-            // Apply Russian Roulette termination if enabled and after minimum depth
-            let attenuation = scatterResult.attenuation;
-            if (this.russianRouletteEnabled && stats.bounces >= this.russianRouletteDepth) {
-                // Calculate continuation probability based on energy (max RGB component)
-                const maxComponent = Math.max(attenuation.x, attenuation.y, attenuation.z);
-                const continueProbability = Math.min(maxComponent, 0.95); // Cap at 95%
-                
-                // Probabilistically terminate the ray
-                if (Math.random() > continueProbability) {
-                    return emitted; // Terminate ray, return only emitted light
-                }
-                
-                // Compensate energy for surviving rays to maintain unbiased result
-                attenuation = attenuation.divide(continueProbability);
-            }
-            
             // Create a light source PDF if we have lights available
             let lightPdfs = this.lights.map(light => light.pdf(rec.p));
             const pdf = new MixturePDF([scatterResult.pdf, ...lightPdfs], [0.5, ...lightPdfs.map(l => 0.5 / lightPdfs.length)]);
@@ -315,19 +305,18 @@ export class Camera {
                 return emitted;
             }
             
-            // For diffuse materials, BRDF = albedo/π * cos(θ)
-            // For Lambertian surfaces with cosine PDF, we compute:
-            // BRDF / PDF = (albedo/π * cos(θ)) / (cos(θ)/π) = albedo
-            
-            // Get the material's BRDF value divided by its PDF value
+            // Get the material's BRDF value by multiplying the attenuation by the material's PDF value
             const scatterPdfValue = scatterResult.pdf.value(direction);
-            const brdfOverPdf = attenuation.multiply(scatterPdfValue / pdfValue);
+            const brdf = scatterResult.attenuation.multiply(scatterPdfValue);
+
+            // Update throughput with BRDF contribution
+            const newThroughput = throughput.multiplyVec(brdf).divide(pdfValue);
 
             // Trace the scattered ray and calculate contribution
-            const incomingColor = this.rayColor(scattered, stats);
+            const incomingColor = this.rayColor(scattered, newThroughput, stats);
 
-            // Final contribution is emitted light + (incoming light * brdf/pdf)
-            return emitted.add(incomingColor.multiplyVec(brdfOverPdf));
+            // Final contribution is emitted light + incoming light
+            return emitted.add(incomingColor);
         }
         
         // Fallback - just return emitted light
@@ -404,6 +393,8 @@ export class Camera {
         let minBouncesPerRay = this.maxDepth; // Start with max possible
         let maxBouncesPerRay = 0;
 
+        const initialThroughput = Color.WHITE;
+
         // Render loop for the region
         for (let j = startY; j < endY; ++j) {            
             for (let i = startX; i < endX; ++i) {
@@ -433,7 +424,7 @@ export class Camera {
                         // Get and trace a ray through this pixel with jitter
                         const r = this.getRay(i + Math.random(), j + Math.random());
                         const rayStats = { bounces: 0 };
-                        const color = this.rayColor(r, rayStats);
+                        const color = this.rayColor(r, initialThroughput, rayStats);
                         
                         // Release the vector pool
                         Vec3.usePool(null);
