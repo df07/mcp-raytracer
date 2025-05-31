@@ -5,6 +5,7 @@ import { Hittable, PDFHittable } from './geometry/hittable.js';
 import { Interval } from './geometry/interval.js';
 import { VectorPool } from './geometry/vec3.js';
 import { MixturePDF } from './geometry/pdf.js';
+import { RenderStats } from './render-utils/renderStats.js';
 
 /**
  * Render mode options for visualization
@@ -37,25 +38,6 @@ export interface CameraOptions {
   russianRouletteDepth?: number;     // Minimum bounces before applying Russian Roulette (default: 3)
   backgroundTop?: Color;         // Top color for background gradient (default: white)
   backgroundBottom?: Color;      // Bottom color for background gradient (default: blue)
-}
-
-/**
- * Statistics from the rendering process
- */
-export interface RenderStats {
-    pixels: number;              // Total number of pixels rendered
-    samples: {                   // Sample statistics
-        total: number;           // Total number of samples taken
-        min: number;             // Minimum samples for any pixel
-        max: number;             // Maximum samples for any pixel
-        avg: number;             // Average samples per pixel
-    };
-    bounces: {                   // Bounce statistics
-        total: number;           // Total number of bounces across all rays
-        min: number;             // Minimum bounces for any ray
-        max: number;             // Maximum bounces for any ray
-        avg: number;             // Average bounces per ray
-    };
 }
 
 export class Camera {
@@ -374,6 +356,7 @@ export class Camera {
         height: number
     ): RenderStats {
         const pool = new VectorPool(1600); // Create a vector pool for rendering
+        const stats = new RenderStats();
         
         // Ensure the region is within the image bounds
         const endX = Math.min(startX + width, this.imageWidth);
@@ -381,19 +364,6 @@ export class Camera {
         
         // Determine if adaptive sampling should be used
         const useAdaptiveSampling = this.adaptiveTolerance > 0 && this.samples > 1;
-
-        // Statistics tracking
-        let totalSamples = 0;
-        let minSamplesPerPixel = this.samples; // Start with max possible
-        let maxSamplesPerPixel = 0;
-        const pixelCount = (endX - startX) * (endY - startY);
-
-        // Bounce statistics tracking
-        let totalBounces = 0;
-        let minBouncesPerRay = this.maxDepth; // Start with max possible
-        let maxBouncesPerRay = 0;
-
-        const initialThroughput = Color.WHITE;
 
         // Render loop for the region
         for (let j = startY; j < endY; ++j) {            
@@ -424,7 +394,7 @@ export class Camera {
                         // Get and trace a ray through this pixel with jitter
                         const r = this.getRay(i + Math.random(), j + Math.random());
                         const rayStats = { bounces: 0 };
-                        const color = this.rayColor(r, initialThroughput, rayStats);
+                        const color = this.rayColor(r, Color.WHITE, rayStats);
                         
                         // Release the vector pool
                         Vec3.usePool(null);
@@ -433,10 +403,8 @@ export class Camera {
                         pixelColor = pixelColor.add(color);
                         
                         // Track bounce statistics
-                        totalBounces += rayStats.bounces;
                         pixelBounces += rayStats.bounces;
-                        minBouncesPerRay = Math.min(minBouncesPerRay, rayStats.bounces);
-                        maxBouncesPerRay = Math.max(maxBouncesPerRay, rayStats.bounces);
+                        stats.updateBounceStats(rayStats.bounces);
                         
                         // Track statistics for adaptive sampling
                         if (useAdaptiveSampling) {
@@ -477,9 +445,7 @@ export class Camera {
                 }
                 
                 // Update statistics
-                totalSamples += sampleCount;
-                minSamplesPerPixel = Math.min(minSamplesPerPixel, sampleCount);
-                maxSamplesPerPixel = Math.max(maxSamplesPerPixel, sampleCount);
+                stats.updatePixelStats(sampleCount, pixelBounces);
                 
                 // Write directly to the full image buffer at the correct position
                 const bufferIndex = (j * this.imageWidth + i) * this.channels;
@@ -487,25 +453,7 @@ export class Camera {
             }
         }
         
-        // Calculate average samples per pixel and bounces per ray
-        const avgSamplesPerPixel = totalSamples / pixelCount;
-        const avgBouncesPerRay = totalSamples > 0 ? totalBounces / totalSamples : 0;
-        
-        return {
-            pixels: pixelCount,
-            samples: {
-                total: totalSamples,
-                min: minSamplesPerPixel,
-                max: maxSamplesPerPixel,
-                avg: avgSamplesPerPixel
-            },
-            bounces: {
-                total: totalBounces,
-                min: minBouncesPerRay,
-                max: maxBouncesPerRay,
-                avg: avgBouncesPerRay
-            }
-        };
+        return stats;
     }
 
     /**

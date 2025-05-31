@@ -4,7 +4,7 @@ import path from 'path';
 import { Worker } from 'worker_threads';
 import { fileURLToPath } from 'url';
 import { generateScene, SceneConfig } from './scenes/scenes.js';
-import { RenderStats } from './camera.js';
+import { RenderStats } from './render-utils/renderStats.js';
 import fs from 'fs';
 
 // Get the directory for the current module
@@ -60,7 +60,7 @@ export async function generateImageBuffer(
     const byteLength = imageWidth * imageHeight * channels;
     
     // Render statistics
-    let renderStats: RenderStats | undefined;
+    let renderStats: RenderStats;
     
     if (!parallel) {
         // Single-threaded rendering
@@ -86,32 +86,12 @@ export async function generateImageBuffer(
         const results = await Promise.all(workerPromises);
 
         // Aggregate statistics from all workers
-        renderStats = results.reduce((acc, result) => ({
-            pixels: acc.pixels + result.pixels,
-            samples: {
-                total: acc.samples.total + result.samples.total,
-                min: Math.min(acc.samples.min, result.samples.min),
-                max: Math.max(acc.samples.max, result.samples.max),
-                avg: (acc.samples.total + result.samples.total) / (acc.pixels + result.pixels)
-            },
-            bounces: {
-                total: acc.bounces.total + result.bounces.total,
-                min: Math.min(acc.bounces.min, result.bounces.min),
-                max: Math.max(acc.bounces.max, result.bounces.max),
-                avg: (acc.samples.total + result.samples.total) > 0 
-                    ? (acc.bounces.total + result.bounces.total) / (acc.samples.total + result.samples.total) 
-                    : 0
-            }
-        }), { 
-            pixels: 0, 
-            samples: { total: 0, min: Infinity, max: 0, avg: 0 }, 
-            bounces: { total: 0, min: Infinity, max: 0, avg: 0 } 
-        });
+        renderStats = RenderStats.merge(results);
     }
-
+    
     if (verbose) {
-        console.error(`Adaptive sampling stats: avg=${renderStats.samples.avg.toFixed(2)}, min=${renderStats.samples.min}, max=${renderStats.samples.max}`);
-        console.error(`Ray bounce stats: avg=${renderStats.bounces.avg.toFixed(2)}, min=${renderStats.bounces.min}, max=${renderStats.bounces.max}`);
+        console.error(`Adaptive sampling stats: avg=${renderStats.samples.avg.toFixed(2)}, min=${renderStats!.samples.min}, max=${renderStats!.samples.max}`);
+        console.error(`Ray bounce stats: avg=${renderStats.bounces.avg.toFixed(2)}, min=${renderStats!.bounces.min}, max=${renderStats!.bounces.max}`);
     }
     
     if (pixelData.length === 0) {
