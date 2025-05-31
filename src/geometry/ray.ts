@@ -6,33 +6,15 @@ import { Point3, Vec3 } from './vec3.js';
  * Represents a 3D ray with an origin and a direction.
  */
 export class Ray {
-    private orig: Point3;
-    private dir: Vec3;
+    public readonly origin: Point3;
+    public readonly direction: Vec3;
 
-    /**
-     * Creates a new ray instance.
-     * @param origin The origin point of the ray.
-     * @param direction The direction vector of the ray.
-     */
     constructor(origin: Point3, direction: Vec3) {
-        this.orig = origin;
-        this.dir = direction;
+        this.origin = origin;
+        this.direction = direction;
     }
 
-    /**
-     * Returns the origin point of the ray.
-     */
-    get origin(): Point3 {
-        return this.orig;
-    }
 
-    /**
-     * Returns the direction vector of the ray.
-     */
-    get direction(): Vec3 {
-        return this.dir;
-    }    
-    
     /**
      * Calculates the point along the ray at parameter t.
      * P(t) = A + t*b
