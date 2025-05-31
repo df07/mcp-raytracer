@@ -127,28 +127,28 @@ export class Plane implements Hittable {
       // YZ plane (normal ≈ ±X): bounded in X, infinite in Y,Z
       const planeX = this.d / this.normal.x;
       return new AABB(
-        new Vec3(planeX - epsilon, -Infinity, -Infinity),
-        new Vec3(planeX + epsilon, Infinity, Infinity)
+        Vec3.create(planeX - epsilon, -Infinity, -Infinity),
+        Vec3.create(planeX + epsilon, Infinity, Infinity)
       );
     } else if (Math.abs(this.normal.y) > 0.9999) {
       // XZ plane (normal ≈ ±Y): bounded in Y, infinite in X,Z
       const planeY = this.d / this.normal.y;
       return new AABB(
-        new Vec3(-Infinity, planeY - epsilon, -Infinity),
-        new Vec3(Infinity, planeY + epsilon, Infinity)
+        Vec3.create(-Infinity, planeY - epsilon, -Infinity),
+        Vec3.create(Infinity, planeY + epsilon, Infinity)
       );
     } else if (Math.abs(this.normal.z) > 0.9999) {
       // XY plane (normal ≈ ±Z): bounded in Z, infinite in X,Y
       const planeZ = this.d / this.normal.z;
       return new AABB(
-        new Vec3(-Infinity, -Infinity, planeZ - epsilon),
-        new Vec3(Infinity, Infinity, planeZ + epsilon)
+        Vec3.create(-Infinity, -Infinity, planeZ - epsilon),
+        Vec3.create(Infinity, Infinity, planeZ + epsilon)
       );
     } else {
       // General case: infinite bounding box
       return new AABB(
-        new Vec3(-Infinity, -Infinity, -Infinity),
-        new Vec3(Infinity, Infinity, Infinity)
+        Vec3.create(-Infinity, -Infinity, -Infinity),
+        Vec3.create(Infinity, Infinity, Infinity)
       );
     }
   }

@@ -108,8 +108,8 @@ export class Quad implements PDFHittable {
     // Add small padding to handle edge cases
     const epsilon = 1e-4;
     return new AABB(
-      new Vec3(minX - epsilon, minY - epsilon, minZ - epsilon),
-      new Vec3(maxX + epsilon, maxY + epsilon, maxZ + epsilon)
+      Vec3.create(minX - epsilon, minY - epsilon, minZ - epsilon),
+      Vec3.create(maxX + epsilon, maxY + epsilon, maxZ + epsilon)
     );
   }
 

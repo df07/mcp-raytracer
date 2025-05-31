@@ -7,23 +7,23 @@ import { Material, ScatterResult } from '../../src/materials/material.js';
 
 describe('Lambertian Material', () => {
     test('should have correct albedo', () => {
-        const redLambertian = new Lambertian(new Color(0.8, 0.2, 0.2));
+        const redLambertian = new Lambertian(Color.create(0.8, 0.2, 0.2));
         expect(redLambertian.albedo.x).toBeCloseTo(0.8);
         expect(redLambertian.albedo.y).toBeCloseTo(0.2);
         expect(redLambertian.albedo.z).toBeCloseTo(0.2);
     });
 
     test('should produce a scatter result with a PDF', () => {
-        const lambertian = new Lambertian(new Color(0.8, 0.2, 0.2));
+        const lambertian = new Lambertian(Color.create(0.8, 0.2, 0.2));
         const hitRecord: HitRecord = {
-            p: new Vec3(0, 0, 0),
-            normal: new Vec3(0, 1, 0),
+            p: Vec3.create(0, 0, 0),
+            normal: Vec3.create(0, 1, 0),
             t: 1.0,
             frontFace: true,
             material: lambertian
         };
 
-        const incomingRay = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
+        const incomingRay = new Ray(Vec3.create(0, -1, 0), Vec3.create(0, 1, 0));
 
         const scatterResult = lambertian.scatter(incomingRay, hitRecord);
 
@@ -43,7 +43,7 @@ describe('Lambertian Material', () => {
         }
     });
 
-    const albedo = new Color(0.8, 0.4, 0.2);
+    const albedo = Color.create(0.8, 0.4, 0.2);
     let material: Lambertian;
     let hitRecord: HitRecord;
     
@@ -52,8 +52,8 @@ describe('Lambertian Material', () => {
         
         // Mock hit record for testing
         hitRecord = {
-            p: new Vec3(0, 0, 0),
-            normal: new Vec3(0, 1, 0), // Up
+            p: Vec3.create(0, 0, 0),
+            normal: Vec3.create(0, 1, 0), // Up
             t: 1.0,
             frontFace: true,
             material: material as Material,
@@ -66,7 +66,7 @@ describe('Lambertian Material', () => {
     
     it('should return ScatterResult with attenuation and PDF', () => {
         // Arrange
-        const ray = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
+        const ray = new Ray(Vec3.create(0, -1, 0), Vec3.create(0, 1, 0));
         
         // Act
         const result = material.scatter(ray, hitRecord);
@@ -86,14 +86,14 @@ describe('Lambertian Material', () => {
             
             // Test the PDF value in the normal direction
             if (result.pdf) {
-                expect(result.pdf.value(new Vec3(0, 1, 0))).toBeCloseTo(1/Math.PI);
+                expect(result.pdf.value(Vec3.create(0, 1, 0))).toBeCloseTo(1/Math.PI);
             }
         }
     });
     
     it('should generate directions in the correct hemisphere', () => {
         // Arrange
-        const ray = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
+        const ray = new Ray(Vec3.create(0, -1, 0), Vec3.create(0, 1, 0));
         const result = material.scatter(ray, hitRecord);
         
         expect(result).not.toBeNull();

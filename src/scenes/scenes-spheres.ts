@@ -45,14 +45,14 @@ export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: Sph
   // Default world options
   const defaultWorldOptions = {
     count: 10,
-    centerPoint: new Vec3(0, 0, -2),    // Center point matching default scene
+    centerPoint: Vec3.create(0, 0, -2),    // Center point matching default scene
     radius: 1.25,                       // Distribution radius around center point
     minSphereRadius: 0.1,               // Small enough to fit multiple spheres
     maxSphereRadius: 0.2,               // Large enough to be visible
     groundSphere: false,
     groundY: -100.5,                    // Match default scene ground position
     groundRadius: 100,                  // Match default scene ground radius
-    groundMaterial: new Lambertian(new Color(0.8, 0.8, 0.0)), // Match default yellow-ish ground
+    groundMaterial: new Lambertian(Color.create(0.8, 0.8, 0.0)), // Match default yellow-ish ground
     seed: Math.floor(Math.random() * 2147483647) // Random seed by default
   };
     // Merge defaults with provided options
@@ -111,7 +111,7 @@ export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: Sph
   
   const defaultCameraOptions: CameraOptions = {
     vfov: 40,
-    lookFrom: new Vec3(0, 0, 2),
+    lookFrom: Vec3.create(0, 0, 2),
     lookAt: worldOpts.centerPoint
   }
 
@@ -198,7 +198,7 @@ function generateRandomMaterial(random: SeededRandom): Material {
  * Generates a random color
  */
 function randomColor(random: SeededRandom): Vec3 {
-  return new Color(
+  return Color.create(
     random.next(),
     random.next(),
     random.next()

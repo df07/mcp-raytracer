@@ -8,7 +8,7 @@ import { Lambertian } from '../../src/materials/lambertian.js';
 // Mock material for testing
 class MockMaterial extends Lambertian {
   constructor() {
-    super(new Vec3(1, 1, 1));
+    super(Vec3.create(1, 1, 1));
   }
 }
 
@@ -16,9 +16,9 @@ describe('Plane', () => {
   describe('constructor', () => {
     it('should correctly compute normal, d, and w vectors', () => {
       // Create a plane in the XY plane (normal pointing in +Z direction)
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);  // X direction
-      const v = new Vec3(0, 1, 0);  // Y direction
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);  // X direction
+      const v = Vec3.create(0, 1, 0);  // Y direction
       const material = new MockMaterial();
       
       const plane = new Plane(q, u, v, material);
@@ -41,9 +41,9 @@ describe('Plane', () => {
 
     it('should handle non-axis-aligned planes', () => {
       // Create a tilted plane
-      const q: Point3 = new Vec3(1, 1, 1);
-      const u = new Vec3(1, 1, 0);
-      const v = new Vec3(0, 1, 1);
+      const q: Point3 = Vec3.create(1, 1, 1);
+      const u = Vec3.create(1, 1, 0);
+      const v = Vec3.create(0, 1, 1);
       const material = new MockMaterial();
       
       const plane = new Plane(q, u, v, material);
@@ -63,14 +63,14 @@ describe('Plane', () => {
   describe('intersect method', () => {
     it('should find intersection with XY plane', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray from origin pointing towards plane
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, 1));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, 1));
       const interval = new Interval(0, Infinity);
       
       const result = plane.intersect(ray, interval);
@@ -84,14 +84,14 @@ describe('Plane', () => {
 
     it('should return null for parallel rays', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray parallel to the plane (in XY direction)
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 1, 0));
       const interval = new Interval(0, Infinity);
       
       const result = plane.intersect(ray, interval);
@@ -100,14 +100,14 @@ describe('Plane', () => {
 
     it('should return null for intersection outside interval', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray from origin pointing towards plane
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, 1));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, 1));
       const interval = new Interval(0, 4); // Interval ends before plane
       
       const result = plane.intersect(ray, interval);
@@ -116,14 +116,14 @@ describe('Plane', () => {
 
     it('should calculate correct barycentric coordinates', () => {
       // XY plane at z = 0
-      const q: Point3 = new Vec3(0, 0, 0);
-      const u = new Vec3(2, 0, 0);  // 2 units in X direction
-      const v = new Vec3(0, 3, 0);  // 3 units in Y direction
+      const q: Point3 = Vec3.create(0, 0, 0);
+      const u = Vec3.create(2, 0, 0);  // 2 units in X direction
+      const v = Vec3.create(0, 3, 0);  // 3 units in Y direction
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray hitting at (1, 1.5, 0) which should be alpha=0.5, beta=0.5
-      const ray = new Ray(new Vec3(1, 1.5, -1), new Vec3(0, 0, 1));
+      const ray = new Ray(Vec3.create(1, 1.5, -1), Vec3.create(0, 0, 1));
       const interval = new Interval(0, Infinity);
       
       const result = plane.intersect(ray, interval);
@@ -139,14 +139,14 @@ describe('Plane', () => {
   describe('hit method', () => {
     it('should return correct hit record for front face', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray from origin pointing towards plane (front face)
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, 1));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, 1));
       const interval = new Interval(0, Infinity);
       
       const hit = plane.hit(ray, interval);
@@ -166,14 +166,14 @@ describe('Plane', () => {
 
     it('should return correct hit record for back face', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray from behind plane pointing towards it (back face)
-      const ray = new Ray(new Vec3(0, 0, 10), new Vec3(0, 0, -1));
+      const ray = new Ray(Vec3.create(0, 0, 10), Vec3.create(0, 0, -1));
       const interval = new Interval(0, Infinity);
       
       const hit = plane.hit(ray, interval);
@@ -193,14 +193,14 @@ describe('Plane', () => {
 
     it('should return null for parallel rays', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray parallel to the plane
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
       const interval = new Interval(0, Infinity);
       
       const hit = plane.hit(ray, interval);
@@ -211,9 +211,9 @@ describe('Plane', () => {
   describe('boundingBox method', () => {
     it('should return optimized bounding box for XY plane (Z-aligned normal)', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
@@ -230,9 +230,9 @@ describe('Plane', () => {
 
     it('should return optimized bounding box for XZ plane (Y-aligned normal)', () => {
       // XZ plane at y = 3
-      const q: Point3 = new Vec3(0, 3, 0);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 0, 1);
+      const q: Point3 = Vec3.create(0, 3, 0);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 0, 1);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
@@ -249,9 +249,9 @@ describe('Plane', () => {
 
     it('should return optimized bounding box for YZ plane (X-aligned normal)', () => {
       // YZ plane at x = -2
-      const q: Point3 = new Vec3(-2, 0, 0);
-      const u = new Vec3(0, 1, 0);
-      const v = new Vec3(0, 0, 1);
+      const q: Point3 = Vec3.create(-2, 0, 0);
+      const u = Vec3.create(0, 1, 0);
+      const v = Vec3.create(0, 0, 1);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
@@ -268,9 +268,9 @@ describe('Plane', () => {
 
     it('should return infinite bounding box for non-axis-aligned plane', () => {
       // Tilted plane
-      const q: Point3 = new Vec3(0, 0, 0);
-      const u = new Vec3(1, 1, 0);
-      const v = new Vec3(0, 1, 1);
+      const q: Point3 = Vec3.create(0, 0, 0);
+      const u = Vec3.create(1, 1, 0);
+      const v = Vec3.create(0, 1, 1);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
@@ -289,9 +289,9 @@ describe('Plane', () => {
   describe('edge cases', () => {
     it('should handle degenerate plane (zero area)', () => {
       // Degenerate plane where u and v are parallel
-      const q: Point3 = new Vec3(0, 0, 0);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(2, 0, 0);  // Parallel to u
+      const q: Point3 = Vec3.create(0, 0, 0);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(2, 0, 0);  // Parallel to u
       const material = new MockMaterial();
       
       // This should not crash, but the normal will be zero
@@ -302,14 +302,14 @@ describe('Plane', () => {
 
     it('should handle very small intersection angles', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray with very small angle to plane (almost parallel)
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 1e-6, 1).unitVector());
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 1e-6, 1).unitVector());
       const interval = new Interval(0, Infinity);
       
       const hit = plane.hit(ray, interval);
@@ -318,14 +318,14 @@ describe('Plane', () => {
 
     it('should handle negative t values correctly', () => {
       // XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const plane = new Plane(q, u, v, material);
       
       // Ray starting beyond plane pointing away
-      const ray = new Ray(new Vec3(0, 0, 10), new Vec3(0, 0, 1));
+      const ray = new Ray(Vec3.create(0, 0, 10), Vec3.create(0, 0, 1));
       const interval = new Interval(0, Infinity);
       
       const hit = plane.hit(ray, interval);

@@ -8,19 +8,19 @@ import { Lambertian } from '../../src/materials/lambertian.js';
 // Mock material for testing
 class MockMaterial extends Lambertian {
   constructor() {
-    super(new Vec3(1, 1, 1));
+    super(Vec3.create(1, 1, 1));
   }
 }
 
 describe('Sphere', () => {
   it('should correctly determine ray intersections', () => {
-    const center: Point3 = new Vec3(0, 0, -1); // Instantiate with Vec3, type as Point3
+    const center: Point3 = Vec3.create(0, 0, -1); // Instantiate with Vec3, type as Point3
     const radius = 0.5;
     const material = new MockMaterial();
     const sphere = new Sphere(center, radius, material);
 
     // Ray hitting the sphere
-    const ray1 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+    const ray1 = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
     const interval1 = new Interval(0, Infinity);
     const rec1 = sphere.hit(ray1, interval1);
     expect(rec1).not.toBeNull();
@@ -39,13 +39,13 @@ describe('Sphere', () => {
     }
 
     // Ray missing the sphere
-    const ray2 = new Ray(new Vec3(0, 1, 0), new Vec3(0, 0, -1));
+    const ray2 = new Ray(Vec3.create(0, 1, 0), Vec3.create(0, 0, -1));
     const interval2 = new Interval(0, Infinity);
     const rec2 = sphere.hit(ray2, interval2);
     expect(rec2).toBeNull();
 
     // Ray starting inside the sphere
-    const ray3 = new Ray(new Vec3(0, 0, -1), new Vec3(0, 0, -1));
+    const ray3 = new Ray(Vec3.create(0, 0, -1), Vec3.create(0, 0, -1));
     const interval3 = new Interval(0.001, Infinity); // tMin > 0 to avoid self-intersection at origin
     const rec3 = sphere.hit(ray3, interval3);
     expect(rec3).not.toBeNull();
@@ -65,7 +65,7 @@ describe('Sphere', () => {
 
     // Ray hitting tangentially (should technically hit, but floating point might be tricky)
     // Let's test a ray grazing the top
-    const ray4 = new Ray(new Vec3(0, 0.5, 0), new Vec3(0, 0, -1));
+    const ray4 = new Ray(Vec3.create(0, 0.5, 0), Vec3.create(0, 0, -1));
     const interval4 = new Interval(0, Infinity);
     const rec4 = sphere.hit(ray4, interval4);
     expect(rec4).not.toBeNull();
@@ -78,7 +78,7 @@ describe('Sphere', () => {
     }
 
     // Ray hitting outside the interval [tMin, tMax]
-    const ray5 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+    const ray5 = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
     const interval5 = new Interval(0.6, 1.0); // t=0.5 is outside this interval
     const rec5 = sphere.hit(ray5, interval5);
     expect(rec5).toBeNull();
@@ -91,7 +91,7 @@ describe('Sphere', () => {
 });
 
 describe('Sphere PDF', () => {
-  const center = new Vec3(0, 0, -1);
+  const center = Vec3.create(0, 0, -1);
   const radius = 0.5;
   const material = new MockMaterial();
   const sphere = new Sphere(center, radius, material);
@@ -99,8 +99,8 @@ describe('Sphere PDF', () => {
   describe('pdfValue', () => {
     it('should return 0 for directions that miss the sphere', () => {
       // Origin is at (0,0,0), direction is up (misses sphere at (0,0,-1))
-      const origin = new Vec3(0, 0, 0);
-      const direction = new Vec3(0, 1, 0).unitVector();
+      const origin = Vec3.create(0, 0, 0);
+      const direction = Vec3.create(0, 1, 0).unitVector();
       
       const pdfVal = sphere.pdfValue(origin, direction);
       expect(pdfVal).toBe(0);
@@ -108,8 +108,8 @@ describe('Sphere PDF', () => {
 
     it('should return a positive value for directions that hit the sphere', () => {
       // Origin is at (0,0,0), direction is towards sphere center
-      const origin = new Vec3(0, 0, 0);
-      const direction = new Vec3(0, 0, -1).unitVector();
+      const origin = Vec3.create(0, 0, 0);
+      const direction = Vec3.create(0, 0, -1).unitVector();
       
       const pdfVal = sphere.pdfValue(origin, direction);
       expect(pdfVal).toBeGreaterThan(0);
@@ -122,8 +122,8 @@ describe('Sphere PDF', () => {
       // solidAngle = 2π(1 - cosTheta) = 2π(1 - 0.866) = 2π * 0.134 = 0.84π
       // pdf = 1/solidAngle = 1/(0.84π) ≈ 0.379
       
-      const origin = new Vec3(0, 0, 0);
-      const direction = new Vec3(0, 0, -1).unitVector();
+      const origin = Vec3.create(0, 0, 0);
+      const direction = Vec3.create(0, 0, -1).unitVector();
       
       const pdfVal = sphere.pdfValue(origin, direction);
       
@@ -138,13 +138,13 @@ describe('Sphere PDF', () => {
 
     it('should calculate higher PDF values for smaller solid angles', () => {
       // Test from farther away - solid angle should be smaller, PDF higher
-      const origin = new Vec3(0, 0, 5); // Farther away along z-axis
-      const direction = new Vec3(0, 0, -1).unitVector(); // Towards sphere
+      const origin = Vec3.create(0, 0, 5); // Farther away along z-axis
+      const direction = Vec3.create(0, 0, -1).unitVector(); // Towards sphere
       
       const pdfValFar = sphere.pdfValue(origin, direction);
       
       // Compare with PDF from closer origin
-      const originClose = new Vec3(0, 0, 0);
+      const originClose = Vec3.create(0, 0, 0);
       const pdfValClose = sphere.pdfValue(originClose, direction);
       
       // PDF should be higher (more concentrated) from farther away
@@ -154,7 +154,7 @@ describe('Sphere PDF', () => {
 
   describe('pdfRandomVec', () => {
     it('should generate vectors that point towards the sphere', () => {
-      const origin = new Vec3(0, 0, 0);
+      const origin = Vec3.create(0, 0, 0);
       
       // Test multiple samples to ensure they hit the sphere
       for (let i = 0; i < 100; i++) {
@@ -174,7 +174,7 @@ describe('Sphere PDF', () => {
     });
 
     it('should generate vectors with non-zero PDF values', () => {
-      const origin = new Vec3(0, 0, 0);
+      const origin = Vec3.create(0, 0, 0);
       
       // Generate several random vectors and check their PDF values
       for (let i = 0; i < 20; i++) {
@@ -187,8 +187,8 @@ describe('Sphere PDF', () => {
     });
 
     it('should sample within the solid angle subtended by the sphere', () => {
-      const origin = new Vec3(0, 0, 2); // Position where sphere is clearly visible
-      const center = new Vec3(0, 0, 0); // Sphere at origin
+      const origin = Vec3.create(0, 0, 2); // Position where sphere is clearly visible
+      const center = Vec3.create(0, 0, 0); // Sphere at origin
       const radius = 1.0;
       const sphere = new Sphere(center, radius, material);
       

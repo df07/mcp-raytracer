@@ -37,12 +37,12 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
     width: 4,
     height: 3,
     depth: 2,
-    centerPoint: new Vec3(0, 0, -2),
+    centerPoint: Vec3.create(0, 0, -2),
     metalFuzz: 0.1,
     groundSphere: true,
     groundY: -100.5,
     groundRadius: 100,
-    groundMaterial: new Lambertian(new Color(0.1, 0.1, 0.1)),
+    groundMaterial: new Lambertian(Color.create(0.1, 0.1, 0.1)),
     seed: Math.floor(Math.random() * 2147483647)
   };
   
@@ -57,7 +57,7 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   
   // Add ground sphere if specified
   if (rainOpts.groundSphere) {
-    const groundCenter = new Vec3(0, rainOpts.groundY, 0);
+    const groundCenter = Vec3.create(0, rainOpts.groundY, 0);
     const groundMaterial = rainOpts.groundMaterial;
     const groundSphere = new Sphere(groundCenter, rainOpts.groundRadius, groundMaterial);
     worldList.add(groundSphere);
@@ -88,7 +88,7 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
     for (let y = 0; y < spheresPerDimension; y++) {
       for (let z = 0; z < spheresPerDimension; z++) {
         // Calculate position with small random offset for natural appearance
-        const position = new Vec3(
+        const position = Vec3.create(
           startX + x * xSpacing + (random.next() - 0.5) * xSpacing * 0.3,
           startY + y * ySpacing + (random.next() - 0.5) * ySpacing * 0.3,
           startZ + z * zSpacing + (random.next() - 0.5) * zSpacing * 0.3
@@ -108,7 +108,7 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   for (const position of selectedPositions) {
     // Create a metallic material with slight color variation (silver/gray tones)
     const brightness = 0.7 + random.next() * 0.3; // 0.7-1.0 range for silver/gray
-    const color = new Color(brightness, brightness, brightness);
+    const color = Color.create(brightness, brightness, brightness);
     const fuzz = rainOpts.metalFuzz * random.next(); // Randomize fuzziness a bit
     const material = new Metal(color, fuzz);
     
@@ -122,7 +122,7 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   // Default camera options
   const defaultCameraOptions: CameraOptions = {
     vfov: 40,
-    lookFrom: new Vec3(0, 0, 2),
+    lookFrom: Vec3.create(0, 0, 2),
     lookAt: rainOpts.centerPoint,
   };
   

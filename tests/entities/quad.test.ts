@@ -8,7 +8,7 @@ import { Lambertian } from '../../src/materials/lambertian.js';
 // Mock material for testing
 class MockMaterial extends Lambertian {
   constructor() {
-    super(new Vec3(1, 1, 1));
+    super(Vec3.create(1, 1, 1));
   }
 }
 
@@ -16,9 +16,9 @@ describe('Quad', () => {
   describe('constructor', () => {
     it('should correctly compute area and create underlying plane', () => {
       // Create a unit square in the XY plane
-      const q: Point3 = new Vec3(0, 0, 0);
-      const u = new Vec3(1, 0, 0);  // 1 unit in X direction
-      const v = new Vec3(0, 1, 0);  // 1 unit in Y direction
+      const q: Point3 = Vec3.create(0, 0, 0);
+      const u = Vec3.create(1, 0, 0);  // 1 unit in X direction
+      const v = Vec3.create(0, 1, 0);  // 1 unit in Y direction
       const material = new MockMaterial();
       
       const quad = new Quad(q, u, v, material);
@@ -35,9 +35,9 @@ describe('Quad', () => {
 
     it('should handle non-unit quads', () => {
       // Create a 2x3 rectangle
-      const q: Point3 = new Vec3(1, 1, 1);
-      const u = new Vec3(2, 0, 0);  // 2 units in X direction
-      const v = new Vec3(0, 3, 0);  // 3 units in Y direction
+      const q: Point3 = Vec3.create(1, 1, 1);
+      const u = Vec3.create(2, 0, 0);  // 2 units in X direction
+      const v = Vec3.create(0, 3, 0);  // 3 units in Y direction
       const material = new MockMaterial();
       
       const quad = new Quad(q, u, v, material);
@@ -50,14 +50,14 @@ describe('Quad', () => {
   describe('hit method', () => {
     it('should hit rays that intersect within quad boundaries', () => {
       // Unit square in XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const quad = new Quad(q, u, v, material);
       
       // Ray hitting center of quad
-      const ray = new Ray(new Vec3(0.5, 0.5, 0), new Vec3(0, 0, 1));
+      const ray = new Ray(Vec3.create(0.5, 0.5, 0), Vec3.create(0, 0, 1));
       const interval = new Interval(0, Infinity);
       
       const hit = quad.hit(ray, interval);
@@ -73,14 +73,14 @@ describe('Quad', () => {
 
     it('should miss rays that hit the plane but outside quad boundaries', () => {
       // Unit square in XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const quad = new Quad(q, u, v, material);
       
       // Ray hitting plane but outside quad (at x=1.5, y=0.5)
-      const ray = new Ray(new Vec3(1.5, 0.5, 0), new Vec3(0, 0, 1));
+      const ray = new Ray(Vec3.create(1.5, 0.5, 0), Vec3.create(0, 0, 1));
       const interval = new Interval(0, Infinity);
       
       const hit = quad.hit(ray, interval);
@@ -89,22 +89,22 @@ describe('Quad', () => {
 
     it('should hit rays at quad boundaries', () => {
       // Unit square in XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const quad = new Quad(q, u, v, material);
       
       // Test all four corners
       const corners = [
-        new Vec3(0, 0, 0),    // q
-        new Vec3(1, 0, 0),    // q + u
-        new Vec3(0, 1, 0),    // q + v
-        new Vec3(1, 1, 0)     // q + u + v
+        Vec3.create(0, 0, 0),    // q
+        Vec3.create(1, 0, 0),    // q + u
+        Vec3.create(0, 1, 0),    // q + v
+        Vec3.create(1, 1, 0)     // q + u + v
       ];
       
       for (const corner of corners) {
-        const ray = new Ray(corner, new Vec3(0, 0, 1));
+        const ray = new Ray(corner, Vec3.create(0, 0, 1));
         const interval = new Interval(0, Infinity);
         const hit = quad.hit(ray, interval);
         expect(hit).not.toBeNull();
@@ -119,14 +119,14 @@ describe('Quad', () => {
 
     it('should miss rays that are parallel to the quad', () => {
       // Unit square in XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const quad = new Quad(q, u, v, material);
       
       // Ray parallel to quad (in XY direction)
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 1, 0));
       const interval = new Interval(0, Infinity);
       
       const hit = quad.hit(ray, interval);
@@ -135,14 +135,14 @@ describe('Quad', () => {
 
     it('should handle front and back face correctly', () => {
       // Unit square in XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const quad = new Quad(q, u, v, material);
       
       // Front face (ray from negative Z)
-      const frontRay = new Ray(new Vec3(0.5, 0.5, 0), new Vec3(0, 0, 1));
+      const frontRay = new Ray(Vec3.create(0.5, 0.5, 0), Vec3.create(0, 0, 1));
       const frontHit = quad.hit(frontRay, new Interval(0, Infinity));
       expect(frontHit).not.toBeNull();
       if (frontHit) {
@@ -151,7 +151,7 @@ describe('Quad', () => {
       }
       
       // Back face (ray from positive Z)
-      const backRay = new Ray(new Vec3(0.5, 0.5, 10), new Vec3(0, 0, -1));
+      const backRay = new Ray(Vec3.create(0.5, 0.5, 10), Vec3.create(0, 0, -1));
       const backHit = quad.hit(backRay, new Interval(0, Infinity));
       expect(backHit).not.toBeNull();
       if (backHit) {
@@ -164,9 +164,9 @@ describe('Quad', () => {
   describe('boundingBox method', () => {
     it('should return correct bounding box for axis-aligned quad', () => {
       // Unit square in XY plane at z = 5
-      const q: Point3 = new Vec3(1, 2, 5);
-      const u = new Vec3(3, 0, 0);  // 3 units in X direction
-      const v = new Vec3(0, 4, 0);  // 4 units in Y direction
+      const q: Point3 = Vec3.create(1, 2, 5);
+      const u = Vec3.create(3, 0, 0);  // 3 units in X direction
+      const v = Vec3.create(0, 4, 0);  // 4 units in Y direction
       const material = new MockMaterial();
       const quad = new Quad(q, u, v, material);
       
@@ -184,9 +184,9 @@ describe('Quad', () => {
 
     it('should return correct bounding box for tilted quad', () => {
       // Tilted quad
-      const q: Point3 = new Vec3(0, 0, 0);
-      const u = new Vec3(1, 1, 0);  // Diagonal in XY
-      const v = new Vec3(0, 1, 1);  // Diagonal in YZ
+      const q: Point3 = Vec3.create(0, 0, 0);
+      const u = Vec3.create(1, 1, 0);  // Diagonal in XY
+      const v = Vec3.create(0, 1, 1);  // Diagonal in YZ
       const material = new MockMaterial();
       const quad = new Quad(q, u, v, material);
       
@@ -207,15 +207,15 @@ describe('Quad', () => {
     describe('pdfValue', () => {
       it('should return 0 for directions that miss the quad', () => {
         // Unit square in XY plane at z = 5
-        const q: Point3 = new Vec3(0, 0, 5);
-        const u = new Vec3(1, 0, 0);
-        const v = new Vec3(0, 1, 0);
+        const q: Point3 = Vec3.create(0, 0, 5);
+        const u = Vec3.create(1, 0, 0);
+        const v = Vec3.create(0, 1, 0);
         const material = new MockMaterial();
         const quad = new Quad(q, u, v, material);
         
         // Direction that misses the quad
-        const origin = new Vec3(0, 0, 0);
-        const direction = new Vec3(0, 1, 0).unitVector(); // Points up, misses quad
+        const origin = Vec3.create(0, 0, 0);
+        const direction = Vec3.create(0, 1, 0).unitVector(); // Points up, misses quad
         
         const pdfVal = quad.pdfValue(origin, direction);
         expect(pdfVal).toBe(0);
@@ -223,15 +223,15 @@ describe('Quad', () => {
 
       it('should return positive value for directions that hit the quad', () => {
         // Unit square in XY plane at z = 5
-        const q: Point3 = new Vec3(0, 0, 5);
-        const u = new Vec3(1, 0, 0);
-        const v = new Vec3(0, 1, 0);
+        const q: Point3 = Vec3.create(0, 0, 5);
+        const u = Vec3.create(1, 0, 0);
+        const v = Vec3.create(0, 1, 0);
         const material = new MockMaterial();
         const quad = new Quad(q, u, v, material);
         
         // Direction towards center of quad
-        const origin = new Vec3(0, 0, 0);
-        const direction = new Vec3(0.5, 0.5, 5).unitVector();
+        const origin = Vec3.create(0, 0, 0);
+        const direction = Vec3.create(0.5, 0.5, 5).unitVector();
         
         const pdfVal = quad.pdfValue(origin, direction);
         expect(pdfVal).toBeGreaterThan(0);
@@ -239,22 +239,22 @@ describe('Quad', () => {
 
       it('should calculate PDF based on distance and area', () => {
         // Unit square in XY plane at z = 5
-        const q: Point3 = new Vec3(0, 0, 5);
-        const u = new Vec3(1, 0, 0);
-        const v = new Vec3(0, 1, 0);
+        const q: Point3 = Vec3.create(0, 0, 5);
+        const u = Vec3.create(1, 0, 0);
+        const v = Vec3.create(0, 1, 0);
         const material = new MockMaterial();
         const quad = new Quad(q, u, v, material);
         
         // Direction towards center of quad
-        const origin = new Vec3(0, 0, 0);
-        const direction = new Vec3(0.5, 0.5, 5).unitVector();
+        const origin = Vec3.create(0, 0, 0);
+        const direction = Vec3.create(0.5, 0.5, 5).unitVector();
         
         const pdfVal = quad.pdfValue(origin, direction);
         
         // Manual calculation for verification
-        const hitPoint = new Vec3(0.5, 0.5, 5);
+        const hitPoint = Vec3.create(0.5, 0.5, 5);
         const distance = hitPoint.subtract(origin).length();
-        const cosine = Math.abs(direction.dot(new Vec3(0, 0, -1))); // Normal towards origin
+        const cosine = Math.abs(direction.dot(Vec3.create(0, 0, -1))); // Normal towards origin
         const expectedPdf = (distance * distance) / (quad.area * cosine);
         
         expect(pdfVal).toBeCloseTo(expectedPdf, 5);
@@ -264,13 +264,13 @@ describe('Quad', () => {
     describe('pdfRandomVec', () => {
       it('should generate vectors that point towards the quad', () => {
         // Unit square in XY plane at z = 5
-        const q: Point3 = new Vec3(0, 0, 5);
-        const u = new Vec3(1, 0, 0);
-        const v = new Vec3(0, 1, 0);
+        const q: Point3 = Vec3.create(0, 0, 5);
+        const u = Vec3.create(1, 0, 0);
+        const v = Vec3.create(0, 1, 0);
         const material = new MockMaterial();
         const quad = new Quad(q, u, v, material);
         
-        const origin = new Vec3(0, 0, 0);
+        const origin = Vec3.create(0, 0, 0);
         
         // Test multiple samples
         for (let i = 0; i < 50; i++) {
@@ -290,13 +290,13 @@ describe('Quad', () => {
 
       it('should generate vectors with non-zero PDF values', () => {
         // Unit square in XY plane at z = 5
-        const q: Point3 = new Vec3(0, 0, 5);
-        const u = new Vec3(1, 0, 0);
-        const v = new Vec3(0, 1, 0);
+        const q: Point3 = Vec3.create(0, 0, 5);
+        const u = Vec3.create(1, 0, 0);
+        const v = Vec3.create(0, 1, 0);
         const material = new MockMaterial();
         const quad = new Quad(q, u, v, material);
         
-        const origin = new Vec3(0, 0, 0);
+        const origin = Vec3.create(0, 0, 0);
         
         // Generate several random vectors and check their PDF values
         for (let i = 0; i < 20; i++) {
@@ -312,17 +312,17 @@ describe('Quad', () => {
     describe('pdf', () => {
       it('should return a PDF object with working value and generate functions', () => {
         // Unit square in XY plane at z = 5
-        const q: Point3 = new Vec3(0, 0, 5);
-        const u = new Vec3(1, 0, 0);
-        const v = new Vec3(0, 1, 0);
+        const q: Point3 = Vec3.create(0, 0, 5);
+        const u = Vec3.create(1, 0, 0);
+        const v = Vec3.create(0, 1, 0);
         const material = new MockMaterial();
         const quad = new Quad(q, u, v, material);
         
-        const origin = new Vec3(0, 0, 0);
+        const origin = Vec3.create(0, 0, 0);
         const pdfObj = quad.pdf(origin);
         
         // Test value function
-        const direction = new Vec3(0.5, 0.5, 5).unitVector();
+        const direction = Vec3.create(0.5, 0.5, 5).unitVector();
         const pdfVal = pdfObj.value(direction);
         expect(pdfVal).toBeGreaterThan(0);
         expect(pdfVal).toBeCloseTo(quad.pdfValue(origin, direction));
@@ -342,9 +342,9 @@ describe('Quad', () => {
   describe('edge cases', () => {
     it('should handle very small quads', () => {
       // Very small quad
-      const q: Point3 = new Vec3(0, 0, 0);
-      const u = new Vec3(0.001, 0, 0);
-      const v = new Vec3(0, 0.001, 0);
+      const q: Point3 = Vec3.create(0, 0, 0);
+      const u = Vec3.create(0.001, 0, 0);
+      const v = Vec3.create(0, 0.001, 0);
       const material = new MockMaterial();
       
       expect(() => {
@@ -355,14 +355,14 @@ describe('Quad', () => {
 
     it('should handle rays that barely miss quad boundaries', () => {
       // Unit square in XY plane at z = 5
-      const q: Point3 = new Vec3(0, 0, 5);
-      const u = new Vec3(1, 0, 0);
-      const v = new Vec3(0, 1, 0);
+      const q: Point3 = Vec3.create(0, 0, 5);
+      const u = Vec3.create(1, 0, 0);
+      const v = Vec3.create(0, 1, 0);
       const material = new MockMaterial();
       const quad = new Quad(q, u, v, material);
       
       // Ray just outside boundary
-      const ray = new Ray(new Vec3(1.0001, 0.5, 0), new Vec3(0, 0, 1));
+      const ray = new Ray(Vec3.create(1.0001, 0.5, 0), Vec3.create(0, 0, 1));
       const interval = new Interval(0, Infinity);
       
       const hit = quad.hit(ray, interval);

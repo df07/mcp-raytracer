@@ -12,7 +12,7 @@ import { HitRecord } from '../../src/geometry/hittable.js';
 import { CosinePDF } from '../../src/geometry/pdf.js';
 
 // Mock material for creating hit records
-const mockMaterial = new Lambertian(new Color(1, 1, 1));
+const mockMaterial = new Lambertian(Color.create(1, 1, 1));
 
 // Helper function to create a basic hit record
 function createHitRecord(point: Vec3, normal: Vec3): HitRecord {
@@ -33,11 +33,11 @@ describe('LayeredMaterial', () => {
 
   beforeEach(() => {
     glassDielectric = new Dielectric(1.5);
-    redPaint = new Lambertian(new Color(0.8, 0.2, 0.2));
-    silverMetal = new Metal(new Color(0.9, 0.9, 0.9), 0.1);
+    redPaint = new Lambertian(Color.create(0.8, 0.2, 0.2));
+    silverMetal = new Metal(Color.create(0.9, 0.9, 0.9), 0.1);
     mixedMaterial = new MixedMaterial(
-      new Lambertian(new Color(0.6, 0.4, 0.2)), // Diffuse
-      new Metal(new Color(0.8, 0.6, 0.4), 0.1), // Specular with slight roughness
+      new Lambertian(Color.create(0.6, 0.4, 0.2)), // Diffuse
+      new Metal(Color.create(0.8, 0.6, 0.4), 0.1), // Specular with slight roughness
       0.7  // 70% diffuse, 30% specular
     );
   });
@@ -57,14 +57,14 @@ describe('LayeredMaterial', () => {
     it('should return dielectric result when ray is reflected', () => {
       // Arrange
       const material = new LayeredMaterial(glassDielectric, redPaint);
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(-1, 0, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(-1, 0, 0));
       
       // Act - test multiple times to find a reflection case
       let reflectionResult = null;
       for (let i = 0; i < 100 && !reflectionResult; i++) {
         const result = material.scatter(ray, hitRecord);
-        if (result && result.scattered && result.attenuation.equals(new Color(1, 1, 1))) {
+        if (result && result.scattered && result.attenuation.equals(Color.create(1, 1, 1))) {
           // This is a reflection from the dielectric (white attenuation)
           reflectionResult = result;
         }
@@ -72,7 +72,7 @@ describe('LayeredMaterial', () => {
       
       // Assert
       expect(reflectionResult).not.toBeNull();
-      expect(reflectionResult!.attenuation).toEqual(new Color(1, 1, 1)); // Clear dielectric
+      expect(reflectionResult!.attenuation).toEqual(Color.create(1, 1, 1)); // Clear dielectric
       expect(reflectionResult!.scattered).toBeInstanceOf(Ray);
       expect(reflectionResult!.pdf).toBeUndefined();
     });
@@ -80,8 +80,8 @@ describe('LayeredMaterial', () => {
     it('should pass refracted ray to inner material when transmitted', () => {
       // Arrange
       const material = new LayeredMaterial(glassDielectric, redPaint);
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(-1, 0, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(-1, 0, 0));
       
       // Act - test multiple times to find a transmission case
       let transmissionResult = null;
@@ -103,8 +103,8 @@ describe('LayeredMaterial', () => {
     it('should work with Metal inner material', () => {
       // Arrange
       const material = new LayeredMaterial(glassDielectric, silverMetal);
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, -1, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, -1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act - test multiple times to find transmission to metal
       let metalTransmissionResult = null;
@@ -125,8 +125,8 @@ describe('LayeredMaterial', () => {
     it('should work with MixedMaterial inner layer', () => {
       // Arrange
       const material = new LayeredMaterial(glassDielectric, mixedMaterial);
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(-1, 0, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(-1, 0, 0));
       
       // Act - test multiple transmissions to get both diffuse and specular from mixed material
       let diffuseTransmissions = 0;
@@ -137,7 +137,7 @@ describe('LayeredMaterial', () => {
         const result = material.scatter(ray, hitRecord);
         if (result) {
           // Skip dielectric reflections (white attenuation)
-          if (result.attenuation.equals(new Color(1, 1, 1))) {
+          if (result.attenuation.equals(Color.create(1, 1, 1))) {
             continue;
           }
           
@@ -157,12 +157,12 @@ describe('LayeredMaterial', () => {
 
     it('should handle null result from inner material', () => {
       // Arrange - create a material that might return null
-      const roughMetal = new Metal(new Color(0.8, 0.8, 0.8), 0.8); // High fuzz
+      const roughMetal = new Metal(Color.create(0.8, 0.8, 0.8), 0.8); // High fuzz
       const material = new LayeredMaterial(glassDielectric, roughMetal);
       
       // Create conditions that might cause the metal to return null
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0.1, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0.1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act - test multiple times
       let nullResults = 0;
@@ -188,7 +188,7 @@ describe('LayeredMaterial', () => {
     it('should return emission from inner material', () => {
       // Arrange
       const material = new LayeredMaterial(glassDielectric, redPaint);
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act
       const emitted = material.emitted(hitRecord);
@@ -196,7 +196,7 @@ describe('LayeredMaterial', () => {
       
       // Assert
       expect(emitted).toEqual(innerEmitted);
-      expect(emitted).toEqual(new Color(0, 0, 0)); // Lambertian doesn't emit
+      expect(emitted).toEqual(Color.create(0, 0, 0)); // Lambertian doesn't emit
     });
   });
 
@@ -204,11 +204,11 @@ describe('LayeredMaterial', () => {
     it('should simulate clear-coated paint correctly', () => {
       // Arrange - automotive clear coat over red paint
       const clearCoat = new Dielectric(1.5);
-      const paint = new Lambertian(new Color(0.8, 0.2, 0.2));
+      const paint = new Lambertian(Color.create(0.8, 0.2, 0.2));
       const clearCoatedPaint = new LayeredMaterial(clearCoat, paint);
       
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(-1, 0, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(-1, 0, 0));
       
       // Act - test behavior over multiple samples
       let clearReflections = 0;
@@ -218,7 +218,7 @@ describe('LayeredMaterial', () => {
       for (let i = 0; i < iterations; i++) {
         const result = clearCoatedPaint.scatter(ray, hitRecord);
         if (result) {
-          if (result.attenuation.equals(new Color(1, 1, 1)) && result.scattered) {
+          if (result.attenuation.equals(Color.create(1, 1, 1)) && result.scattered) {
             clearReflections++; // Clear coat reflection
           } else if (result.attenuation.equals(paint.albedo) && result.pdf) {
             paintScattering++; // Paint diffuse scattering
@@ -235,11 +235,11 @@ describe('LayeredMaterial', () => {
     it('should simulate glass over metal correctly', () => {
       // Arrange - glass protective layer over brushed metal
       const glass = new Dielectric(1.5);
-      const metal = new Metal(new Color(0.8, 0.8, 0.9), 0.1);
+      const metal = new Metal(Color.create(0.8, 0.8, 0.9), 0.1);
       const glassOverMetal = new LayeredMaterial(glass, metal);
       
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, -1, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, -1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act - test behavior over multiple samples
       let glassReflections = 0;
@@ -249,7 +249,7 @@ describe('LayeredMaterial', () => {
       for (let i = 0; i < iterations; i++) {
         const result = glassOverMetal.scatter(ray, hitRecord);
         if (result && result.scattered) {
-          if (result.attenuation.equals(new Color(1, 1, 1))) {
+          if (result.attenuation.equals(Color.create(1, 1, 1))) {
             glassReflections++; // Glass surface reflection
           } else if (result.attenuation.equals(metal.albedo)) {
             metalReflections++; // Metal reflection through glass

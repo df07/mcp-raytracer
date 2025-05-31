@@ -63,9 +63,9 @@ export class Camera {
         imageWidth: 400,
         aspectRatio: 16 / 9,
         vfov: 90,
-        lookFrom: new Vec3(0, 0, 0),
-        lookAt: new Vec3(0, 0, -1),
-        vUp: new Vec3(0, 1, 0),
+        lookFrom: Vec3.create(0, 0, 0),
+        lookAt: Vec3.create(0, 0, -1),
+        vUp: Vec3.create(0, 1, 0),
         aperture: 0,                 // No defocus blur by default
         focusDistance: 1.0,          // Default focus distance
         samples: 100,
@@ -341,12 +341,12 @@ export class Camera {
                 // Visualize average bounces per ray for this pixel (bluescale)
                 const avgBounces = sampleCount > 0 ? pixelBounces / sampleCount : 0;
                 const bounceIntensity = Math.min(avgBounces / this.maxDepth, 1.0); // Normalize to [0,1]
-                return new Color(0, 0, bounceIntensity); // Blue scale
+                return Color.create(0, 0, bounceIntensity); // Blue scale
             
             case RenderMode.Samples:
                 // Visualize sample count for this pixel (redscale)
                 const sampleIntensity = Math.min(sampleCount / this.samples, 1.0); // Normalize to [0,1]
-                return new Color(sampleIntensity, 0, 0); // Red scale
+                return Color.create(sampleIntensity, 0, 0); // Red scale
             
             case RenderMode.Default:
             default:
@@ -399,7 +399,7 @@ export class Camera {
         for (let j = startY; j < endY; ++j) {            
             for (let i = startX; i < endX; ++i) {
                 // Initialize pixel data
-                let pixelColor = new Color(0, 0, 0);
+                let pixelColor = Color.create(0, 0, 0);
                 let sampleCount = 0;
                 let pixelBounces = 0;
                 

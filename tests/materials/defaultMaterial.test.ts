@@ -8,14 +8,14 @@ describe('DefaultMaterial', () => {
         const defaultMaterial = new DefaultMaterial();
         
         const hitRecord: HitRecord = {
-            p: new Vec3(0, 0, 0),
-            normal: new Vec3(0, 1, 0),
+            p: Vec3.create(0, 0, 0),
+            normal: Vec3.create(0, 1, 0),
             t: 1.0,
             frontFace: true,
             material: defaultMaterial
         };
         
-        const incomingRay = new Ray(new Vec3(0, -1, 0), new Vec3(0, 1, 0));
+        const incomingRay = new Ray(Vec3.create(0, -1, 0), Vec3.create(0, 1, 0));
         
         const scatterResult = defaultMaterial.scatter(incomingRay, hitRecord);
         
@@ -27,8 +27,8 @@ describe('DefaultMaterial', () => {
         const defaultMaterial = new DefaultMaterial();
         
         const hitRecord: HitRecord = {
-            p: new Vec3(0, 0, 0),
-            normal: new Vec3(0, 1, 0),
+            p: Vec3.create(0, 0, 0),
+            normal: Vec3.create(0, 1, 0),
             t: 1.0,
             frontFace: true,
             material: defaultMaterial

@@ -8,14 +8,14 @@ describe('AABB', () => {
     it('should detect ray intersection with box', () => {
       // Create a box centered at origin with side length 2
       const box = new AABB(
-        new Vec3(-1, -1, -1),
-        new Vec3(1, 1, 1)
+        Vec3.create(-1, -1, -1),
+        Vec3.create(1, 1, 1)
       );
       
       // Ray from outside the box pointing toward it
       const ray = new Ray(
-        new Vec3(0, 0, -5),  // Origin outside the box
-        new Vec3(0, 0, 1)    // Direction toward the box
+        Vec3.create(0, 0, -5),  // Origin outside the box
+        Vec3.create(0, 0, 1)    // Direction toward the box
       );
       
       // Ray interval from origin to far away
@@ -28,14 +28,14 @@ describe('AABB', () => {
     it('should not detect intersection when ray misses box', () => {
       // Create a box centered at origin with side length 2
       const box = new AABB(
-        new Vec3(-1, -1, -1),
-        new Vec3(1, 1, 1)
+        Vec3.create(-1, -1, -1),
+        Vec3.create(1, 1, 1)
       );
       
       // Ray that passes to the side of the box
       const ray = new Ray(
-        new Vec3(5, 0, 0),   // Origin outside the box
-        new Vec3(0, 0, 1)    // Direction parallel to box but not intersecting
+        Vec3.create(5, 0, 0),   // Origin outside the box
+        Vec3.create(0, 0, 1)    // Direction parallel to box but not intersecting
       );
       
       // Ray interval from origin to far away
@@ -48,14 +48,14 @@ describe('AABB', () => {
     it('should not detect intersection when ray interval is too short', () => {
       // Create a box centered at origin with side length 2
       const box = new AABB(
-        new Vec3(-1, -1, -1),
-        new Vec3(1, 1, 1)
+        Vec3.create(-1, -1, -1),
+        Vec3.create(1, 1, 1)
       );
       
       // Ray from outside the box pointing toward it
       const ray = new Ray(
-        new Vec3(0, 0, -5),  // Origin outside the box
-        new Vec3(0, 0, 1)    // Direction toward the box
+        Vec3.create(0, 0, -5),  // Origin outside the box
+        Vec3.create(0, 0, 1)    // Direction toward the box
       );
       
       // Ray interval that ends before the box
@@ -70,14 +70,14 @@ describe('AABB', () => {
     it('should create a box that contains two input boxes', () => {
       // First box
       const box1 = new AABB(
-        new Vec3(-1, -1, -1),
-        new Vec3(1, 1, 1)
+        Vec3.create(-1, -1, -1),
+        Vec3.create(1, 1, 1)
       );
       
       // Second box offset from the first
       const box2 = new AABB(
-        new Vec3(0, 0, 0),
-        new Vec3(2, 2, 2)
+        Vec3.create(0, 0, 0),
+        Vec3.create(2, 2, 2)
       );
       
       // Surrounding box should contain both

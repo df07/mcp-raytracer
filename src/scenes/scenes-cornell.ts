@@ -42,54 +42,54 @@ export function generateCornellScene(cameraOpts?: CameraOptions, sceneOpts?: Cor
   const halfSize = boxSize / 2;
 
   // Create materials
-  const redMaterial = new Lambertian(new Color(0.65, 0.05, 0.05));
-  const greenMaterial = new Lambertian(new Color(0.12, 0.45, 0.15));
-  const whiteMaterial = new Lambertian(new Color(0.73, 0.73, 0.73));
-  const lightMaterial = new DiffuseLight(new Color(15, 15, 15));
+  const redMaterial = new Lambertian(Color.create(0.65, 0.05, 0.05));
+  const greenMaterial = new Lambertian(Color.create(0.12, 0.45, 0.15));
+  const whiteMaterial = new Lambertian(Color.create(0.73, 0.73, 0.73));
+  const lightMaterial = new DiffuseLight(Color.create(15, 15, 15));
 
   // Create Cornell box walls using quads
   
   // Left wall (red) - YZ plane at x = -halfSize
   const leftWall = new Quad(
-    new Point3(-halfSize, -halfSize, -halfSize),  // Bottom-left corner
-    new Vec3(0, boxSize, 0),                      // Up vector (height)
-    new Vec3(0, 0, boxSize),                      // Forward vector (depth)
+    Point3.create(-halfSize, -halfSize, -halfSize),  // Bottom-left corner
+    Vec3.create(0, boxSize, 0),                      // Up vector (height)
+    Vec3.create(0, 0, boxSize),                      // Forward vector (depth)
     redMaterial
   );
   worldList.add(leftWall);
 
   // Right wall (green) - YZ plane at x = halfSize
   const rightWall = new Quad(
-    new Point3(halfSize, -halfSize, halfSize),    // Bottom-right corner (facing inward)
-    new Vec3(0, boxSize, 0),                      // Up vector (height)
-    new Vec3(0, 0, -boxSize),                     // Backward vector (depth, facing inward)
+    Point3.create(halfSize, -halfSize, halfSize),    // Bottom-right corner (facing inward)
+    Vec3.create(0, boxSize, 0),                      // Up vector (height)
+    Vec3.create(0, 0, -boxSize),                     // Backward vector (depth, facing inward)
     greenMaterial
   );
   worldList.add(rightWall);
 
   // Back wall (white) - XY plane at z = -halfSize
   const backWall = new Quad(
-    new Point3(-halfSize, -halfSize, -halfSize),  // Bottom-left corner
-    new Vec3(boxSize, 0, 0),                      // Right vector (width)
-    new Vec3(0, boxSize, 0),                      // Up vector (height)
+    Point3.create(-halfSize, -halfSize, -halfSize),  // Bottom-left corner
+    Vec3.create(boxSize, 0, 0),                      // Right vector (width)
+    Vec3.create(0, boxSize, 0),                      // Up vector (height)
     whiteMaterial
   );
   worldList.add(backWall);
 
   // Bottom wall (white) - XZ plane at y = -halfSize
   const bottomWall = new Quad(
-    new Point3(-halfSize, -halfSize, -halfSize),  // Back-left corner
-    new Vec3(boxSize, 0, 0),                      // Right vector (width)
-    new Vec3(0, 0, boxSize),                      // Forward vector (depth)
+    Point3.create(-halfSize, -halfSize, -halfSize),  // Back-left corner
+    Vec3.create(boxSize, 0, 0),                      // Right vector (width)
+    Vec3.create(0, 0, boxSize),                      // Forward vector (depth)
     whiteMaterial
   );
   worldList.add(bottomWall);
 
   // Ceiling (white) - XZ plane at y = halfSize
   const ceiling = new Quad(
-    new Point3(-halfSize, halfSize, halfSize),    // Front-left corner (facing downward)
-    new Vec3(boxSize, 0, 0),                      // Right vector (width)
-    new Vec3(0, 0, -boxSize),                     // Backward vector (depth, facing downward)
+    Point3.create(-halfSize, halfSize, halfSize),    // Front-left corner (facing downward)
+    Vec3.create(boxSize, 0, 0),                      // Right vector (width)
+    Vec3.create(0, 0, -boxSize),                     // Backward vector (depth, facing downward)
     whiteMaterial
   );
   worldList.add(ceiling);
@@ -97,9 +97,9 @@ export function generateCornellScene(cameraOpts?: CameraOptions, sceneOpts?: Cor
   // Ceiling light (smaller than full ceiling for realistic lighting)
   const lightSize = boxSize * 0.3; // 30% of box size
   const ceilingLight = new Quad(
-    new Point3(-lightSize/2, halfSize - 0.01, -lightSize/2),  // Slightly below ceiling
-    new Vec3(lightSize, 0, 0),                                // Right vector
-    new Vec3(0, 0, lightSize),                                // Forward vector
+    Point3.create(-lightSize/2, halfSize - 0.01, -lightSize/2),  // Slightly below ceiling
+    Vec3.create(lightSize, 0, 0),                                // Right vector
+    Vec3.create(0, 0, lightSize),                                // Forward vector
     lightMaterial
   );
   worldList.add(ceilingLight);
@@ -107,13 +107,13 @@ export function generateCornellScene(cameraOpts?: CameraOptions, sceneOpts?: Cor
   // Add objects based on variant
   if (options.variant === 'spheres') {
     // Create materials for the two spheres inside the box
-    const leftSphereMaterial = new Lambertian(new Color(0.6, 0.6, 0.6)); // White sphere
+    const leftSphereMaterial = new Lambertian(Color.create(0.6, 0.6, 0.6)); // White sphere
     const rightSphereMaterial = new Dielectric(Dielectric.GLASS_IOR); // Glass
 
     // Position the two spheres inside the box
     const sphereRadius = 0.3;
-    const leftSphereCenter = new Point3(-halfSize * 0.4, -halfSize + sphereRadius, -halfSize * 0.3);
-    const rightSphereCenter = new Point3(halfSize * 0.4, -halfSize + sphereRadius, halfSize * 0.3);
+    const leftSphereCenter = Point3.create(-halfSize * 0.4, -halfSize + sphereRadius, -halfSize * 0.3);
+    const rightSphereCenter = Point3.create(halfSize * 0.4, -halfSize + sphereRadius, halfSize * 0.3);
 
     // Add the two spheres inside the box
     worldList.add(new Sphere(leftSphereCenter, sphereRadius, leftSphereMaterial));
@@ -126,11 +126,11 @@ export function generateCornellScene(cameraOpts?: CameraOptions, sceneOpts?: Cor
 
   // Default camera options for Cornell box view
   const defaultCameraOptions: CameraOptions = {
-    aspectRatio: 1.0,
+    aspectRatio: 1.0, 
     vfov: 40,                                  // Increased FOV to see the entire box
-    lookFrom: new Vec3(0, 0, halfSize * 4), // Moved camera further back
-    lookAt: new Vec3(0, 0, 0),                 // Look at the center of the box
-    vUp: new Vec3(0, 1, 0),                     // Up direction
+    lookFrom: Vec3.create(0, 0, halfSize * 4), // Moved camera further back
+    lookAt: Vec3.create(0, 0, 0),                 // Look at the center of the box
+    vUp: Vec3.create(0, 1, 0),                     // Up direction
     lights: [ceilingLight],
     backgroundTop: Color.BLACK,                 // No ambient light - black background
     backgroundBottom: Color.BLACK,               // No ambient light - black background

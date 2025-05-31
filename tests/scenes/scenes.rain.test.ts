@@ -44,8 +44,8 @@ describe('Rain Scene Generator', () => {
       // Arrange
       const cameraOptions = {
         vfov: 60,
-        lookFrom: new Vec3(0, 1, 3),
-        lookAt: new Vec3(0, 0, -2)
+        lookFrom: Vec3.create(0, 1, 3),
+        lookAt: Vec3.create(0, 0, -2)
       };
       
       const rainOptions: RainSceneOptions = {

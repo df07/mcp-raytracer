@@ -3,8 +3,8 @@ import { Vec3, Point3 } from '../../src/geometry/vec3.js';
 
 describe('Ray', () => {
     it('should initialize origin and direction correctly', () => {
-        const origin = new Vec3(1, 2, 3);
-        const direction = new Vec3(4, 5, 6);
+        const origin = Vec3.create(1, 2, 3);
+        const direction = Vec3.create(4, 5, 6);
         const r = new Ray(origin, direction);
 
         expect(r.origin.x).toBe(1);
@@ -16,8 +16,8 @@ describe('Ray', () => {
     });
 
     it('should return the correct origin', () => {
-        const origin = new Vec3(0, 0, 0);
-        const direction = new Vec3(1, 0, 0);
+        const origin = Vec3.create(0, 0, 0);
+        const direction = Vec3.create(1, 0, 0);
         const r = new Ray(origin, direction);
 
         expect(r.origin).toBeInstanceOf(Vec3);
@@ -27,8 +27,8 @@ describe('Ray', () => {
     });
 
     it('should return the correct direction', () => {
-        const origin = new Vec3(0, 0, 0);
-        const direction = new Vec3(1, 0, 0);
+        const origin = Vec3.create(0, 0, 0);
+        const direction = Vec3.create(1, 0, 0);
         const r = new Ray(origin, direction);
 
         expect(r.direction).toBeInstanceOf(Vec3);
@@ -39,8 +39,8 @@ describe('Ray', () => {
 
     describe('at', () => {
         it('should calculate the correct point at t=0', () => {
-            const origin = new Vec3(1, 2, 3);
-            const direction = new Vec3(4, 5, 6);
+            const origin = Vec3.create(1, 2, 3);
+            const direction = Vec3.create(4, 5, 6);
             const r = new Ray(origin, direction);
             const pointAtT: Point3 = r.at(0);
 
@@ -51,8 +51,8 @@ describe('Ray', () => {
         });
 
         it('should calculate the correct point at t=1', () => {
-            const origin = new Vec3(1, 2, 3);
-            const direction = new Vec3(4, 5, 6);
+            const origin = Vec3.create(1, 2, 3);
+            const direction = Vec3.create(4, 5, 6);
             const r = new Ray(origin, direction);
             const pointAtT: Point3 = r.at(1);
 
@@ -63,8 +63,8 @@ describe('Ray', () => {
         });
 
         it('should calculate the correct point at t=0.5', () => {
-            const origin = new Vec3(1, 2, 3);
-            const direction = new Vec3(4, 5, 6);
+            const origin = Vec3.create(1, 2, 3);
+            const direction = Vec3.create(4, 5, 6);
             const r = new Ray(origin, direction);
             const pointAtT: Point3 = r.at(0.5);
 
@@ -75,8 +75,8 @@ describe('Ray', () => {
         });
 
         it('should calculate the correct point at t=-1', () => {
-            const origin = new Vec3(1, 2, 3);
-            const direction = new Vec3(4, 5, 6);
+            const origin = Vec3.create(1, 2, 3);
+            const direction = Vec3.create(4, 5, 6);
             const r = new Ray(origin, direction);
             const pointAtT: Point3 = r.at(-1);
 

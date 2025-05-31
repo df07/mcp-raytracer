@@ -11,7 +11,7 @@ import { HitRecord } from '../../src/geometry/hittable.js';
 import { CosinePDF } from '../../src/geometry/pdf.js';
 
 // Mock material for creating hit records
-const mockMaterial = new Lambertian(new Color(1, 1, 1));
+const mockMaterial = new Lambertian(Color.create(1, 1, 1));
 
 // Helper function to create a basic hit record
 function createHitRecord(point: Vec3, normal: Vec3): HitRecord {
@@ -30,8 +30,8 @@ describe('MixedMaterial', () => {
   let glass: Dielectric;
 
   beforeEach(() => {
-    redPaint = new Lambertian(new Color(0.8, 0.2, 0.2));
-    silverMetal = new Metal(new Color(0.9, 0.9, 0.9), 0.1);
+    redPaint = new Lambertian(Color.create(0.8, 0.2, 0.2));
+    silverMetal = new Metal(Color.create(0.9, 0.9, 0.9), 0.1);
     glass = new Dielectric(1.5);
   });
 
@@ -63,8 +63,8 @@ describe('MixedMaterial', () => {
     it('should always use material1 when weight = 1.0', () => {
       // Arrange
       const material = new MixedMaterial(redPaint, silverMetal, 1.0);
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(-1, 0, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(-1, 0, 0));
       
       // Act - test multiple times to verify consistency
       for (let i = 0; i < 10; i++) {
@@ -81,8 +81,8 @@ describe('MixedMaterial', () => {
     it('should always use material2 when weight = 0.0', () => {
       // Arrange
       const material = new MixedMaterial(redPaint, silverMetal, 0.0);
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, -1, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, -1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act - test multiple times to verify consistency
       for (let i = 0; i < 10; i++) {
@@ -99,8 +99,8 @@ describe('MixedMaterial', () => {
     it('should statistically distribute between materials based on weight', () => {
       // Arrange
       const material = new MixedMaterial(redPaint, silverMetal, 0.3); // 30% paint, 70% metal
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, -1, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, -1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act
       let material1Count = 0;
@@ -130,8 +130,8 @@ describe('MixedMaterial', () => {
     it('should work with Lambertian + Metal combination', () => {
       // Arrange
       const material = new MixedMaterial(redPaint, silverMetal, 0.5);
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, -1, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, -1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act
       const result = material.scatter(ray, hitRecord);
@@ -157,8 +157,8 @@ describe('MixedMaterial', () => {
     it('should work with Dielectric + Lambertian combination', () => {
       // Arrange
       const material = new MixedMaterial(glass, redPaint, 0.4); // 40% glass, 60% paint
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(-1, 0, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(-1, 0, 0));
       
       // Act - test multiple times to get both behaviors
       let glassResults = 0;
@@ -168,7 +168,7 @@ describe('MixedMaterial', () => {
       for (let i = 0; i < iterations; i++) {
         const result = material.scatter(ray, hitRecord);
         if (result) {
-          if (result.scattered && result.attenuation.equals(new Color(1, 1, 1))) {
+          if (result.scattered && result.attenuation.equals(Color.create(1, 1, 1))) {
             glassResults++; // Dielectric with white attenuation
           } else if (result.pdf && result.attenuation.equals(redPaint.albedo)) {
             paintResults++; // Lambertian with red attenuation
@@ -183,12 +183,12 @@ describe('MixedMaterial', () => {
 
     it('should handle null results from constituent materials', () => {
       // Arrange - use a rough metal that might return null
-      const roughMetal = new Metal(new Color(0.8, 0.8, 0.8), 0.9); // Very rough
+      const roughMetal = new Metal(Color.create(0.8, 0.8, 0.8), 0.9); // Very rough
       const material = new MixedMaterial(redPaint, roughMetal, 0.5);
       
       // Create conditions that might cause null from metal
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0.1, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0.1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act - test multiple times
       let nullResults = 0;
@@ -223,17 +223,17 @@ describe('MixedMaterial', () => {
         }
       }
       
-      const emissive1 = new EmissiveMaterial(new Color(1, 0, 0), new Color(1, 1, 0)); // Yellow emission
-      const emissive2 = new EmissiveMaterial(new Color(0, 1, 0), new Color(0, 1, 1)); // Cyan emission
+      const emissive1 = new EmissiveMaterial(Color.create(1, 0, 0), Color.create(1, 1, 0)); // Yellow emission
+      const emissive2 = new EmissiveMaterial(Color.create(0, 1, 0), Color.create(0, 1, 1)); // Cyan emission
       const material = new MixedMaterial(emissive1, emissive2, 0.3); // 30% emissive1, 70% emissive2
       
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act
       const emitted = material.emitted(hitRecord);
       
       // Assert - should be weighted combination: 0.3 * yellow + 0.7 * cyan
-      const expected = new Color(1, 1, 0).multiply(0.3).add(new Color(0, 1, 1).multiply(0.7));
+      const expected = Color.create(1, 1, 0).multiply(0.3).add(Color.create(0, 1, 1).multiply(0.7));
       expect(emitted.x).toBeCloseTo(expected.x, 5);
       expect(emitted.y).toBeCloseTo(expected.y, 5);
       expect(emitted.z).toBeCloseTo(expected.z, 5);
@@ -242,25 +242,25 @@ describe('MixedMaterial', () => {
     it('should return black when both materials do not emit', () => {
       // Arrange
       const material = new MixedMaterial(redPaint, silverMetal, 0.5);
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act
       const emitted = material.emitted(hitRecord);
       
       // Assert
-      expect(emitted).toEqual(new Color(0, 0, 0));
+      expect(emitted).toEqual(Color.create(0, 0, 0));
     });
   });
 
   describe('integration tests', () => {
     it('should create realistic plastic-like surface with Lambertian + Metal', () => {
       // Arrange - simulate plastic with diffuse base and specular highlights
-      const blueDiffuse = new Lambertian(new Color(0.2, 0.4, 0.8));
-      const whiteSpecular = new Metal(new Color(1.0, 1.0, 1.0), 0.05); // Very smooth specular
+      const blueDiffuse = new Lambertian(Color.create(0.2, 0.4, 0.8));
+      const whiteSpecular = new Metal(Color.create(1.0, 1.0, 1.0), 0.05); // Very smooth specular
       const plastic = new MixedMaterial(blueDiffuse, whiteSpecular, 0.7); // Mostly diffuse
       
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, -1, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(0, 1, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, -1, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(0, 1, 0));
       
       // Act - sample the material behavior
       let diffuseHits = 0;
@@ -286,8 +286,8 @@ describe('MixedMaterial', () => {
     it('should create interesting glass-metal hybrid', () => {
       // Arrange - unusual combination for artistic effects
       const glassMetal = new MixedMaterial(glass, silverMetal, 0.6); // 60% glass, 40% metal
-      const ray = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
-      const hitRecord = createHitRecord(new Vec3(1, 0, 0), new Vec3(-1, 0, 0));
+      const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
+      const hitRecord = createHitRecord(Vec3.create(1, 0, 0), Vec3.create(-1, 0, 0));
       
       // Act - test that both behaviors are present
       let glassLikeBehavior = 0;
@@ -297,7 +297,7 @@ describe('MixedMaterial', () => {
       for (let i = 0; i < iterations; i++) {
         const result = glassMetal.scatter(ray, hitRecord);
         if (result && result.scattered) {
-          if (result.attenuation.equals(new Color(1, 1, 1))) {
+          if (result.attenuation.equals(Color.create(1, 1, 1))) {
             glassLikeBehavior++; // Clear attenuation suggests glass
           } else if (result.attenuation.equals(silverMetal.albedo)) {
             metalLikeBehavior++; // Silver attenuation suggests metal

@@ -7,7 +7,7 @@ interface IVectorPool {
 }
 
 const NoPool: IVectorPool = {
-    get: () => new Vec3()
+    get: () => new Vec3(glMatrix.vec3.fromValues(0,0,0))
 }
 
 let pool: IVectorPool = NoPool;
@@ -20,8 +20,8 @@ export class Vec3 {
     // The internal gl-matrix vector
     public glVec: glMatrix.vec3;
 
-    constructor(e0: number = 0, e1: number = 0, e2: number = 0) {
-        this.glVec = glMatrix.vec3.fromValues(e0, e1, e2);
+    constructor(glVec: glMatrix.vec3) {
+        this.glVec = glVec;
     }
 
     get x(): number {
@@ -311,7 +311,7 @@ export class Vec3 {
         pool = newPool || NoPool;
     }
 
-    static fromPool(x: number, y: number, z: number): Vec3 {
+    static create(x: number, y: number, z: number): Vec3 {
         const result = pool.get();
         result.glVec[0] = x;
         result.glVec[1] = y;
@@ -335,7 +335,7 @@ export class Vec3 {
         const y = Math.sin(phi) * sqrtR2;
         const z = Math.sqrt(1 - r2);
         
-        return pool.get().set(x, y, z);
+        return Vec3.create(x, y, z);
     }
 
     /**
@@ -349,7 +349,7 @@ export class Vec3 {
         const r2 = Math.random();
         const z = 1 + r2 * (Math.sqrt(1 - radius * radius / distanceSquared) - 1);
         const phi = 2 * Math.PI * r1;
-        return pool.get().set(Math.cos(phi) * Math.sqrt(1 - z * z), Math.sin(phi) * Math.sqrt(1 - z * z), z);
+        return Vec3.create(Math.cos(phi) * Math.sqrt(1 - z * z), Math.sin(phi) * Math.sqrt(1 - z * z), z);
     }
 
     /**
@@ -358,7 +358,7 @@ export class Vec3 {
      */
     static randomInUnitDisk(): Vec3 {
         while (true) {
-            const p = Vec3.fromPool(2 * Math.random() - 1, 2 * Math.random() - 1, 0);
+            const p = Vec3.create(2 * Math.random() - 1, 2 * Math.random() - 1, 0);
             if (p.lengthSquared() < 1) {
                 return p;
             }
@@ -369,9 +369,9 @@ export class Vec3 {
 // Classes that extend Vec3 for semantic clarity
 export class Point3 extends Vec3 {}
 export class Color extends Vec3 {
-    static BLACK = new Color(0, 0, 0);
-    static WHITE = new Color(1, 1, 1);
-    static BLUE = new Color(0.5, 0.7, 1.0);
+    static BLACK = Color.create(0, 0, 0);
+    static WHITE = Color.create(1, 1, 1);
+    static BLUE = Color.create(0.5, 0.7, 1.0);
 }
 
 /**
@@ -428,7 +428,7 @@ export class VectorPool {
      */
     private expandPool(additionalVectors: number): void {
         for (let i = 0; i < additionalVectors; i++) {
-            this.pool.push(new Vec3());
+            this.pool.push(new Vec3(glMatrix.vec3.fromValues(0,0,0)));
         }
     }
 }

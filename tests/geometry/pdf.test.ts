@@ -11,7 +11,7 @@ import { Lambertian } from '../../src/materials/lambertian.js';
 class MockPDF implements PDF {
   private returnDirection: Vec3;
   
-  constructor(returnDirection: Vec3 = new Vec3(1, 0, 0)) {
+  constructor(returnDirection: Vec3 = Vec3.create(1, 0, 0)) {
     this.returnDirection = returnDirection;
   }
   
@@ -28,7 +28,7 @@ describe('PDF', () => {
   describe('CosinePDF', () => {
     it('should generate directions following a cosine distribution', () => {
       // Arrange
-      const normal = new Vec3(0, 1, 0); // Up direction
+      const normal = Vec3.create(0, 1, 0); // Up direction
       const pdf = new CosinePDF(normal);
       
       // Act - generate multiple samples
@@ -54,7 +54,7 @@ describe('PDF', () => {
     
     it('should calculate correct PDF values for directions', () => {
       // Arrange
-      const normal = new Vec3(0, 1, 0); // Up direction
+      const normal = Vec3.create(0, 1, 0); // Up direction
       const pdf = new CosinePDF(normal);
       
       // Act & Assert
@@ -63,29 +63,29 @@ describe('PDF', () => {
       // PDF value should be 0 for directions in lower hemisphere
       
       // Directly up (cosine = 1)
-      expect(pdf.value(new Vec3(0, 1, 0))).toBeCloseTo(1/Math.PI);
+      expect(pdf.value(Vec3.create(0, 1, 0))).toBeCloseTo(1/Math.PI);
       
       // 45 degrees from normal (cosine = 1/sqrt(2) ≈ 0.7071)
-      const angle45 = new Vec3(1, 1, 0).unitVector();
+      const angle45 = Vec3.create(1, 1, 0).unitVector();
       expect(pdf.value(angle45)).toBeCloseTo(0.7071/Math.PI, 4);
       
       // 90 degrees from normal (cosine = 0)
-      expect(pdf.value(new Vec3(1, 0, 0))).toBeCloseTo(0);
+      expect(pdf.value(Vec3.create(1, 0, 0))).toBeCloseTo(0);
       
       // Below horizon (negative cosine)
-      expect(pdf.value(new Vec3(0, -1, 0))).toBe(0);
+      expect(pdf.value(Vec3.create(0, -1, 0))).toBe(0);
     });
   });
   
   describe('MixturePDF', () => {
     it('should mix PDFs with equal weights by default', () => {
       // Arrange
-      const pdf1 = new MockPDF(new Vec3(1, 0, 0));
-      const pdf2 = new MockPDF(new Vec3(0, 1, 0));
+      const pdf1 = new MockPDF(Vec3.create(1, 0, 0));
+      const pdf2 = new MockPDF(Vec3.create(0, 1, 0));
       const mixturePdf = new MixturePDF([pdf1, pdf2]);
       
       // Act
-      const value = mixturePdf.value(new Vec3(0, 0, 1));
+      const value = mixturePdf.value(Vec3.create(0, 0, 1));
       
       // Assert - each mock returns 1.0, so avg should be 1.0
       expect(value).toBeCloseTo(1.0);
@@ -93,8 +93,8 @@ describe('PDF', () => {
     
     it('should respect provided weights', () => {
       // Arrange
-      const pdf1 = new MockPDF(new Vec3(1, 0, 0));  // Returns vector in x direction
-      const pdf2 = new MockPDF(new Vec3(0, 1, 0));  // Returns vector in y direction
+      const pdf1 = new MockPDF(Vec3.create(1, 0, 0));  // Returns vector in x direction
+      const pdf2 = new MockPDF(Vec3.create(0, 1, 0));  // Returns vector in y direction
       const mixturePdf = new MixturePDF([pdf1, pdf2], [1, 3]); // 25% for pdf1, 75% for pdf2
       
       // Act - sample many times and count occurrences
@@ -137,7 +137,7 @@ describe('PDF', () => {
         }
         
         generate(): Vec3 {
-          return new Vec3(1, 0, 0);
+          return Vec3.create(1, 0, 0);
         }
       }
       
@@ -148,11 +148,11 @@ describe('PDF', () => {
       
       // Equal weights (default)
       const equalMixture = new MixturePDF([pdf1, pdf2]);
-      expect(equalMixture.value(new Vec3())).toBeCloseTo(2); // (1+3)/2 = 2
+      expect(equalMixture.value(Vec3.create(0,0,0))).toBeCloseTo(2); // (1+3)/2 = 2
       
       // Custom weights
       const weightedMixture = new MixturePDF([pdf1, pdf2], [1, 3]);
-      expect(weightedMixture.value(new Vec3())).toBeCloseTo(2.5); // (1*1 + 3*3)/(1+3) = 2.5
+      expect(weightedMixture.value(Vec3.create(0,0,0))).toBeCloseTo(2.5); // (1*1 + 3*3)/(1+3) = 2.5
     });
   });
   

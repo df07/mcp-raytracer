@@ -9,21 +9,21 @@ import { Lambertian } from '../../src/materials/lambertian.js';
 
 describe('BVHNode', () => {
   // Create a simple material for testing
-  const material = new Lambertian(new Color(0.5, 0.5, 0.5));
+  const material = new Lambertian(Color.create(0.5, 0.5, 0.5));
   
   // Create a few spheres
   const spheres: Hittable[] = [
-    new Sphere(new Vec3(0, 0, -1), 0.5, material),     // Middle sphere
-    new Sphere(new Vec3(-1, 0, -1), 0.5, material),    // Left sphere
-    new Sphere(new Vec3(1, 0, -1), 0.5, material),     // Right sphere
-    new Sphere(new Vec3(0, -100.5, -1), 100, material) // Ground sphere
+    new Sphere(Vec3.create(0, 0, -1), 0.5, material),     // Middle sphere
+    new Sphere(Vec3.create(-1, 0, -1), 0.5, material),    // Left sphere
+    new Sphere(Vec3.create(1, 0, -1), 0.5, material),     // Right sphere
+    new Sphere(Vec3.create(0, -100.5, -1), 100, material) // Ground sphere
   ];
   
   // Create more spheres for testing the leaf node optimization
   const manySmallSpheres: Hittable[] = [];
   for (let i = 0; i < 10; i++) {
     manySmallSpheres.push(
-      new Sphere(new Vec3(i-5, 0, -5), 0.3, material)
+      new Sphere(Vec3.create(i-5, 0, -5), 0.3, material)
     );
   }
   
@@ -55,8 +55,8 @@ describe('BVHNode', () => {
       
       // Create a ray that should hit the middle sphere
       const ray = new Ray(
-        new Vec3(0, 0, 0),     // Origin
-        new Vec3(0, 0, -1)     // Direction toward middle sphere
+        Vec3.create(0, 0, 0),     // Origin
+        Vec3.create(0, 0, -1)     // Direction toward middle sphere
       );
       
       // Check if the ray hits anything in the BVH
@@ -75,8 +75,8 @@ describe('BVHNode', () => {
       
       // Create a ray that misses all spheres
       const ray = new Ray(
-        new Vec3(0, 5, 0),     // Origin above all spheres
-        new Vec3(0, 1, 0)      // Direction away from all spheres
+        Vec3.create(0, 5, 0),     // Origin above all spheres
+        Vec3.create(0, 1, 0)      // Direction away from all spheres
       );
       
       // Check if the ray hits anything in the BVH
@@ -98,8 +98,8 @@ describe('BVHNode', () => {
       
       // Create a ray that should hit something
       const ray = new Ray(
-        new Vec3(0, 0, 0),
-        new Vec3(0.5, -0.5, -1).unitVector()
+        Vec3.create(0, 0, 0),
+        Vec3.create(0.5, -0.5, -1).unitVector()
       );
       
       // Check both BVH and direct list
@@ -130,8 +130,8 @@ describe('BVHNode', () => {
       
       // Create a ray that should hit one of the spheres
       const ray = new Ray(
-        new Vec3(0, 0, 0),     // Origin
-        new Vec3(0, 0, -1)     // Direction toward -z
+        Vec3.create(0, 0, 0),     // Origin
+        Vec3.create(0, 0, -1)     // Direction toward -z
       );
       
       // Check if the ray hits anything in the BVH

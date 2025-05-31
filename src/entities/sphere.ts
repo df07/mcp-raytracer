@@ -23,7 +23,7 @@ export class Sphere implements PDFHittable {
     this.material = material;
 
     // Calculate minimum and maximum points of the bounding box
-    const radiusVec = new Vec3(this.radius, this.radius, this.radius);
+    const radiusVec = Vec3.create(this.radius, this.radius, this.radius);
     const min = this.center.subtract(radiusVec);
     const max = this.center.add(radiusVec);
 

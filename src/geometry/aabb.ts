@@ -66,13 +66,13 @@ export class AABB {
      * @returns A new AABB that encloses both input boxes
      */
     static surroundingBox(box0: AABB, box1: AABB): AABB {
-        const small = new Vec3(
+        const small = Vec3.create(
             Math.min(box0.minimum.x, box1.minimum.x),
             Math.min(box0.minimum.y, box1.minimum.y),
             Math.min(box0.minimum.z, box1.minimum.z)
         );
 
-        const big = new Vec3(
+        const big = Vec3.create(
             Math.max(box0.maximum.x, box1.maximum.x),
             Math.max(box0.maximum.y, box1.maximum.y),
             Math.max(box0.maximum.z, box1.maximum.z)
@@ -91,8 +91,8 @@ export class AABB {
      */
     static empty(): AABB {
         return new AABB(
-            new Vec3(Infinity, Infinity, Infinity),
-            new Vec3(-Infinity, -Infinity, -Infinity)
+            Vec3.create(Infinity, Infinity, Infinity),
+            Vec3.create(-Infinity, -Infinity, -Infinity)
         );
     }
 }

@@ -21,7 +21,7 @@ class MockMaterial implements Material {
     shouldScatter: boolean;
     emissionColor: Color;
     
-    constructor(albedo: Color, shouldScatter: boolean = true, emissionColor: Color = new Color(0, 0, 0)) {
+    constructor(albedo: Color, shouldScatter: boolean = true, emissionColor: Color = Color.create(0, 0, 0)) {
         this.albedo = albedo;
         this.shouldScatter = shouldScatter;
         this.emissionColor = emissionColor;
@@ -49,7 +49,7 @@ class MockPDFMaterial implements Material {
     albedo: Color;
     returnedPDF: CosinePDF;
     
-    constructor(albedo: Color, normal: Vec3 = new Vec3(0, 1, 0)) {
+    constructor(albedo: Color, normal: Vec3 = Vec3.create(0, 1, 0)) {
         this.albedo = albedo;
         this.returnedPDF = new CosinePDF(normal);
     }
@@ -62,7 +62,7 @@ class MockPDFMaterial implements Material {
     }
     
     emitted(rec: HitRecord): Color {
-        return new Color(0, 0, 0);
+        return Color.create(0, 0, 0);
     }
 }
 
@@ -72,7 +72,7 @@ class MockHittable implements Hittable {
     hitNormal: Vec3;
     material: Material;
 
-    constructor(shouldHit: boolean, hitNormal: Vec3 = new Vec3(0, 0, 0), material: Material = new MockMaterial(new Color(1, 1, 1))) {
+    constructor(shouldHit: boolean, hitNormal: Vec3 = Vec3.create(0, 0, 0), material: Material = new MockMaterial(Color.create(1, 1, 1))) {
         this.shouldHit = shouldHit;
         this.hitNormal = hitNormal;
         this.material = material;
@@ -103,8 +103,8 @@ describe('Camera', () => {
 
     beforeEach(() => {
         // Create a simple world with one sphere
-        const material = new Lambertian(new Color(0.5, 0.5, 0.5));
-        const sphere = new Sphere(new Point3(0, 0, -1), 0.5, material);
+        const material = new Lambertian(Color.create(0.5, 0.5, 0.5));
+        const sphere = new Sphere(Point3.create(0, 0, -1), 0.5, material);
         world = new HittableList();
         world.add(sphere);
 
@@ -112,9 +112,9 @@ describe('Camera', () => {
             imageWidth: 100,
             aspectRatio: 1.0,
             vfov: 90,
-            lookFrom: new Vec3(0, 0, 0),
-            lookAt: new Vec3(0, 0, -1),
-            vUp: new Vec3(0, 1, 0),
+            lookFrom: Vec3.create(0, 0, 0),
+            lookAt: Vec3.create(0, 0, -1),
+            vUp: Vec3.create(0, 1, 0),
             samples: 1,
         };
     });
@@ -138,8 +138,8 @@ describe('Camera', () => {
         it('should auto-calculate focus distance when not provided', () => {
             const options: CameraOptions = {
                 ...defaultOptions,
-                lookFrom: new Vec3(0, 0, 3),
-                lookAt: new Vec3(0, 0, 0),
+                lookFrom: Vec3.create(0, 0, 3),
+                lookAt: Vec3.create(0, 0, 0),
                 aperture: 1.0,
             };
             
@@ -362,10 +362,10 @@ describe('Camera', () => {
 
         it('should work with different camera orientations', () => {
             const orientations = [
-                { lookFrom: new Vec3(0, 0, 5), lookAt: new Vec3(0, 0, 0) },
-                { lookFrom: new Vec3(5, 0, 0), lookAt: new Vec3(0, 0, 0) },
-                { lookFrom: new Vec3(0, 5, 0), lookAt: new Vec3(0, 0, 0) },
-                { lookFrom: new Vec3(3, 3, 3), lookAt: new Vec3(0, 0, 0) },
+                { lookFrom: Vec3.create(0, 0, 5), lookAt: Vec3.create(0, 0, 0) },
+                { lookFrom: Vec3.create(5, 0, 0), lookAt: Vec3.create(0, 0, 0) },
+                { lookFrom: Vec3.create(0, 5, 0), lookAt: Vec3.create(0, 0, 0) },
+                { lookFrom: Vec3.create(3, 3, 3), lookAt: Vec3.create(0, 0, 0) },
             ];
 
             orientations.forEach(({ lookFrom, lookAt }) => {
@@ -401,15 +401,15 @@ describe('Camera PDF Sampling', () => {
   test('rayColor should handle light sampling correctly', () => {
     // Create a simple scene with a diffuse sphere and a light source
     const world = new HittableList();
-    const diffuseMaterial = new Lambertian(new Color(0.8, 0.8, 0.8));
+    const diffuseMaterial = new Lambertian(Color.create(0.8, 0.8, 0.8));
     const emissiveMaterial = new DefaultMaterial();
     
     // Create emissive behavior
-    emissiveMaterial.emitted = () => new Color(1, 1, 1);
+    emissiveMaterial.emitted = () => Color.create(1, 1, 1);
     
     // Add objects to the world
-    const diffuseSphere = new Sphere(new Vec3(0, 0, -1), 0.5, diffuseMaterial);
-    const lightSphere = new Sphere(new Vec3(0, 2, -1), 0.5, emissiveMaterial);
+    const diffuseSphere = new Sphere(Vec3.create(0, 0, -1), 0.5, diffuseMaterial);
+    const lightSphere = new Sphere(Vec3.create(0, 2, -1), 0.5, emissiveMaterial);
     world.add(diffuseSphere);
     world.add(lightSphere);
     
@@ -419,7 +419,7 @@ describe('Camera PDF Sampling', () => {
     });
     
     // Create a ray that hits the diffuse sphere
-    const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+    const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
     
     // Just verify that rayColor completes without errors when lights are available
     expect(() => camera.rayColor(ray)).not.toThrow();
@@ -430,17 +430,17 @@ describe('Camera PDF Sampling', () => {
     
     // Create a world with just one diffuse sphere
     const world = new HittableList();
-    const diffuseMaterial = new Lambertian(new Color(0.8, 0.8, 0.8));
+    const diffuseMaterial = new Lambertian(Color.create(0.8, 0.8, 0.8));
     
     // Add object to the world
-    const diffuseSphere = new Sphere(new Vec3(0, 0, -1), 0.5, diffuseMaterial);
+    const diffuseSphere = new Sphere(Vec3.create(0, 0, -1), 0.5, diffuseMaterial);
     world.add(diffuseSphere);
     
     // Create camera (no lights)
     const camera = new Camera(world);
     
     // Create a ray that hits the diffuse sphere
-    const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+    const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
     
     // In our current implementation, the result should be calculated using
     // CosinePDF sampling, and should not divide by π, which would cause energy loss
@@ -456,8 +456,8 @@ describe('Camera Russian Roulette', () => {
 
     beforeEach(() => {
         // Create a simple world with one sphere
-        const material = new Lambertian(new Color(0.5, 0.5, 0.5));
-        const sphere = new Sphere(new Point3(0, 0, -1), 0.5, material);
+        const material = new Lambertian(Color.create(0.5, 0.5, 0.5));
+        const sphere = new Sphere(Point3.create(0, 0, -1), 0.5, material);
         world = new HittableList();
         world.add(sphere);
 
@@ -507,7 +507,7 @@ describe('Camera Russian Roulette', () => {
             const camera = new Camera(world, options);
             
             // Create a ray that will hit the sphere
-            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
             const stats = { bounces: 2 }; // Below threshold
             
             // Should not throw and should complete normally
@@ -533,7 +533,7 @@ describe('Camera Russian Roulette', () => {
                 const camera = new Camera(world, options);
                 
                 // Create a ray that will hit the sphere
-                const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+                const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
                 const stats = { bounces: 2 }; // Above threshold
                 
                 const result = camera.rayColor(ray, Color.WHITE, stats);
@@ -559,7 +559,7 @@ describe('Camera Russian Roulette', () => {
                 const camera = new Camera(world, options);
                 
                 // Create a ray that will hit the sphere
-                const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+                const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
                 const stats = { bounces: 2 };
                 
                 const result = camera.rayColor(ray, Color.WHITE, stats);
@@ -639,8 +639,8 @@ describe('Camera Russian Roulette', () => {
     describe('Edge Cases', () => {
         it('should handle zero attenuation gracefully', () => {
             // Create a material that returns zero attenuation
-            const zeroMaterial = new MockPDFMaterial(new Color(0, 0, 0));
-            const zeroSphere = new Sphere(new Vec3(0, 0, -1), 0.5, zeroMaterial);
+            const zeroMaterial = new MockPDFMaterial(Color.create(0, 0, 0));
+            const zeroSphere = new Sphere(Vec3.create(0, 0, -1), 0.5, zeroMaterial);
             const zeroWorld = new HittableList();
             zeroWorld.add(zeroSphere);
             
@@ -651,7 +651,7 @@ describe('Camera Russian Roulette', () => {
             };
             
             const camera = new Camera(zeroWorld, options);
-            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
             const stats = { bounces: 2 };
             
             // Should handle zero attenuation without errors
@@ -660,8 +660,8 @@ describe('Camera Russian Roulette', () => {
 
         it('should handle high attenuation values', () => {
             // Create a material with high attenuation
-            const highMaterial = new MockPDFMaterial(new Color(2, 2, 2));
-            const highSphere = new Sphere(new Vec3(0, 0, -1), 0.5, highMaterial);
+            const highMaterial = new MockPDFMaterial(Color.create(2, 2, 2));
+            const highSphere = new Sphere(Vec3.create(0, 0, -1), 0.5, highMaterial);
             const highWorld = new HittableList();
             highWorld.add(highSphere);
             
@@ -672,7 +672,7 @@ describe('Camera Russian Roulette', () => {
             };
             
             const camera = new Camera(highWorld, options);
-            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+            const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
             const stats = { bounces: 2 };
             
             // Should cap continuation probability at 95%
@@ -701,8 +701,8 @@ describe('Camera Background Colors', () => {
             const camera = new Camera(emptyWorld, defaultOptions);
             
             // Create rays pointing in different directions to test gradient
-            const rayUp = new Ray(new Vec3(0, 0, 0), new Vec3(0, 1, 0)); // Should be more blue (bottom color)
-            const rayDown = new Ray(new Vec3(0, 0, 0), new Vec3(0, -1, 0)); // Should be more white (top color)
+            const rayUp = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 1, 0)); // Should be more blue (bottom color)
+            const rayDown = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, -1, 0)); // Should be more white (top color)
             
             const colorUp = camera.rayColor(rayUp);
             const colorDown = camera.rayColor(rayDown);
@@ -723,7 +723,7 @@ describe('Camera Background Colors', () => {
             const camera = new Camera(emptyWorld, defaultOptions);
             
             // Test horizontal ray (should be middle of gradient)
-            const rayHorizontal = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
+            const rayHorizontal = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
             const colorHorizontal = camera.rayColor(rayHorizontal);
             
             // Should be a mix of white and blue
@@ -735,8 +735,8 @@ describe('Camera Background Colors', () => {
 
     describe('Custom Background Colors', () => {
         it('should use custom background colors when specified', () => {
-            const redTop = new Color(1, 0, 0);
-            const greenBottom = new Color(0, 1, 0);
+            const redTop = Color.create(1, 0, 0);
+            const greenBottom = Color.create(0, 1, 0);
             
             const options: CameraOptions = {
                 ...defaultOptions,
@@ -747,7 +747,7 @@ describe('Camera Background Colors', () => {
             const camera = new Camera(emptyWorld, options);
             
             // Test ray pointing up (should be green - gets bottom color)
-            const rayUp = new Ray(new Vec3(0, 0, 0), new Vec3(0, 1, 0));
+            const rayUp = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 1, 0));
             const colorUp = camera.rayColor(rayUp);
             
             // Should be predominantly green (bottom color)
@@ -755,7 +755,7 @@ describe('Camera Background Colors', () => {
             expect(colorUp.y).toBeGreaterThan(colorUp.z);
             
             // Test ray pointing down (should be red - gets top color)
-            const rayDown = new Ray(new Vec3(0, 0, 0), new Vec3(0, -1, 0));
+            const rayDown = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, -1, 0));
             const colorDown = camera.rayColor(rayDown);
             
             // Should be predominantly red (top color)
@@ -774,16 +774,16 @@ describe('Camera Background Colors', () => {
             
             // Test rays in various directions
             const directions = [
-                new Vec3(0, 1, 0),   // Up
-                new Vec3(0, -1, 0),  // Down
-                new Vec3(1, 0, 0),   // Right
-                new Vec3(-1, 0, 0),  // Left
-                new Vec3(0, 0, 1),   // Forward
-                new Vec3(0, 0, -1),  // Backward
+                Vec3.create(0, 1, 0),   // Up
+                Vec3.create(0, -1, 0),  // Down
+                Vec3.create(1, 0, 0),   // Right
+                Vec3.create(-1, 0, 0),  // Left
+                Vec3.create(0, 0, 1),   // Forward
+                Vec3.create(0, 0, -1),  // Backward
             ];
             
             directions.forEach(direction => {
-                const ray = new Ray(new Vec3(0, 0, 0), direction);
+                const ray = new Ray(Vec3.create(0, 0, 0), direction);
                 const color = camera.rayColor(ray);
                 
                 // All should be black (no ambient light)
@@ -794,7 +794,7 @@ describe('Camera Background Colors', () => {
         });
 
         it('should handle single color backgrounds', () => {
-            const purple = new Color(0.5, 0, 0.5);
+            const purple = Color.create(0.5, 0, 0.5);
             
             const options: CameraOptions = {
                 ...defaultOptions,
@@ -805,8 +805,8 @@ describe('Camera Background Colors', () => {
             const camera = new Camera(emptyWorld, options);
             
             // Test rays in different directions - all should be purple
-            const rayUp = new Ray(new Vec3(0, 0, 0), new Vec3(0, 1, 0));
-            const rayDown = new Ray(new Vec3(0, 0, 0), new Vec3(0, -1, 0));
+            const rayUp = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 1, 0));
+            const rayDown = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, -1, 0));
             
             const colorUp = camera.rayColor(rayUp);
             const colorDown = camera.rayColor(rayDown);
@@ -824,8 +824,8 @@ describe('Camera Background Colors', () => {
 
     describe('Background Gradient Interpolation', () => {
         it('should correctly interpolate between custom colors', () => {
-            const white = new Color(1, 1, 1);
-            const black = new Color(0, 0, 0);
+            const white = Color.create(1, 1, 1);
+            const black = Color.create(0, 0, 0);
             
             const options: CameraOptions = {
                 ...defaultOptions,
@@ -836,7 +836,7 @@ describe('Camera Background Colors', () => {
             const camera = new Camera(emptyWorld, options);
             
             // Test horizontal ray (y = 0, should be middle gray)
-            const rayHorizontal = new Ray(new Vec3(0, 0, 0), new Vec3(1, 0, 0));
+            const rayHorizontal = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
             const colorHorizontal = camera.rayColor(rayHorizontal);
             
             // Should be approximately 50% gray
@@ -846,8 +846,8 @@ describe('Camera Background Colors', () => {
         });
 
         it('should handle extreme color values', () => {
-            const brightRed = new Color(10, 0, 0);
-            const darkBlue = new Color(0, 0, 0.1);
+            const brightRed = Color.create(10, 0, 0);
+            const darkBlue = Color.create(0, 0, 0.1);
             
             const options: CameraOptions = {
                 ...defaultOptions,
@@ -858,7 +858,7 @@ describe('Camera Background Colors', () => {
             const camera = new Camera(emptyWorld, options);
             
             // Should not throw errors with extreme values
-            const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0.5, 0));
+            const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0.5, 0));
             expect(() => camera.rayColor(ray)).not.toThrow();
         });
     });
@@ -869,8 +869,8 @@ describe('Camera Background Colors', () => {
                 imageWidth: 5,
                 aspectRatio: 1.0,
                 samples: 1,
-                backgroundTop: new Color(1, 0, 0),
-                backgroundBottom: new Color(0, 0, 1),
+                backgroundTop: Color.create(1, 0, 0),
+                backgroundBottom: Color.create(0, 0, 1),
             };
             
             const camera = new Camera(emptyWorld, options);

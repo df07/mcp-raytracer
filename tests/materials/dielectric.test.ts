@@ -15,11 +15,11 @@ describe('Dielectric Material', () => {
   
   test('scatter should always produce a non-null result', () => {
     // Dielectric materials should always scatter (either reflect or refract)
-    const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+    const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
     const hitRecord: HitRecord = {
       t: 1.0,
-      p: new Vec3(0, 0, -1),
-      normal: new Vec3(0, 0, 1),
+      p: Vec3.create(0, 0, -1),
+      normal: Vec3.create(0, 0, 1),
       frontFace: true,
       material: dielectric
     };
@@ -44,21 +44,21 @@ describe('Dielectric Material', () => {
   
   test('scatter produces results for both entering and exiting rays', () => {
     // Ray entering the material
-    const rayIn = new Ray(new Vec3(0, 0, 1), new Vec3(0, 0, -1));
+    const rayIn = new Ray(Vec3.create(0, 0, 1), Vec3.create(0, 0, -1));
     const hitRecordIn: HitRecord = {
       t: 1.0,
-      p: new Vec3(0, 0, 0),
-      normal: new Vec3(0, 0, 1),
+      p: Vec3.create(0, 0, 0),
+      normal: Vec3.create(0, 0, 1),
       frontFace: true,
       material: dielectric
     };
     
     // Ray exiting the material
-    const rayOut = new Ray(new Vec3(0, 0, -1), new Vec3(0, 0, 1));
+    const rayOut = new Ray(Vec3.create(0, 0, -1), Vec3.create(0, 0, 1));
     const hitRecordOut: HitRecord = {
       t: 1.0,
-      p: new Vec3(0, 0, 0),
-      normal: new Vec3(0, 0, 1),
+      p: Vec3.create(0, 0, 0),
+      normal: Vec3.create(0, 0, 1),
       frontFace: false,
       material: dielectric
     };
@@ -85,13 +85,13 @@ describe('Dielectric Material', () => {
     
     // Set up a ray exiting the material at a steep angle (likely to cause total internal reflection)
     // We need a grazing angle where sin(θ) > 1/n, which causes total internal reflection
-    const grazeDirection = new Vec3(0.9, 0.1, 0.0).unitVector();
-    const rayExiting = new Ray(new Vec3(0, 0, 0), grazeDirection);
+    const grazeDirection = Vec3.create(0.9, 0.1, 0.0).unitVector();
+    const rayExiting = new Ray(Vec3.create(0, 0, 0), grazeDirection);
     
     const hitRecord: HitRecord = {
       t: 1.0,
-      p: new Vec3(1, 0, 0),
-      normal: new Vec3(-1, 0, 0), // Normal pointing opposite to ray
+      p: Vec3.create(1, 0, 0),
+      normal: Vec3.create(-1, 0, 0), // Normal pointing opposite to ray
       frontFace: false, // Ray is exiting
       material: highIndexMaterial
     };

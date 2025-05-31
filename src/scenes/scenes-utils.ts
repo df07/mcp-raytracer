@@ -34,7 +34,7 @@ export class SeededRandom {
    */
   randomInUnitSphere(): Vec3 {
     while (true) {
-      const p = new Vec3(
+      const p = Vec3.create(
         this.nextInRange(-1, 1),
         this.nextInRange(-1, 1),
         this.nextInRange(-1, 1)
@@ -50,7 +50,7 @@ export class SeededRandom {
    * Generate a random color
    */
   randomColor(): Vec3 {
-    return new Color(
+    return Color.create(
       this.next(),
       this.next(),
       this.next()

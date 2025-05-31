@@ -11,7 +11,7 @@ describe('Metal Material', () => {
   // Test Metal constructor
   it('should create a Metal material with proper albedo and fuzz', () => {
     // Arrange
-    const albedo = new Color(0.8, 0.6, 0.2);
+    const albedo = Color.create(0.8, 0.6, 0.2);
     
     // Act
     const metal1 = new Metal(albedo, 0.5);
@@ -30,12 +30,12 @@ describe('Metal Material', () => {
   // Test scattering with perfect reflection (no fuzz)
   it('should produce scattered ray with perfect reflection when fuzz is 0', () => {
     // Arrange
-    const albedo = new Color(0.8, 0.6, 0.2);
+    const albedo = Color.create(0.8, 0.6, 0.2);
     const metal = new Metal(albedo, 0);
     
-    const normal = new Vec3(0, 1, 0); // Up direction
+    const normal = Vec3.create(0, 1, 0); // Up direction
     const hitRecord: HitRecord = {
-      p: new Vec3(0, 0, 0), // Hit at origin
+      p: Vec3.create(0, 0, 0), // Hit at origin
       normal: normal,
       t: 1.0,
       frontFace: true,
@@ -43,8 +43,8 @@ describe('Metal Material', () => {
     };
     
     // Ray coming in at 45-degree angle
-    const inDirection = new Vec3(1, -1, 0).unitVector();
-    const inRay = new Ray(new Vec3(-1, 1, 0), inDirection);
+    const inDirection = Vec3.create(1, -1, 0).unitVector();
+    const inRay = new Ray(Vec3.create(-1, 1, 0), inDirection);
     
     // Act
     const result = metal.scatter(inRay, hitRecord) as ScatterResult;
@@ -63,7 +63,7 @@ describe('Metal Material', () => {
       
       // Reflection should be symmetric around normal
       // If incoming is (1, -1, 0), reflected should be (1, 1, 0) normalized
-      const expectedReflection = new Vec3(1, 1, 0).unitVector();
+      const expectedReflection = Vec3.create(1, 1, 0).unitVector();
       
       // Check direction of scattered ray
       const actualDirection = result.scattered?.direction as Vec3;
@@ -76,12 +76,12 @@ describe('Metal Material', () => {
   // Test scattering with fuzzy reflection
   it('should add fuzziness to the reflected ray', () => {
     // Arrange
-    const albedo = new Color(0.8, 0.6, 0.2);
+    const albedo = Color.create(0.8, 0.6, 0.2);
     const metal = new Metal(albedo, 0.5); // Significant fuzz
     
-    const normal = new Vec3(0, 1, 0);
+    const normal = Vec3.create(0, 1, 0);
     const hitRecord: HitRecord = {
-      p: new Vec3(0, 0, 0),
+      p: Vec3.create(0, 0, 0),
       normal: normal,
       t: 1.0,
       frontFace: true,
@@ -89,7 +89,7 @@ describe('Metal Material', () => {
     };
     
     // Ray coming straight down
-    const inRay = new Ray(new Vec3(0, 1, 0), new Vec3(0, -1, 0));
+    const inRay = new Ray(Vec3.create(0, 1, 0), Vec3.create(0, -1, 0));
     
     // Collect multiple scatter results to test fuzzy behavior
     const numSamples = 100;
@@ -126,12 +126,12 @@ describe('Metal Material', () => {
   // Test absorption (ray reflected beneath surface)
   it('should return null when ray is reflected beneath surface', () => {
     // Arrange
-    const albedo = new Color(0.8, 0.6, 0.2);
+    const albedo = Color.create(0.8, 0.6, 0.2);
     const metal = new Metal(albedo, 0.8); // High fuzz to increase chance of beneath-surface reflection
     
-    const normal = new Vec3(0, 1, 0);
+    const normal = Vec3.create(0, 1, 0);
     const hitRecord: HitRecord = {
-      p: new Vec3(0, 0, 0),
+      p: Vec3.create(0, 0, 0),
       normal: normal,
       t: 1.0,
       frontFace: true,
@@ -139,11 +139,11 @@ describe('Metal Material', () => {
     };
     
     // Ray nearly parallel to surface (grazing angle)
-    const inRay = new Ray(new Vec3(0, 0.1, 0), new Vec3(1, -0.01, 0).unitVector());
+    const inRay = new Ray(Vec3.create(0, 0.1, 0), Vec3.create(1, -0.01, 0).unitVector());
     
     // Mock randomInUnitSphere to always return a vector pointing downward
     const originalRandomInUnitSphere = Vec3.randomInUnitSphere;
-    Vec3.randomInUnitSphere = () => new Vec3(0, -1, 0);
+    Vec3.randomInUnitSphere = () => Vec3.create(0, -1, 0);
     
     // Act
     const result = metal.scatter(inRay, hitRecord);
@@ -160,8 +160,8 @@ describe('Metal Material', () => {
 describe('Vec3 reflect function', () => {
   it('should correctly reflect a vector around a normal', () => {
     // Arrange
-    const v = new Vec3(1, -1, 0); // 45-degree angle down
-    const n = new Vec3(0, 1, 0);  // Normal pointing up
+    const v = Vec3.create(1, -1, 0); // 45-degree angle down
+    const n = Vec3.create(0, 1, 0);  // Normal pointing up
     
     // Act
     const reflected = v.reflect(n);

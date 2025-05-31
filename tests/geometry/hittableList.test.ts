@@ -7,11 +7,11 @@ import { Lambertian } from '../../src/materials/lambertian.js';
 
 describe('HittableList', () => {  
   let list: HittableList;
-  const material = new Lambertian(new Color(0.8, 0.8, 0.8));
-  const sphere1 = new Sphere(new Vec3(0, 0, -1), 0.5, material);
-  const sphere2 = new Sphere(new Vec3(0, 100, -5), 10, material); // A different sphere
-  const rayTowardsSphere1 = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
-  const rayTowardsSphere2 = new Ray(new Vec3(0, 100, 0), new Vec3(0, 0, -1));
+  const material = new Lambertian(Color.create(0.8, 0.8, 0.8));
+  const sphere1 = new Sphere(Vec3.create(0, 0, -1), 0.5, material);
+  const sphere2 = new Sphere(Vec3.create(0, 100, -5), 10, material); // A different sphere
+  const rayTowardsSphere1 = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
+  const rayTowardsSphere2 = new Ray(Vec3.create(0, 100, 0), Vec3.create(0, 0, -1));
   const tMin = 0.001;
   const tMax = Infinity;
   const fullInterval = new Interval(tMin, tMax); // Create Interval instance
@@ -45,10 +45,10 @@ describe('HittableList', () => {
     expect(list.hit(rayTowardsSphere1, fullInterval)).toBeNull(); // Should be null after clear
   });
   describe('hit', () => {
-    const testMaterial = new Lambertian(new Color(0.8, 0.8, 0.8));
-    const sphere1Hit = new Sphere(new Vec3(0, 0, -1), 0.5, testMaterial); // Hits at t=0.5, 1.5
-    const sphere2Hit = new Sphere(new Vec3(0, 0, -3), 0.5, testMaterial); // Hits at t=2.5, 3.5
-    const rayFromOrigin = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -1));
+    const testMaterial = new Lambertian(Color.create(0.8, 0.8, 0.8));
+    const sphere1Hit = new Sphere(Vec3.create(0, 0, -1), 0.5, testMaterial); // Hits at t=0.5, 1.5
+    const sphere2Hit = new Sphere(Vec3.create(0, 0, -3), 0.5, testMaterial); // Hits at t=2.5, 3.5
+    const rayFromOrigin = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
     // tMin/tMax defined in outer scope
     // fullInterval defined in outer scope
 
@@ -60,7 +60,7 @@ describe('HittableList', () => {
     test('should return null if ray misses all objects', () => {
       list.add(sphere1Hit);
       list.add(sphere2Hit);
-      const missingRay = new Ray(new Vec3(5, 5, 0), new Vec3(0, 0, -1));
+      const missingRay = new Ray(Vec3.create(5, 5, 0), Vec3.create(0, 0, -1));
       const hitRec = list.hit(missingRay, fullInterval); // Use Interval
       expect(hitRec).toBeNull();
     });
