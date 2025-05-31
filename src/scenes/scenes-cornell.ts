@@ -133,7 +133,9 @@ export function generateCornellScene(cameraOpts?: CameraOptions, sceneOpts?: Cor
     vUp: new Vec3(0, 1, 0),                     // Up direction
     lights: [ceilingLight],
     backgroundTop: Color.BLACK,                 // No ambient light - black background
-    backgroundBottom: Color.BLACK               // No ambient light - black background
+    backgroundBottom: Color.BLACK,               // No ambient light - black background
+    russianRouletteEnabled: true,
+    russianRouletteDepth: 5
   };
 
   // Create camera
