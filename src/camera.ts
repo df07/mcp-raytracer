@@ -405,8 +405,8 @@ export class Camera {
                 while (pixel.samples < this.maxSamples && !this.pixelConverged(pixel)) {
                     const offsetSample = pool.offset;
                     
-                    // Get and trace a ray through this pixel with jitter
-                    const r = this.getRay(i + Math.random(), j + Math.random());
+                    // Get and trace a ray through this pixel
+                    const r = this.getRay(i,j);
                     const rayStats = { bounces: 0 };
                     const rayColor = this.rayColor(r, Color.WHITE, rayStats);
                     pixel.addSample(rayColor, rayStats.bounces, useAdaptiveSampling);
