@@ -291,12 +291,6 @@ export class Vec3 {
         }
     }
 
-    static clone(v: Vec3): Vec3 {
-        const result = pool.get();
-        glMatrix.vec3.copy(result.glVec, v.glVec);
-        return result;
-    }
-
     static usePool(newPool: VectorPool | null) {
         // If a new pool is provided, ensure all vectors are allocated from it
         pool = newPool || NoPool;

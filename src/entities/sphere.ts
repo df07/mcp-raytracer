@@ -77,8 +77,8 @@ export class Sphere implements PDFHittable {
 
     return {
       t: root,
-      p: Vec3.clone(pointAtT),    // Create a fresh Vec3, don't use pool
-      normal: Vec3.clone(normal), // Create a fresh Vec3, don't use pool
+      p: pointAtT,
+      normal: normal,
       frontFace: frontFace,
       material: this.material
     };
