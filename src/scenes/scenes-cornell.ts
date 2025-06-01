@@ -1,16 +1,6 @@
 /* Specs: cornell-scene.md */
 
-import { Camera, CameraOptions } from "../camera.js";
-import { Color, Vec3, Point3 } from "../geometry/vec3.js";
-import { HittableList } from "../geometry/hittableList.js";
-import { Lambertian } from "../materials/lambertian.js";
-import { Metal } from "../materials/metal.js";
-import { Dielectric } from "../materials/dielectric.js";
-import { DiffuseLight } from "../materials/diffuseLight.js";
-import { Scene } from "./scenes.js";
-import { Sphere } from "../entities/sphere.js";
-import { Quad } from "../entities/quad.js";
-import { BVHNode } from "../geometry/bvh.js";
+import { SceneData, MaterialObject, SceneObject, Vec3Array } from './sceneData.js';
 
 /**
  * Options for Cornell box scene generation
@@ -23,128 +13,123 @@ export interface CornellSceneOptions {
  * Generates a Cornell box scene with different variants.
  * Uses quad geometry for accurate Cornell box representation.
  * 
- * @param cameraOpts Optional camera configuration
  * @param sceneOpts Optional scene configuration
- * @returns A Scene object containing the camera, world, and underlying object list
+ * @returns SceneData object that can be used to create a scene
  */
-export function generateCornellScene(cameraOpts?: CameraOptions, sceneOpts?: CornellSceneOptions): Scene {
-  const worldList = new HittableList();
-
+export function generateCornellSceneData(sceneOpts?: CornellSceneOptions): SceneData {
   // Default options
-  const defaultOptions: Required<CornellSceneOptions> = {
-    variant: 'spheres'
-  };
-
-  const options = { ...defaultOptions, ...sceneOpts };
+  const options = { variant: 'spheres' as const, ...sceneOpts };
 
   // Cornell box configuration
   const boxSize = 2.0;
   const halfSize = boxSize / 2;
 
-  // Create materials
-  const redMaterial = new Lambertian(Color.create(0.65, 0.05, 0.05));
-  const greenMaterial = new Lambertian(Color.create(0.12, 0.45, 0.15));
-  const whiteMaterial = new Lambertian(Color.create(0.73, 0.73, 0.73));
-  const lightMaterial = new DiffuseLight(Color.create(15, 15, 15));
+  // Create materials array
+  const materials: MaterialObject[] = [];
+  
+  materials.push({ id: 'red',   material: { type: 'lambert', color: [0.65, 0.05, 0.05] } });
+  materials.push({ id: 'green', material: { type: 'lambert', color: [0.12, 0.45, 0.15] } });
+  materials.push({ id: 'white', material: { type: 'lambert', color: [0.73, 0.73, 0.73] } });
+  materials.push({ id: 'light', material: { type: 'light',   emit:  [15, 15, 15] } });
 
-  // Create Cornell box walls using quads
+  // Add sphere materials for spheres variant
+  if (options.variant === 'spheres') {
+    materials.push({ id: 'sphere-white', material: { type: 'lambert', color: [0.6, 0.6, 0.6] } });
+    materials.push({ id: 'sphere-glass', material: { type: 'glass', ior: 1.5 } });
+  }
+
+  // Create objects array
+  const objects: SceneObject[] = [];
+
+  // Cornell box walls using quads
   
   // Left wall (red) - YZ plane at x = -halfSize
-  const leftWall = new Quad(
-    Point3.create(-halfSize, -halfSize, -halfSize),  // Bottom-left corner
-    Vec3.create(0, boxSize, 0),                      // Up vector (height)
-    Vec3.create(0, 0, boxSize),                      // Forward vector (depth)
-    redMaterial
-  );
-  worldList.add(leftWall);
+  objects.push({
+    type: 'quad',
+    pos: [-halfSize, -halfSize, -halfSize],  // Bottom-left corner
+    u: [0, boxSize, 0],                      // Up vector (height)
+    v: [0, 0, boxSize],                      // Forward vector (depth)
+    material: 'red'
+  });
 
   // Right wall (green) - YZ plane at x = halfSize
-  const rightWall = new Quad(
-    Point3.create(halfSize, -halfSize, halfSize),    // Bottom-right corner (facing inward)
-    Vec3.create(0, boxSize, 0),                      // Up vector (height)
-    Vec3.create(0, 0, -boxSize),                     // Backward vector (depth, facing inward)
-    greenMaterial
-  );
-  worldList.add(rightWall);
+  objects.push({
+    type: 'quad',
+    pos: [halfSize, -halfSize, halfSize],    // Bottom-right corner (facing inward)
+    u: [0, boxSize, 0],                      // Up vector (height)
+    v: [0, 0, -boxSize],                     // Backward vector (depth, facing inward)
+    material: 'green'
+  });
 
   // Back wall (white) - XY plane at z = -halfSize
-  const backWall = new Quad(
-    Point3.create(-halfSize, -halfSize, -halfSize),  // Bottom-left corner
-    Vec3.create(boxSize, 0, 0),                      // Right vector (width)
-    Vec3.create(0, boxSize, 0),                      // Up vector (height)
-    whiteMaterial
-  );
-  worldList.add(backWall);
+  objects.push({
+    type: 'quad',
+    pos: [-halfSize, -halfSize, -halfSize],  // Bottom-left corner
+    u: [boxSize, 0, 0],                      // Right vector (width)
+    v: [0, boxSize, 0],                      // Up vector (height)
+    material: 'white'
+  });
 
   // Bottom wall (white) - XZ plane at y = -halfSize
-  const bottomWall = new Quad(
-    Point3.create(-halfSize, -halfSize, -halfSize),  // Back-left corner
-    Vec3.create(boxSize, 0, 0),                      // Right vector (width)
-    Vec3.create(0, 0, boxSize),                      // Forward vector (depth)
-    whiteMaterial
-  );
-  worldList.add(bottomWall);
+  objects.push({
+    type: 'quad',
+    pos: [-halfSize, -halfSize, -halfSize],  // Back-left corner
+    u: [boxSize, 0, 0],                      // Right vector (width)
+    v: [0, 0, boxSize],                      // Forward vector (depth)
+    material: 'white'
+  });
 
   // Ceiling (white) - XZ plane at y = halfSize
-  const ceiling = new Quad(
-    Point3.create(-halfSize, halfSize, halfSize),    // Front-left corner (facing downward)
-    Vec3.create(boxSize, 0, 0),                      // Right vector (width)
-    Vec3.create(0, 0, -boxSize),                     // Backward vector (depth, facing downward)
-    whiteMaterial
-  );
-  worldList.add(ceiling);
+  objects.push({
+    type: 'quad',
+    pos: [-halfSize, halfSize, halfSize],    // Front-left corner (facing downward)
+    u: [boxSize, 0, 0],                      // Right vector (width)
+    v: [0, 0, -boxSize],                     // Backward vector (depth, facing downward)
+    material: 'white'
+  });
 
   // Ceiling light (smaller than full ceiling for realistic lighting)
   const lightSize = boxSize * 0.3; // 30% of box size
-  const ceilingLight = new Quad(
-    Point3.create(-lightSize/2, halfSize - 0.01, -lightSize/2),  // Slightly below ceiling
-    Vec3.create(lightSize, 0, 0),                                // Right vector
-    Vec3.create(0, 0, lightSize),                                // Forward vector
-    lightMaterial
-  );
-  worldList.add(ceilingLight);
+  objects.push({
+    type: 'quad',
+    pos: [-lightSize/2, halfSize - 0.01, -lightSize/2],  // Slightly below ceiling
+    u: [lightSize, 0, 0],                                // Right vector
+    v: [0, 0, lightSize],                                // Forward vector
+    material: 'light',
+    light: true
+  });
 
   // Add objects based on variant
   if (options.variant === 'spheres') {
-    // Create materials for the two spheres inside the box
-    const leftSphereMaterial = new Lambertian(Color.create(0.6, 0.6, 0.6)); // White sphere
-    const rightSphereMaterial = new Dielectric(Dielectric.GLASS_IOR); // Glass
-
     // Position the two spheres inside the box
     const sphereRadius = 0.3;
-    const leftSphereCenter = Point3.create(-halfSize * 0.4, -halfSize + sphereRadius, -halfSize * 0.3);
-    const rightSphereCenter = Point3.create(halfSize * 0.4, -halfSize + sphereRadius, halfSize * 0.3);
+    const leftSpherePos: Vec3Array = [-halfSize * 0.4, -halfSize + sphereRadius, -halfSize * 0.3];
+    const rightSpherePos: Vec3Array = [halfSize * 0.4, -halfSize + sphereRadius, halfSize * 0.3];
 
     // Add the two spheres inside the box
-    worldList.add(new Sphere(leftSphereCenter, sphereRadius, leftSphereMaterial));
-    worldList.add(new Sphere(rightSphereCenter, sphereRadius, rightSphereMaterial));
+    objects.push({ type: 'sphere', pos: leftSpherePos, r: sphereRadius, material: 'sphere-white' });
+    objects.push({ type: 'sphere', pos: rightSpherePos, r: sphereRadius, material: 'sphere-glass' });
   }
   // For 'empty' variant, we don't add any objects inside the box
 
-  // Create BVH for efficient ray tracing
-  const bvhWorld = BVHNode.fromList(worldList.objects);
-
-  // Default camera options for Cornell box view
-  const defaultCameraOptions: CameraOptions = {
-    aspectRatio: 1.0, 
-    vfov: 40,                                  // Increased FOV to see the entire box
-    lookFrom: Vec3.create(0, 0, halfSize * 4), // Moved camera further back
-    lookAt: Vec3.create(0, 0, 0),                 // Look at the center of the box
-    vUp: Vec3.create(0, 1, 0),                     // Up direction
-    lights: [ceilingLight],
-    backgroundTop: Color.BLACK,                 // No ambient light - black background
-    backgroundBottom: Color.BLACK,               // No ambient light - black background
-    russianRouletteEnabled: true,
-    russianRouletteDepth: 5
-  };
-
-  // Create camera
-  const camera = new Camera(bvhWorld, { ...defaultCameraOptions, ...cameraOpts });
-
-  // Create and return the scene
+  // Camera configuration for Cornell box view
   return {
-    camera: camera,
-    world: bvhWorld,
-    _objects: [...worldList.objects]
+    camera: { 
+      vfov: 40, aperture: 0.0, focus: 1.0,
+      from: [0, 0, halfSize * 4], at: [0, 0, 0], up: [0, 1, 0],
+      background: { type: 'gradient', top: [0, 0, 0], bottom: [0, 0, 0] }  // Black background
+    },
+    render: {
+      aspect: 1.0,  // Square aspect ratio for Cornell box
+      roulette: true,      // russianRouletteEnabled
+      rouletteDepth: 5     // russianRouletteDepth
+    },
+    materials,
+    objects,
+    metadata: {
+      name: `Cornell Box (${options.variant})`,
+      description: `Cornell box scene with ${options.variant === 'spheres' ? 'two spheres inside' : 'empty interior'}`,
+      version: '2.0'
+    }
   };
 } 

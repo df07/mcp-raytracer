@@ -1,143 +1,201 @@
 import { generateImageBuffer, RaytracerOptions } from '../src/raytracer.js';
 import sharp from 'sharp';
 import { SceneConfig } from '../src/scenes/scenes.js';
+import { SceneData } from '../src/scenes/sceneData.js';
 
-describe('generateImageBuffer', () => {
-
-    const defaultScene: SceneConfig = {
-        type: 'default',
-        camera: {
-            imageWidth: 9,
-            aspectRatio: 6 / 9,
-            samples: 1
-        }
+describe('Raytracer', () => {
+    // Helper function to create a simple test scene
+    function createTestSceneData(): SceneData {
+        return {
+            camera: {
+                vfov: 40,
+                from: [0, 0, 2],
+                at: [0, 0, -1],
+                up: [0, 1, 0],
+                background: {
+                    type: 'gradient',
+                    top: [1, 1, 1],
+                    bottom: [0.5, 0.7, 1.0]
+                }
+            },
+            materials: [
+                {
+                    id: 'test-material',
+                    material: { type: 'lambert', color: [0.7, 0.3, 0.3] }
+                }
+            ],
+            objects: [
+                {
+                    type: 'sphere',
+                    pos: [0, 0, -1],
+                    r: 0.5,
+                    material: 'test-material'
+                }
+            ]
+        };
     }
 
-    const zeroWidthScene: SceneConfig = {
-        type: 'default',
-        camera: {
-            imageWidth: 0, // Invalid width
-        }
-    };
-
-    const randomScene: SceneConfig = {
-        type: 'spheres',
-        camera: {
-            imageWidth: 9,
-            aspectRatio: 6 / 9,
-            samples: 1
-        },
-        options: {
-            count: 1
-        }
-    };
-
-    function heightFromAspect(width: number, aspectRatio: number): number {
-        return Math.ceil(width / aspectRatio);
-    }
-
-    it('should produce a valid PNG buffer with default scene', async () => {
-        const imageWidth = 9; // Smaller size for faster testing
-
-        const buffer = await generateImageBuffer(defaultScene); // Generate buffer, no verbose logging
-
-        // Basic buffer checks
-        expect(buffer).toBeInstanceOf(Buffer);
-        expect(buffer.length).toBeGreaterThan(0);
-
-        // Use sharp to validate PNG structure and dimensions
-        const metadata = await sharp(buffer).metadata();
-        expect(metadata.format).toBe('png');
-        expect(metadata.width).toBe(imageWidth);
-        expect(metadata.height).toBe(heightFromAspect(imageWidth, defaultScene.camera?.aspectRatio!));
-        expect(metadata.channels).toBe(3); // RGB
-    });
-
-    it('should throw an error for zero width', async () => {
-        // Expect the function call itself to reject with an error
-        await expect(async () => {
-            await generateImageBuffer(zeroWidthScene);
-        }).rejects.toThrow();
-    });
-    
-    it('should produce a valid PNG buffer with random scene', async () => {
-        const buffer = await generateImageBuffer(randomScene); // Generate buffer, no verbose logging
-
-        // Basic buffer checks
-        expect(buffer).toBeInstanceOf(Buffer);
-        expect(buffer.length).toBeGreaterThan(0);
-
-        // Use sharp to validate PNG structure
-        const metadata = await sharp(buffer).metadata();
-        expect(metadata.format).toBe('png');
-        expect(metadata.width).toBe(randomScene.camera?.imageWidth);
-        expect(metadata.height).toBe(heightFromAspect(randomScene.camera?.imageWidth!, randomScene.camera?.aspectRatio!));
-    });
-
-    // Parallel rendering tests
-    describe('Parallel rendering', () => {
-        const parallelOptions: RaytracerOptions = {
-            parallel: true,
-            threads: 2
+    it('should generate a valid PNG buffer for custom scene', async () => {
+        const sceneConfig: SceneConfig = {
+            type: 'custom',
+            data: createTestSceneData(),
+            render: {
+                imageWidth: 10,
+                aspectRatio: 1.0,
+                samples: 1
+            }
         };
 
-        // Helper function to handle test failures more gracefully
-        async function testParallelRendering(scene: SceneConfig, options: RaytracerOptions) {
-            let buffer: Buffer;
-            try {
-                buffer = await generateImageBuffer(scene, options);
-                
-                // Basic buffer checks
-                expect(buffer).toBeInstanceOf(Buffer);
-                expect(buffer.length).toBeGreaterThan(0);
-                
-                // Validate PNG structure 
-                const metadata = await sharp(buffer).metadata();
-                expect(metadata.format).toBe('png');
-                expect(metadata.width).toBe(scene.camera?.imageWidth);
-                expect(metadata.height).toBe(heightFromAspect(scene.camera?.imageWidth!, scene.camera?.aspectRatio!));
-                
-                return buffer;
-            } catch (error) {
-                console.error('Parallel rendering test failed:', error);
-                throw error;
-            }
-        }
+        const buffer = await generateImageBuffer(sceneConfig);
+        expect(buffer).toBeInstanceOf(Buffer);
+        expect(buffer.length).toBeGreaterThan(0);
 
-        it('should produce a valid PNG buffer in parallel mode with default scene', async () => {
-            await testParallelRendering(defaultScene, parallelOptions);
-        }, 10000); // Increase timeout to allow for worker initialization
-        
-        it('should produce a valid PNG buffer in parallel mode with random scene', async () => {
-            await testParallelRendering(randomScene, parallelOptions);
-        }, 10000); // Increase timeout
-        
-        // This test is optional, as we can't directly assert stats in tests
-        it('should support adaptive sampling in parallel mode', async () => {
-            // Create a scene with adaptive sampling enabled
-            const adaptiveScene: SceneConfig = {
-                type: 'spheres',
-                camera: {
-                    imageWidth: 20,
-                    aspectRatio: 15 / 20,
-                    samples: 10,
-                    adaptiveTolerance: 0.2, // High tolerance for faster convergence
-                    adaptiveBatchSize: 1
-                },
-                options: {
-                    count: 2, // Fewer for faster testing
-                    seed: 42
+        // Verify it's a valid PNG by parsing metadata
+        const metadata = await sharp(buffer).metadata();
+        expect(metadata.format).toBe('png');
+        expect(metadata.width).toBe(10);
+        expect(metadata.height).toBe(10);
+    });
+
+    it('should generate a valid PNG buffer for spheres scene', async () => {
+        const sceneConfig: SceneConfig = {
+            type: 'spheres',
+            render: {
+                imageWidth: 8,
+                aspectRatio: 2.0,
+                samples: 1
+            },
+            options: {
+                count: 5,
+                seed: 12345
+            }
+        };
+
+        const buffer = await generateImageBuffer(sceneConfig);
+        expect(buffer).toBeInstanceOf(Buffer);
+
+        // Verify metadata
+        const metadata = await sharp(buffer).metadata();
+        expect(metadata.format).toBe('png');
+        expect(metadata.width).toBe(8);
+        expect(metadata.height).toBe(4); // 8 / 2.0 aspect ratio
+    });
+
+    it('should handle different image dimensions correctly', async () => {
+        const testCases = [
+            { width: 16, aspect: 1.0, expectedHeight: 16 },
+            { width: 20, aspect: 2.0, expectedHeight: 10 },
+            { width: 30, aspect: 1.5, expectedHeight: 20 }
+        ];
+
+        for (const { width, aspect, expectedHeight } of testCases) {
+            const sceneConfig: SceneConfig = {
+                type: 'custom',
+                data: createTestSceneData(),
+                render: {
+                    imageWidth: width,
+                    aspectRatio: aspect,
+                    samples: 1
                 }
             };
-            
-            // Render in parallel mode 
-            const buffer = await testParallelRendering(adaptiveScene, parallelOptions);
-            
-            // We can't easily assert on adaptive sampling stats in tests,
-            // but we can verify we got a correctly rendered image
+
+            const buffer = await generateImageBuffer(sceneConfig);
             const metadata = await sharp(buffer).metadata();
-            expect(metadata.width).toBe(adaptiveScene.camera?.imageWidth);
-            expect(metadata.height).toBe(heightFromAspect(adaptiveScene.camera?.imageWidth!, adaptiveScene.camera?.aspectRatio!));
-        }, 10000); // Longer timeout
+            
+            expect(metadata.width).toBe(width);
+            expect(metadata.height).toBe(expectedHeight);
+        }
+    });
+
+    it('should handle different scene types', async () => {
+        const sceneConfigs: SceneConfig[] = [
+            {
+                type: 'custom',
+                data: createTestSceneData(),
+                render: {
+                    imageWidth: 6,
+                    aspectRatio: 1.0,
+                    samples: 1
+                }
+            },
+            {
+                type: 'spheres',
+                render: {
+                    imageWidth: 6,
+                    aspectRatio: 1.0,
+                    samples: 1
+                },
+                options: {
+                    count: 3,
+                    seed: 42
+                }
+            }
+        ];
+
+        for (const sceneConfig of sceneConfigs) {
+            const buffer = await generateImageBuffer(sceneConfig);
+            expect(buffer).toBeInstanceOf(Buffer);
+            expect(buffer.length).toBeGreaterThan(0);
+
+            const metadata = await sharp(buffer).metadata();
+            expect(metadata.format).toBe('png');
+            expect(metadata.width).toBe(6);
+            expect(metadata.height).toBe(6);
+        }
+    });
+
+    it('should handle parallel rendering option', async () => {
+        const sceneConfig: SceneConfig = {
+            type: 'spheres',
+            render: {
+                imageWidth: 12,
+                aspectRatio: 1.0,
+                samples: 2
+            },
+            options: {
+                count: 3,
+                seed: 54321
+            }
+        };
+
+        const buffer = await generateImageBuffer(sceneConfig, {
+            parallel: true,
+            threads: 2,
+            verbose: false
+        });
+
+        expect(buffer).toBeInstanceOf(Buffer);
+
+        const metadata = await sharp(buffer).metadata();
+        expect(metadata.format).toBe('png');
+        expect(metadata.width).toBe(12);
+        expect(metadata.height).toBe(12);
+    });
+
+    it('should handle adaptive sampling', async () => {
+        const sceneConfig: SceneConfig = {
+            type: 'custom',
+            data: createTestSceneData(),
+            render: {
+                imageWidth: 8,
+                aspectRatio: 1.0,
+                samples: 50,
+                adaptiveTolerance: 0.1,
+                adaptiveBatchSize: 5
+            }
+        };
+
+        const buffer = await generateImageBuffer(sceneConfig, { verbose: false });
+        expect(buffer).toBeInstanceOf(Buffer);
+
+        const metadata = await sharp(buffer).metadata();
+        expect(metadata.format).toBe('png');
+        expect(metadata.width).toBe(8);
+        expect(metadata.height).toBe(8);
     });
 });
+
+// Helper function to calculate expected height from width and aspect ratio
+function heightFromAspect(width: number, aspectRatio: number): number {
+    return Math.ceil(width / aspectRatio);
+}

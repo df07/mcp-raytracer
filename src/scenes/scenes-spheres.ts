@@ -1,24 +1,12 @@
-import { Camera } from "../camera.js";
 
-import { Color, Vec3 } from "../geometry/vec3.js";
-
-import { CameraOptions } from "../camera.js";
-import { HittableList } from "../geometry/hittableList.js";
-import { Point3 } from "../geometry/vec3.js";
 import { SeededRandom } from "./scenes-utils.js";
-import { Lambertian } from "../materials/lambertian.js";
-import { Metal } from "../materials/metal.js";
-import { Material } from "../materials/material.js";
-import { Scene } from "./scenes.js";
-import { Sphere } from "../entities/sphere.js";
-import { Dielectric } from "../materials/dielectric.js";
-import { BVHNode } from "../geometry/bvh.js";
+import { SceneData, MaterialObject, SceneObject, Vec3Array } from './sceneData.js';
 
 /**
  * Represents a placed sphere with its properties
  */
 interface PlacedSphere {
-  center: Point3;
+  center: Vec3Array;
   radius: number;
 }
 
@@ -27,35 +15,29 @@ interface PlacedSphere {
  */
 export interface SpheresSceneOptions {
   count?: number;         // Number of spheres to generate (default: 100)
-  seed?: number;              // Random seed for deterministic scene generation
+  seed?: number;          // Random seed for deterministic scene generation
 }
 
 /**
- * Generates a random sphere scene with the specified number of spheres.
- * Spheres are distributed randomly within a spherical volume and don't overlap.
+ * Generates scene data with random spheres scattered around a central point.
  * 
- * @param count Number of spheres to generate
- * @param options Optional configuration for scene generation
- * @returns A Scene object containing the camera, world, and underlying object list
+ * @param sceneOpts Optional scene configuration
+ * @returns SceneData object that can be used to create a scene
  */
-export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: SpheresSceneOptions): Scene {
-  const worldList = new HittableList();
+export function generateSpheresSceneData(sceneOpts?: SpheresSceneOptions): SceneData {
   const placedSpheres: PlacedSphere[] = [];
 
   // Default world options
   const defaultWorldOptions = {
     count: 10,
-    centerPoint: Vec3.create(0, 0, -2),    // Center point matching default scene
-    radius: 1.25,                       // Distribution radius around center point
-    minSphereRadius: 0.1,               // Small enough to fit multiple spheres
-    maxSphereRadius: 0.2,               // Large enough to be visible
-    groundSphere: false,
-    groundY: -100.5,                    // Match default scene ground position
-    groundRadius: 100,                  // Match default scene ground radius
-    groundMaterial: new Lambertian(Color.create(0.8, 0.8, 0.0)), // Match default yellow-ish ground
+    centerPoint: [0, 0, -2] as Vec3Array,    // Center point matching default scene
+    radius: 1.25,                            // Distribution radius around center point
+    minSphereRadius: 0.1,                    // Small enough to fit multiple spheres
+    maxSphereRadius: 0.2,                    // Large enough to be visible
     seed: Math.floor(Math.random() * 2147483647) // Random seed by default
   };
-    // Merge defaults with provided options
+  
+  // Merge defaults with provided options
   const worldOpts = {
     ...defaultWorldOptions,
     ...sceneOpts
@@ -69,6 +51,12 @@ export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: Sph
   const scaleFactor = Math.max(worldOpts.minSphereRadius, 1 - Math.log10(worldOpts.count + 1) / 4);
   const adjustedMaxRadius = worldOpts.maxSphereRadius * scaleFactor;
   
+  // Create materials array
+  const materials: MaterialObject[] = [];
+  
+  // Create objects array
+  const objects: SceneObject[] = [];
+  
   // Generate random spheres
   let attempts = 0;
   const maxAttempts = worldOpts.count * 100; // Limit total attempts to prevent infinite loops
@@ -81,16 +69,23 @@ export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: Sph
     const radius = adjustedMaxRadius;
     const sphereCenter = randomPointInSphere(worldOpts.centerPoint, worldOpts.radius, random);
       
-    // Check if this sphere overlaps with any existing sphere or the ground
+    // Check if this sphere overlaps with any existing sphere
     if (checkOverlap(sphereCenter, radius, placedSpheres)) {
       continue; // Try again with a new position
     }
     
-    // Generate a random material
-    const material = generateRandomMaterial(random);
+    // Generate a random material and add it to materials array
+    const materialId = `sphere-${spheresCreated}`;
+    const material = generateRandomMaterialData(random);
+    materials.push({ id: materialId, material });
     
-    // Add the sphere to the world
-    worldList.add(new Sphere(sphereCenter, radius, material));
+    // Add the sphere to the objects array
+    objects.push({
+      type: 'sphere',
+      pos: sphereCenter,
+      r: radius,
+      material: materialId
+    });
     
     // Track the placed sphere
     placedSpheres.push({
@@ -106,57 +101,45 @@ export function generateSpheresScene(cameraOpts?: CameraOptions, sceneOpts?: Sph
     console.error(`Warning: Could only place ${spheresCreated} out of ${worldOpts.count} requested spheres.`);
   }
   
-  // Create BVH for efficient ray tracing
-  const bvhWorld = BVHNode.fromList(worldList.objects);
-  
-  const defaultCameraOptions: CameraOptions = {
-    vfov: 40,
-    lookFrom: Vec3.create(0, 0, 2),
-    lookAt: worldOpts.centerPoint
-  }
-
-  // Create camera
-  const camera = new Camera(bvhWorld, { ...defaultCameraOptions, ...cameraOpts });
-
-  // Create and return the scene
+  // Camera configuration
   return {
-    camera: camera,
-    world: worldList, // Use BVH for efficient ray tracing
-    _objects: [...worldList.objects] // Create a copy of the objects array for testing
+    camera: { 
+      vfov: 40, aperture: 0.0, focus: 1.0,
+      from: [0, 0, 2], at: worldOpts.centerPoint, up: [0, 1, 0],
+      background: { type: 'gradient', top: [0.5, 0.7, 1.0], bottom: [1.0, 1.0, 1.0] }
+    },
+    materials,
+    objects,
+    metadata: {
+      name: 'Random Spheres',
+      description: `Scene with ${spheresCreated} randomly placed spheres (seed: ${worldOpts.seed})`,
+      version: '2.0'
+    }
   };
 }
 
 /**
  * Checks if a new sphere would overlap with any existing spheres
  */
-function checkOverlap(center: Point3, radius: number, placedSpheres: PlacedSphere[], groundY?: number): boolean {
+function checkOverlap(center: Vec3Array, radius: number, placedSpheres: PlacedSphere[]): boolean {
   // Check overlap with existing spheres
   for (const sphere of placedSpheres) {
-    const distance = center.subtract(sphere.center).length();
+    const dx = center[0] - sphere.center[0];
+    const dy = center[1] - sphere.center[1];
+    const dz = center[2] - sphere.center[2];
+    const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
     if (distance < (radius + sphere.radius)) {
       return true; // Overlap detected
-    }
-  }
-  
-  // Check if sphere is below ground level (if ground exists)
-  if (groundY !== undefined) {
-    // Calculate distance from sphere center to ground plane
-    const distanceToGroundPlane = center.y - groundY;
-    
-    // If the sphere extends below the ground plane, it would intersect with ground
-    if (distanceToGroundPlane < radius) {
-      return true; // Sphere would intersect with ground plane
     }
   }
   
   return false;
 }
 
-
 /**
  * Generates a random point within a sphere
  */
-function randomPointInSphere(center: Point3, radius: number, random: SeededRandom): Point3 {
+function randomPointInSphere(center: Vec3Array, radius: number, random: SeededRandom): Vec3Array {
   // Generate random point in unit sphere
   const unitSpherePoint = random.randomInUnitSphere();
   
@@ -164,43 +147,43 @@ function randomPointInSphere(center: Point3, radius: number, random: SeededRando
   const distanceFactor = Math.pow(random.next(), 1/3) * radius;
   
   // Start with center point and add randomized offset
-  let result = center.add(unitSpherePoint.multiply(distanceFactor));
+  const result: Vec3Array = [
+    center[0] + unitSpherePoint.x * distanceFactor,
+    center[1] + unitSpherePoint.y * distanceFactor,
+    center[2] + unitSpherePoint.z * distanceFactor
+  ];
   
   return result;
 }
 
 /**
- * Generates a random material (60% Lambertian, 30% Metal, 10% Dielectric)
+ * Generates a random material data (60% Lambertian, 30% Metal, 10% Dielectric)
  */
-function generateRandomMaterial(random: SeededRandom): Material {
+function generateRandomMaterialData(random: SeededRandom) {
   const materialType = random.next();
   
   // 60% chance of Lambertian
   if (materialType < 0.6) {
-    return new Lambertian(randomColor(random));
+    return { type: 'lambert' as const, color: randomColor(random) };
   } 
   // 30% chance of Metal
   else if (materialType < 0.9) {
     // Random fuzziness between 0.0 and 0.5
     const fuzz = random.next() * 0.5;
-    return new Metal(randomColor(random), fuzz);
+    return { type: 'metal' as const, color: randomColor(random), fuzz };
   }
   // 10% chance of Dielectric
   else {
     // Random refractive index between 1.3 and 2.5
     // Covers typical glass (~1.5), water (1.33), diamond (2.4), etc.
-    const refIndex = 1.3 + random.next() * 1.2;
-    return new Dielectric(refIndex);
+    const ior = 1.3 + random.next() * 1.2;
+    return { type: 'glass' as const, ior };
   }
 }
 
 /**
  * Generates a random color
  */
-function randomColor(random: SeededRandom): Vec3 {
-  return Color.create(
-    random.next(),
-    random.next(),
-    random.next()
-  );
+function randomColor(random: SeededRandom): Vec3Array {
+  return [random.next(), random.next(), random.next()];
 }

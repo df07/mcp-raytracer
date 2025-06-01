@@ -17,27 +17,33 @@ export enum RenderMode {
 }
 
 /**
- * Camera configuration options for scene generation
+ * Camera positioning and visual settings
  */
 export interface CameraOptions {
-  imageWidth?: number;           // Width of the rendered image (default: 400)
-  aspectRatio?: number;          // Aspect ratio of the rendered image (default: 16/9)
   vfov?: number;                 // Vertical field of view in degrees (default: 90)
   lookFrom?: Point3;             // Camera position (default: origin)
   lookAt?: Point3;               // Look-at position (default: 0,0,-1)
   vUp?: Vec3;                    // Camera's up direction (default: 0,1,0)
   aperture?: number;             // Camera aperture size for defocus blur (default: 0, no blur)
   focusDistance?: number;        // Distance to focus plane (default: auto-calculated)
-  samples?: number;              // Anti-aliasing samples per pixel (default: 100)
-  adaptiveTolerance?: number;    // Tolerance for convergence in adaptive sampling (default: 0.05)
-  adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
-  lights?: PDFHittable[];        // Light sources for importance sampling (default: [])
-  renderMode?: RenderMode;       // Render mode for visualization (default: Color)
-  maxDepth?: number;             // Maximum recursion depth for ray bounces (default: 100)
-  russianRouletteEnabled?: boolean;  // Enable Russian Roulette ray termination (default: true)
-  russianRouletteDepth?: number;     // Minimum bounces before applying Russian Roulette (default: 3)
   backgroundTop?: Color;         // Top color for background gradient (default: white)
   backgroundBottom?: Color;      // Bottom color for background gradient (default: blue)
+  lights?: PDFHittable[];        // Light sources for importance sampling (default: [])
+}
+
+/**
+ * Render quality and performance settings
+ */
+export interface RenderOptions {
+  imageWidth?: number;           // Width of the rendered image (default: 400)
+  aspectRatio?: number;          // Aspect ratio of the rendered image (default: 16/9)
+  samples?: number;              // Anti-aliasing samples per pixel (default: 100)
+  maxDepth?: number;             // Maximum recursion depth for ray bounces (default: 100)
+  adaptiveTolerance?: number;    // Tolerance for convergence in adaptive sampling (default: 0.05)
+  adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
+  russianRouletteEnabled?: boolean;  // Enable Russian Roulette ray termination (default: true)
+  russianRouletteDepth?: number;     // Minimum bounces before applying Russian Roulette (default: 3)
+  renderMode?: RenderMode;       // Render mode for visualization (default: Color)
 }
 
 export type RenderRegion = {
@@ -48,85 +54,95 @@ export type RenderRegion = {
 }
 
 export class Camera {
-    static defaultOptions: Required<CameraOptions> = {
-        imageWidth: 400,
-        aspectRatio: 16 / 9,
+    static defaultCameraOptions: Required<CameraOptions> = {
         vfov: 90,
         lookFrom: Vec3.create(0, 0, 0),
         lookAt: Vec3.create(0, 0, -1),
         vUp: Vec3.create(0, 1, 0),
         aperture: 0,                 // No defocus blur by default
         focusDistance: 1.0,          // Default focus distance
+        backgroundTop: Color.WHITE,
+        backgroundBottom: Color.BLUE,
+        lights: [],
+    }
+
+    static defaultRenderOptions: Required<RenderOptions> = {
+        imageWidth: 400,
+        aspectRatio: 16 / 9,
         samples: 100,
         adaptiveTolerance: 0.05,
         adaptiveBatchSize: 10,
-        lights: [],
         renderMode: RenderMode.Default,
         maxDepth: 100,
         russianRouletteEnabled: true,
         russianRouletteDepth: 3,
-        backgroundTop: Color.WHITE,
-        backgroundBottom: Color.BLUE,
     }
 
     public readonly imageWidth: number;
     public readonly imageHeight: number;
+    public readonly aspectRatio: number;
     public readonly channels = 3;
     public readonly center: Vec3;
     public readonly pixel00Loc: Vec3;
     public readonly pixelDeltaU: Vec3;
     public readonly pixelDeltaV: Vec3;
-    private readonly u: Vec3;
-    private readonly v: Vec3;
-    private readonly w: Vec3;
-    private readonly world: Hittable;
-    private lights: PDFHittable[];
-    private readonly maxDepth: number; // Maximum recursion depth for ray bounces
-    private readonly maxSamples: number; // Maximum number of samples per pixel
-    private readonly adaptiveTolerance: number; // Tolerance for convergence
-    private readonly adaptiveSampleBatchSize: number; // Number of samples to process in one batch
-    private readonly renderMode: RenderMode; // Render mode for visualization
-    private readonly russianRouletteEnabled: boolean; // Whether Russian Roulette is enabled
-    private readonly russianRouletteDepth: number; // Minimum bounces before applying Russian Roulette
-    private readonly backgroundTop: Color; // Top color for background gradient
-    private readonly backgroundBottom: Color; // Bottom color for background gradient
-    private readonly useAdaptiveSampling: boolean;
+    public readonly u: Vec3;
+    public readonly v: Vec3;
+    public readonly w: Vec3;
+    public readonly world: Hittable;
+    public readonly lights: PDFHittable[];
+    public readonly maxDepth: number; // Maximum recursion depth for ray bounces
+    public readonly maxSamples: number; // Maximum number of samples per pixel
+    public readonly adaptiveTolerance: number; // Tolerance for convergence
+    public readonly adaptiveSampleBatchSize: number; // Number of samples to process in one batch
+    public readonly renderMode: RenderMode; // Render mode for visualization
+    public readonly russianRouletteEnabled: boolean; // Whether Russian Roulette is enabled
+    public readonly russianRouletteDepth: number; // Minimum bounces before applying Russian Roulette
+    public readonly backgroundTop: Color; // Top color for background gradient
+    public readonly backgroundBottom: Color; // Bottom color for background gradient
+    public readonly useAdaptiveSampling: boolean;
     
     // Defocus blur properties
-    private readonly aperture: number;
-    private readonly focusDistance: number;
-    private readonly defocusDiskU: Vec3;
-    private readonly defocusDiskV: Vec3;
+    public readonly aperture: number;
+    public readonly focusDistance: number;
+    public readonly defocusDiskU: Vec3;
+    public readonly defocusDiskV: Vec3;
 
     constructor(        
         world: Hittable,
-        options?: CameraOptions,
+        cameraOptions: CameraOptions = {},
+        renderOptions: RenderOptions = {}
     ) {
         this.world = world;
 
-        const loptions: Required<CameraOptions> = {...Camera.defaultOptions, ...options};
+        // Merge with defaults
+        const finalCameraOptions = { ...Camera.defaultCameraOptions, ...cameraOptions };
+        const finalRenderOptions = { ...Camera.defaultRenderOptions, ...renderOptions };
 
-        this.imageWidth = loptions.imageWidth;
-        this.imageHeight = Math.ceil(this.imageWidth / loptions.aspectRatio);
-        this.center = loptions.lookFrom;
-        this.maxDepth = loptions.maxDepth;
-        this.maxSamples = loptions.samples;
-        this.adaptiveTolerance = loptions.adaptiveTolerance;
-        this.adaptiveSampleBatchSize = loptions.adaptiveBatchSize;
-        this.lights = loptions.lights;
-        this.renderMode = loptions.renderMode;
-        this.russianRouletteEnabled = loptions.russianRouletteEnabled;
-        this.russianRouletteDepth = loptions.russianRouletteDepth;
-        this.backgroundTop = loptions.backgroundTop;
-        this.backgroundBottom = loptions.backgroundBottom;
+        // Set render properties
+        this.imageWidth = finalRenderOptions.imageWidth;
+        this.imageHeight = Math.ceil(this.imageWidth / finalRenderOptions.aspectRatio);
+        this.aspectRatio = finalRenderOptions.aspectRatio;
+        this.maxDepth = finalRenderOptions.maxDepth;
+        this.maxSamples = finalRenderOptions.samples;
+        this.adaptiveTolerance = finalRenderOptions.adaptiveTolerance;
+        this.adaptiveSampleBatchSize = finalRenderOptions.adaptiveBatchSize;
+        this.renderMode = finalRenderOptions.renderMode;
+        this.russianRouletteEnabled = finalRenderOptions.russianRouletteEnabled;
+        this.russianRouletteDepth = finalRenderOptions.russianRouletteDepth;
 
-        // Initialize defocus blur properties
-        this.aperture = loptions.aperture;
+        // Set camera properties
+        this.center = finalCameraOptions.lookFrom;
+        this.lights = finalCameraOptions.lights;
+        this.backgroundTop = finalCameraOptions.backgroundTop;
+        this.backgroundBottom = finalCameraOptions.backgroundBottom;
+        this.aperture = finalCameraOptions.aperture;
+        
         // Auto-calculate focus distance if not provided
-        this.focusDistance = loptions.focusDistance || loptions.lookFrom.subtract(loptions.lookAt).length();
+        this.focusDistance = finalCameraOptions.focusDistance || finalCameraOptions.lookFrom.subtract(finalCameraOptions.lookAt).length();
 
         // Determine viewport dimensions.
-        const theta = loptions.vfov * (Math.PI / 180); // Convert vfov to radians
+        const theta = finalCameraOptions.vfov * (Math.PI / 180); // Convert vfov to radians
         const h = Math.tan(theta / 2);
         const viewportHeight = 2 * h * this.focusDistance;
         const aspectRatio = this.imageWidth / this.imageHeight;
@@ -134,8 +150,8 @@ export class Camera {
 
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
         // Use vec3 methods instead of standalone functions
-        this.w = loptions.lookFrom.subtract(loptions.lookAt).unitVector();
-        this.u = loptions.vUp.cross(this.w).unitVector();
+        this.w = finalCameraOptions.lookFrom.subtract(finalCameraOptions.lookAt).unitVector();
+        this.u = finalCameraOptions.vUp.cross(this.w).unitVector();
         this.v = this.w.cross(this.u);
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.

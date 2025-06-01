@@ -1,144 +1,82 @@
-import { CameraOptions } from "../camera.js";
-import { Lambertian } from "../materials/lambertian.js";
-import { Color, Vec3 } from "../geometry/vec3.js";
-import { HittableList } from "../geometry/hittableList.js";
-import { Sphere } from "../entities/sphere.js";
-import { Plane } from "../entities/plane.js";
-import { Quad } from "../entities/quad.js";
-import { Dielectric } from "../materials/dielectric.js";
-import { Metal } from "../materials/metal.js";
-import { DiffuseLight } from "../materials/diffuseLight.js";
-import { Camera } from "../camera.js";
-import { Scene } from "./scenes.js";
-import { BVHNode } from "../geometry/bvh.js";
-import { MixedMaterial } from "../materials/mixedMaterial.js";
-import { LayeredMaterial } from "../materials/layeredMaterial.js";
+import { SceneData, MaterialObject, SceneObject, Vec3Array } from './sceneData.js';
 
 /**
- * Generates the default scene with four spheres: ground, center, and two metal spheres.
+ * Generates the default scene data with various spheres demonstrating different materials.
  * 
- * @param options Optional configuration for scene generation
- * @returns A Scene object containing the camera, world, and underlying object list
+ * @returns SceneData object that can be used to create a scene
  */
-export function generateDefaultScene(cameraOpts?: CameraOptions): Scene {
-  const worldList = new HittableList();
+export function generateDefaultSceneData(): SceneData {
+  // Create materials array
+  const materials: MaterialObject[] = [];
   
-  // Create materials
-  const materialGround = new Lambertian(Color.create(0.4, 0.4, 0.0));  // Yellow-ish ground
-  const materialRed = new Lambertian(Color.create(0.7, 0.3, 0.3));
-  const materialBlue = new Lambertian(Color.create(0.1, 0.1, 0.9));
-  const materialGlass = new Dielectric(Dielectric.GLASS_IOR);
-  const materialSilver = new Metal(Color.create(0.8, 0.8, 0.8), 0.0); // Shiny silver (no fuzz)
-  const materialGold = new Metal(Color.create(0.8, 0.6, 0.2), 0.5);   // Fuzzy gold
+  // Basic materials
+  materials.push({ id: 'ground', material: { type: 'lambert', color: [0.4, 0.4, 0.0] } });
+  materials.push({ id: 'blue',   material: { type: 'lambert', color: [0.1, 0.1, 0.9] } });
   
-  const paintedMetal = new MixedMaterial(
-    new Lambertian(Color.create(0.7, 0.3, 0.3)),  // Diffuse: red matte base
-    new Metal(Color.create(0.9, 0.9, 0.9), 0.1),  // Specular: white highlights with slight roughness
-    0.95  // 95% diffuse, 5% specular
-  );
-
-  const layeredMetal = new LayeredMaterial(
-    new Dielectric(Dielectric.GLASS_IOR),
-    new Metal(Color.create(0.7, 0.3, 0.3), 0.1)
-  );
-
-  const layeredPaint = new LayeredMaterial(
-    new Dielectric(Dielectric.GLASS_IOR),
-    new Lambertian(Color.create(0.7, 0.3, 0.3))
-  );
+  // Glass and metals
+  materials.push({ id: 'glass',  material: { type: 'glass', ior: 1.5 } });
+  materials.push({ id: 'silver', material: { type: 'metal', color: [0.8, 0.8, 0.8], fuzz: 0.0 } });
+  materials.push({ id: 'gold',   material: { type: 'metal', color: [0.8, 0.6, 0.2], fuzz: 0.5 } });
   
-  // Plastic surface - balanced mix of diffuse and specular
-  const plastic = new MixedMaterial(
-    new Lambertian(Color.create(0.2, 0.4, 0.8)),  // Diffuse: blue base color
-    new Metal(Color.create(1.0, 1.0, 1.0), 0.05), // Specular: very smooth white highlights
-    0.5  // 50% diffuse, 50% specular
-  );
-  
-  // Rough metallic surface - mostly specular with some diffuse scattering
-  const roughMetal = new MixedMaterial(
-    new Lambertian(Color.create(0.1, 0.1, 0.1)),  // Diffuse: dark absorption
-    new Metal(Color.create(0.8, 0.8, 0.9), 0.3),  // Specular: metallic reflection with higher roughness
-    0.2  // 20% diffuse, 80% specular
-  );
-  
-  // Ceramic or porcelain - smooth surface with mixed properties
-  const ceramic = new MixedMaterial(
-    new Lambertian(Color.create(0.9, 0.9, 0.9)),  // Diffuse: white base
-    new Metal(Color.create(1.0, 1.0, 1.0), 0.0),  // Specular: very smooth white highlights
-    0.7  // 70% diffuse, 30% specular
-  );
-  
-  // Worn wood with some gloss - subtle specular component
-  const glossyWood = new MixedMaterial(
-    new Lambertian(Color.create(0.6, 0.4, 0.2)),  // Diffuse: brown wood color
-    new Metal(Color.create(0.8, 0.6, 0.4), 0.2),  // Specular: warm highlights with medium roughness
-    0.85 // 85% diffuse, 15% specular
-  );
-  
-  // Create a bright sun-like light source - very bright (intensity > 1.0)
-  const sunLight = new DiffuseLight(Color.create(15.0, 14.0, 13.0));
-
-  // Create spheres with materials
-  // Ground plane at y = 0 for intuitive coordinate system
-  const groundPlane = new Plane(
-    Vec3.create(0, 0, 0),       // Point on the plane (now at y=0)
-    Vec3.create(1, 0, 0),       // X direction (extends infinitely in X)
-    Vec3.create(0, 0, 1),       // Z direction (extends infinitely in Z)
-    materialGround
-  );
-  worldList.add(groundPlane);
-  
-  const centerSphere = new Sphere(Vec3.create(0, 0.5, -1), 0.5, layeredPaint);
-  const leftSphere = new Sphere(Vec3.create(-1, 0.5, -1), 0.5, materialSilver);
-  const rightSphere = new Sphere(Vec3.create(1, 0.5, -1), 0.5, materialGold);
-  const solidGlass = new Sphere(Vec3.create(0.5, 0.25, -0.5), 0.25, materialGlass);  // Glass sphere (moved up 0.5)
-  const hollowGlass = [
-    new Sphere(Vec3.create(-0.5, 0.25, -0.5), 0.25, materialGlass),
-    new Sphere(Vec3.create(-0.5, 0.25, -0.5), -0.24, materialGlass),
-    new Sphere(Vec3.create(-0.5, 0.25, -0.5), 0.20, materialBlue)
-  ];
-
-  [centerSphere, leftSphere, rightSphere, solidGlass, ...hollowGlass].forEach(sphere => {
-    worldList.add(sphere);
+  // Layered materials (clear coat over base)
+  materials.push({
+    id: 'layered-paint',
+    material: {
+      type: 'layered',
+      outer: { type: 'glass', ior: 1.5 },
+      inner: { type: 'lambert', color: [0.7, 0.3, 0.3] }
+    }
   });
   
-  // Add a quad light positioned above and to the left, angled to face the spheres
-  const quadLight = new Quad(
-    Vec3.create(-2, 3, 0),       // Position above and left of the spheres
-    Vec3.create(1, 0, 0),        // 1 unit wide (horizontal edge)
-    Vec3.create(0, -0.707, -0.707), // Angled down and forward at 45 degrees (vertical edge)
-    sunLight                  // Use the same bright light material
-  );
-  worldList.add(quadLight);
+  // Light material
+  materials.push({ id: 'sun-light', material: { type: 'light', emit: [15.0, 14.0, 13.0] } });
   
-  // Add a sun-like sphere high in the sky but out of direct view
-  const sunSphere = new Sphere(Vec3.create(30, 30.5, 15), 10, sunLight);  // Sun moved up 0.5
-  worldList.add(sunSphere);
-
-  // add a second light source 
-  //const sunSphere2 = new Sphere(Vec3.create(-30, -30, -15), 10, sunLight);
-  //worldList.add(sunSphere2);
-
-  // Default camera options that match the scene
-  const lookFrom = Vec3.create(0, 0.75, 2);
-  const defaultCameraOptions: CameraOptions = {
-    vfov: 40,
-    lookFrom: lookFrom,    // Camera moved up 0.5 to match new coordinate system
-    lookAt: centerSphere.center,     // Look at point moved up 0.5 to center of spheres
-    aperture: 0.05,                    // Small aperture for subtle depth of field
-    focusDistance: lookFrom.distanceTo(centerSphere.center),               // Focus on the main spheres at distance ~3
-    lights: [sunSphere, solidGlass, quadLight]  // Add quad light to the lights list
-  };
-
-  const bvhWorld = BVHNode.fromList(worldList.objects);
+  // Create objects array
+  const objects: SceneObject[] = [];
   
-  // Create camera
-  const camera = new Camera(worldList, { ...defaultCameraOptions, ...cameraOpts });
+  // Ground plane at y = 0 for intuitive coordinate system
+  objects.push({ type: 'plane', pos: [0, 0, 0], u: [1, 0, 0], v: [0, 0, 1], material: 'ground' });
+  
+  // Main spheres demonstrating different materials
+  objects.push({ type: 'sphere', pos: [0, 0.5, -1],  r: 0.5, material: 'layered-paint' });  
+  objects.push({ type: 'sphere', pos: [-1, 0.5, -1], r: 0.5, material: 'silver' });  
+  objects.push({ type: 'sphere', pos: [1, 0.5, -1],  r: 0.5, material: 'gold' });
+  
+  // Glass spheres demonstrating solid and hollow glass
+  objects.push({ type: 'sphere', pos: [0.5, 0.25, -0.5], r: 0.25, material: 'glass' });
 
-  // Create and return the scene
+  // 3-layer glass sphere
+  [{r: 0.25, material: 'glass'}, {r: -.24, material: 'glass'}, {r: 0.20, material: 'blue'}].map(v => {
+    objects.push({ type: 'sphere', pos: [-0.5, 0.25, -0.5], ...v });
+  });
+  
+  // Light sources
+  // Quad light positioned above and to the left, angled to face the spheres
+  objects.push({
+    type: 'quad',
+    pos: [-2, 3, 0],         // Position above and left of the spheres
+    u: [1, 0, 0],            // 1 unit wide (horizontal edge)
+    v: [0, -0.707, -0.707],  // Angled down and forward at 45 degrees
+    material: 'sun-light',
+    light: true
+  });
+  
+  // Sun-like sphere high in the sky but out of direct view
+  objects.push({ type: 'sphere', pos: [30, 30.5, 15], r: 10, material: 'sun-light', light: true });
+  
+  // Camera configuration  
   return {
-    camera: camera,
-    world: bvhWorld,
-    _objects: [...worldList.objects] // Create a copy of the objects array for testing
+    camera: { 
+      vfov: 40, aperture: 0.05, focus: 2.8,
+      from: [0, 0.75, 2], at: [0, 0.5, -1], up: [0, 1, 0],
+      background: { type: 'gradient', top: [1, 1, 1], bottom: [0.5, 0.7, 1.0] }
+    },
+    materials,
+    objects,
+    metadata: {
+      name: 'Default Scene',
+      description: 'A scene with various spheres demonstrating different materials including layered, mixed, and basic materials',
+      version: '2.0'
+    }
   };
 }

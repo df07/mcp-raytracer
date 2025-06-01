@@ -1,16 +1,15 @@
 /* Specs: mcp-server.md */
 
 import { generateImageBuffer, RaytracerOptions } from './raytracer.js';
-import { CameraOptions, RenderMode } from './camera.js';
+import { RenderMode, RenderOptions } from './camera.js';
 import { SpheresSceneOptions, SceneConfig, RainSceneOptions, CornellSceneOptions } from './scenes/scenes.js';
 import fs from 'fs/promises';
-import path from 'path';
 
 // New function to run performance testing from command line
 export async function runRaytracerBenchmark() {
   // Parse command line arguments
   const args = process.argv.slice(2);
-  const cameraOptions: CameraOptions = {};
+  const renderOptions: RenderOptions = {};
   const spheresSceneOptions: SpheresSceneOptions = {};
   const rainSceneOptions: RainSceneOptions = {};
   const cornellSceneOptions: CornellSceneOptions = {};
@@ -27,9 +26,9 @@ export async function runRaytracerBenchmark() {
     const arg = args[i];
     
     if (arg === '--width' || arg === '-w') {
-      cameraOptions.imageWidth = parseInt(args[++i], 10);
+      renderOptions.imageWidth = parseInt(args[++i], 10);
     } else if (arg === '--samples' || arg === '-s') {
-      cameraOptions.samples = parseInt(args[++i], 10);
+      renderOptions.samples = parseInt(args[++i], 10);
     } else if (arg === '--output' || arg === '-o') {
       generationOptions.output = args[++i];
     } else if (arg === '--iterations' || arg === '-i') {
@@ -42,9 +41,9 @@ export async function runRaytracerBenchmark() {
       spheresSceneOptions.seed = seedValue;
       rainSceneOptions.seed = seedValue;
     } else if (arg === '--adaptive-tolerance' || arg === '--at') {
-      cameraOptions.adaptiveTolerance = parseFloat(args[++i]);
+      renderOptions.adaptiveTolerance = parseFloat(args[++i]);
     } else if (arg === '--adaptive-batch' || arg === '--ab') {
-      cameraOptions.adaptiveBatchSize = parseInt(args[++i], 10);
+      renderOptions.adaptiveBatchSize = parseInt(args[++i], 10);
     } else if (arg === '--parallel' || arg === '-p') {
       generationOptions.parallel = true;
     } else if (arg === '--threads' || arg === '-t') {
@@ -55,7 +54,7 @@ export async function runRaytracerBenchmark() {
         console.error(`Invalid render mode: ${mode}`);
         process.exit(1);
       }
-      cameraOptions.renderMode = mode;
+      renderOptions.renderMode = mode;
     } 
     // Rain scene - just the number of spheres
     else if (arg === '--rain') {
@@ -97,8 +96,8 @@ Options:
     }
   }
   console.error(`Running raytracer with options:`);
-  console.error(`  Dimensions: ${cameraOptions.imageWidth}`);
-  console.error(`  Samples: ${cameraOptions.samples}`);
+  console.error(`  Dimensions: ${renderOptions.imageWidth}`);
+  console.error(`  Samples: ${renderOptions.samples}`);
   console.error(`  Scene type: ${generationOptions.sceneType}`);
   if (generationOptions.sceneType === 'cornell') {
     console.error(`  Cornell variant: ${cornellSceneOptions.variant}`);
@@ -130,37 +129,37 @@ Options:
         if (generationOptions.sceneType === 'spheres' && Object.keys(spheresSceneOptions).length > 0) {
           sceneConfig = { 
             type: 'spheres',
-            camera: Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined,
+            render: Object.keys(renderOptions).length > 0 ? renderOptions : undefined,
             options: spheresSceneOptions
           };
         } else if (generationOptions.sceneType === 'rain') {
           sceneConfig = {
             type: 'rain',
-            camera: Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined,
+            render: Object.keys(renderOptions).length > 0 ? renderOptions : undefined,
             options: rainSceneOptions
           };
         } else if (generationOptions.sceneType === 'cornell') {
           sceneConfig = {
             type: 'cornell',
-            camera: Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined,
+            render: Object.keys(renderOptions).length > 0 ? renderOptions : undefined,
             options: cornellSceneOptions
           };
         } else {
           sceneConfig = { 
             type: 'default',
-            camera: Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined
+            render: Object.keys(renderOptions).length > 0 ? renderOptions : undefined
           };
         }
 
         // Set up rendering options
-        const renderOptions: RaytracerOptions = {
+        const raytracerOptions: RaytracerOptions = {
           parallel: generationOptions.parallel,
           threads: generationOptions.threads,
           verbose: generationOptions.verbose
         };
 
         // Generate the image
-        const pngBuffer = await generateImageBuffer(sceneConfig, renderOptions);
+        const pngBuffer = await generateImageBuffer(sceneConfig, raytracerOptions);
 
         const iterDuration = Date.now() - iterStartTime;
         totalRenderTime += iterDuration;

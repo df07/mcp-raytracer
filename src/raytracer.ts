@@ -43,9 +43,8 @@ export async function generateImageBuffer(
     const { parallel = false, threads, verbose = false } = options;
     
     // Common setup - create scene and get dimensions
-    let startTime = verbose ? Date.now() : 0;
-    const scene = generateScene(sceneConfig);
-    const { imageWidth, imageHeight, channels } = scene.camera;
+    const camera = generateScene(sceneConfig);
+    const { imageWidth, imageHeight, channels } = camera;
     
     // Prepare pixel buffer - either shared for parallel or regular for single-threaded
     let pixelData: Uint8ClampedArray;
@@ -57,7 +56,7 @@ export async function generateImageBuffer(
     if (!parallel) {
         // Single-threaded rendering
         pixelData = new Uint8ClampedArray(byteLength);
-        renderStats = scene.camera.render(pixelData);
+        renderStats = camera.render(pixelData);
     } else {
         const threadCount = threads || Math.max(1, os.cpus().length - 1);
 

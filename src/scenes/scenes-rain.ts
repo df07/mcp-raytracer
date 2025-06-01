@@ -1,15 +1,5 @@
-import { CameraOptions } from "../camera.js";
-import { HittableList } from "../geometry/hittableList.js";
-import { Vec3 } from "../geometry/vec3.js";
-import { Lambertian } from "../materials/lambertian.js";
+import { SceneData, MaterialObject, SceneObject, Vec3Array } from './sceneData.js';
 import { SeededRandom } from "./scenes-utils.js";
-import { Scene } from "./scenes.js";
-import { Sphere } from "../entities/sphere.js";
-import { Metal } from "../materials/metal.js";
-import { Color } from "../geometry/vec3.js";
-import { BVHNode } from "../geometry/bvh.js";
-import { Camera } from "../camera.js";
-
 
 /**
  * Options for rain scene generation
@@ -21,15 +11,12 @@ export interface RainSceneOptions {
 }
 
 /**
- * Generates a rain scene with evenly distributed metallic spheres.
+ * Generates rain scene data with metallic spheres falling from the sky.
  * 
- * @param cameraOpts Optional camera configuration
  * @param sceneOpts Optional scene configuration
- * @returns A Scene object containing the camera, world, and underlying object list
+ * @returns SceneData object that can be used to create a scene
  */
-export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSceneOptions): Scene {
-  const worldList = new HittableList();
-  
+export function generateRainSceneData(sceneOpts?: RainSceneOptions): SceneData {
   // Default rain scene options
   const defaultRainOptions = {
     count: 50,
@@ -37,12 +24,11 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
     width: 4,
     height: 3,
     depth: 2,
-    centerPoint: Vec3.create(0, 0, -2),
+    centerPoint: [0, 0, -2] as Vec3Array,
     metalFuzz: 0.1,
     groundSphere: true,
     groundY: -100.5,
     groundRadius: 100,
-    groundMaterial: new Lambertian(Color.create(0.1, 0.1, 0.1)),
     seed: Math.floor(Math.random() * 2147483647)
   };
   
@@ -55,12 +41,25 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   // Initialize random number generator with the seed
   const random = new SeededRandom(rainOpts.seed);
   
+  // Create materials array
+  const materials: MaterialObject[] = [];
+  
+  // Add ground material if ground sphere is enabled
+  if (rainOpts.groundSphere) {
+    materials.push({ id: 'ground', material: { type: 'lambert', color: [0.1, 0.1, 0.1] } });
+  }
+  
+  // Create objects array
+  const objects: SceneObject[] = [];
+  
   // Add ground sphere if specified
   if (rainOpts.groundSphere) {
-    const groundCenter = Vec3.create(0, rainOpts.groundY, 0);
-    const groundMaterial = rainOpts.groundMaterial;
-    const groundSphere = new Sphere(groundCenter, rainOpts.groundRadius, groundMaterial);
-    worldList.add(groundSphere);
+    objects.push({
+      type: 'sphere',
+      pos: [0, rainOpts.groundY, 0],
+      r: rainOpts.groundRadius,
+      material: 'ground'
+    });
   }
   
   // Calculate the number of spheres per dimension for an even distribution
@@ -78,21 +77,21 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   const totalGridDepth = spheresPerDimension * zSpacing;
   
   // Calculate the starting position to ensure the grid is centered at centerPoint
-  const startX = rainOpts.centerPoint.x - totalGridWidth / 2 + xSpacing / 2;
-  const startY = rainOpts.centerPoint.y - totalGridHeight / 2 + ySpacing / 2;
-  const startZ = rainOpts.centerPoint.z - totalGridDepth / 2 + zSpacing / 2;
+  const startX = rainOpts.centerPoint[0] - totalGridWidth / 2 + xSpacing / 2;
+  const startY = rainOpts.centerPoint[1] - totalGridHeight / 2 + ySpacing / 2;
+  const startZ = rainOpts.centerPoint[2] - totalGridDepth / 2 + zSpacing / 2;
   
   // Create a list of all possible positions in the grid
-  const positions: Vec3[] = [];
+  const positions: Vec3Array[] = [];
   for (let x = 0; x < spheresPerDimension; x++) {
     for (let y = 0; y < spheresPerDimension; y++) {
       for (let z = 0; z < spheresPerDimension; z++) {
         // Calculate position with small random offset for natural appearance
-        const position = Vec3.create(
+        const position: Vec3Array = [
           startX + x * xSpacing + (random.next() - 0.5) * xSpacing * 0.3,
           startY + y * ySpacing + (random.next() - 0.5) * ySpacing * 0.3,
           startZ + z * zSpacing + (random.next() - 0.5) * zSpacing * 0.3
-        );
+        ];
         positions.push(position);
       }
     }
@@ -105,35 +104,43 @@ export function generateRainScene(cameraOpts?: CameraOptions, sceneOpts?: RainSc
   const selectedPositions = positions.slice(0, rainOpts.count);
   
   // Create spheres at the selected positions
-  for (const position of selectedPositions) {
+  for (let i = 0; i < selectedPositions.length; i++) {
+    const position = selectedPositions[i];
+    
     // Create a metallic material with slight color variation (silver/gray tones)
     const brightness = 0.7 + random.next() * 0.3; // 0.7-1.0 range for silver/gray
-    const color = Color.create(brightness, brightness, brightness);
+    const color: Vec3Array = [brightness, brightness, brightness];
     const fuzz = rainOpts.metalFuzz * random.next(); // Randomize fuzziness a bit
-    const material = new Metal(color, fuzz);
     
-    // Add the sphere to the world
-    worldList.add(new Sphere(position, rainOpts.sphereRadius, material));
+    const materialId = `rain-${i}`;
+    materials.push({
+      id: materialId,
+      material: { type: 'metal', color, fuzz }
+    });
+    
+    // Add the sphere to the objects array
+    objects.push({
+      type: 'sphere',
+      pos: position,
+      r: rainOpts.sphereRadius,
+      material: materialId
+    });
   }
   
-  // Create BVH for efficient ray tracing
-  const bvhWorld = BVHNode.fromList(worldList.objects);
-  
-  // Default camera options
-  const defaultCameraOptions: CameraOptions = {
-    vfov: 40,
-    lookFrom: Vec3.create(0, 0, 2),
-    lookAt: rainOpts.centerPoint,
-  };
-  
-  // Create camera
-  const camera = new Camera(bvhWorld, { ...defaultCameraOptions, ...cameraOpts });
-  
-  // Create and return the scene
+  // Camera configuration
   return {
-    camera: camera,
-    world: bvhWorld,
-    _objects: [...worldList.objects]
+    camera: { 
+      vfov: 40, aperture: 0.0, focus: 1.0,
+      from: [0, 0, 2], at: rainOpts.centerPoint, up: [0, 1, 0],
+      background: { type: 'gradient', top: [0.5, 0.7, 1.0], bottom: [1.0, 1.0, 1.0] }
+    },
+    materials,
+    objects,
+    metadata: {
+      name: 'Rain Scene',
+      description: `Scene with ${selectedPositions.length} metallic rain spheres (seed: ${rainOpts.seed})`,
+      version: '2.0'
+    }
   };
 }
 

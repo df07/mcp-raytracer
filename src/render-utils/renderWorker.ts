@@ -14,8 +14,7 @@ export type RenderWorkerData = {
 const { sceneConfig, region, workerId, sharedBuffer } = workerData as RenderWorkerData
 
 // Create scene and camera 
-const scene = generateScene(sceneConfig);
-const camera = scene.camera;
+const camera = generateScene(sceneConfig);
 
 // Use the shared buffer for pixel data
 const pixelData = new Uint8ClampedArray(sharedBuffer);
