@@ -333,7 +333,7 @@ describe('Camera', () => {
             const buffer = new Uint8ClampedArray(20 * 20 * 3);
             
             // Render a 10x10 region starting at (5,5)
-            const stats = camera.renderRegion(buffer, 5, 5, 10, 10);
+            const stats = camera.renderRegion(buffer, { x: 5, y: 5, width: 10, height: 10 });
             
             expect(stats.pixels).toBe(100); // 10x10 region
             expect(stats.samples.total).toBe(100); // 1 sample per pixel

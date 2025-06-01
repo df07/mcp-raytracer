@@ -1,15 +1,17 @@
 import { parentPort, workerData } from 'worker_threads';
 import { generateScene, SceneConfig } from '../scenes/scenes.js';
-import { Region, WorkerResponse } from '../raytracer.js';
+import { WorkerResponse } from '../raytracer.js';
+import { RenderRegion } from '../camera.js';
 
-// Worker receives: scene config, region to render, thread ID, and shared buffer
-const { sceneConfig, region, workerId, sharedBuffer, verbose } = workerData as {
+export type RenderWorkerData = {
   sceneConfig: SceneConfig;
-  region: Region;
+  region: RenderRegion;
   workerId: number;
   sharedBuffer: SharedArrayBuffer;
-  verbose: boolean;
 };
+
+// Worker receives: scene config, region to render, thread ID, and shared buffer
+const { sceneConfig, region, workerId, sharedBuffer } = workerData as RenderWorkerData
 
 // Create scene and camera 
 const scene = generateScene(sceneConfig);
@@ -19,13 +21,7 @@ const camera = scene.camera;
 const pixelData = new Uint8ClampedArray(sharedBuffer);
 
 // Render the region directly to the shared buffer
-const stats = camera.renderRegion(
-  pixelData,
-  region.startX,
-  region.startY,
-  region.width,
-  region.height
-);
+const stats = camera.renderRegion(pixelData, region);
 
 const response: WorkerResponse = { 
   completed: true,

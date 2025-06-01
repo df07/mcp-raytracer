@@ -5,6 +5,8 @@ import { Worker } from 'worker_threads';
 import { fileURLToPath } from 'url';
 import { generateScene, SceneConfig } from './scenes/scenes.js';
 import { RenderStats } from './render-utils/renderStats.js';
+import { RenderRegion } from './camera.js';
+import { RenderWorkerData } from './render-utils/renderWorker.js';
 import fs from 'fs';
 
 // Get the directory for the current module
@@ -18,16 +20,6 @@ export interface RaytracerOptions {
     parallel?: boolean;   // Whether to use parallel rendering (default: false)
     threads?: number;     // Number of worker threads to use (default: CPU count - 1)
     verbose?: boolean;    // Whether to log progress information (default: false)
-}
-
-/**
- * Region definition for parallel rendering
- */
-export interface Region {
-    startX: number;
-    startY: number;
-    width: number;
-    height: number;
 }
 
 export interface WorkerResponse {
@@ -80,7 +72,7 @@ export async function generateImageBuffer(
         // Divide into regions, and run worker on each region
         const regions = divideIntoRegions(imageWidth, imageHeight, threadCount);
         const workerPromises = regions.map((region, index) => {
-            return runWorker(sceneConfig, region, index, sharedBuffer, imageWidth, channels, verbose);
+            return runWorker({ sceneConfig, region, workerId: index, sharedBuffer }, verbose);
         });
         
         const results = await Promise.all(workerPromises);
@@ -124,15 +116,7 @@ export async function generateImageBuffer(
  * @param verbose Whether to log progress
  * @returns Promise that resolves when the worker completes
  */
-function runWorker(
-    sceneConfig: SceneConfig,
-    region: Region,
-    workerId: number,
-    sharedBuffer: SharedArrayBuffer,
-    imageWidth: number,
-    channels: number,
-    verbose: boolean
-): Promise<RenderStats> {
+function runWorker(workerData: RenderWorkerData, verbose: boolean): Promise<RenderStats> {
     return new Promise((resolve, reject) => {
         // Determine the absolute path to the worker script
         // This is more robust for testing environments
@@ -140,12 +124,12 @@ function runWorker(
         
         try {
             // First try the standard path relative to this module
-            workerScriptPath = path.resolve(__dirname, 'workers', 'renderWorker.js');
+            workerScriptPath = path.resolve(__dirname, 'render-utils', 'renderWorker.js');
             
             // Check if the file exists
             if (!fs.existsSync(workerScriptPath)) {
                 // Try alternate path for test environment (from project root)
-                const testPath = path.resolve(process.cwd(), 'dist', 'src', 'workers', 'renderWorker.js');
+                const testPath = path.resolve(process.cwd(), 'dist', 'src', 'render-utils', 'renderWorker.js');
                 if (fs.existsSync(testPath)) {
                     workerScriptPath = testPath;
                 } else {
@@ -157,18 +141,7 @@ function runWorker(
             return;
         }
         
-        // Create the worker
-        const worker = new Worker(workerScriptPath, {
-            workerData: {
-                sceneConfig,
-                region,
-                workerId,
-                sharedBuffer,
-                imageWidth,
-                channels,
-                verbose
-            }
-        });
+        const worker = new Worker(workerScriptPath, { workerData: workerData });
         
         // Handle messages from the worker
         worker.on('message', (result: WorkerResponse) => {
@@ -179,14 +152,14 @@ function runWorker(
         
         // Handle errors
         worker.on('error', (err) => {
-            console.error(`Worker ${workerId} error:`, err);
+            console.error(`Worker ${workerData.workerId} error:`, err);
             reject(err);
         });
         
         // Handle worker exit
         worker.on('exit', (code) => {
             if (code !== 0) {
-                const error = new Error(`Worker ${workerId} stopped with exit code ${code}`);
+                const error = new Error(`Worker ${workerData.workerId} stopped with exit code ${code}`);
                 reject(error);
             }
         });
@@ -205,11 +178,11 @@ function divideIntoRegions(
     imageWidth: number,
     imageHeight: number,
     count: number
-): Region[] {
+): RenderRegion[] {
     // Simple row-based division
     const regionHeight = Math.ceil(imageHeight / count);
     
-    const regions: Region[] = [];
+    const regions: RenderRegion[] = [];
     for (let i = 0; i < count; i++) {
         const startY = i * regionHeight;
         const height = Math.min(regionHeight, imageHeight - startY);
@@ -217,12 +190,7 @@ function divideIntoRegions(
         // If we've allocated all rows, stop creating regions
         if (height <= 0) break;
         
-        regions.push({
-            startX: 0,
-            startY,
-            width: imageWidth,
-            height
-        });
+        regions.push({ x: 0, y: startY, width: imageWidth, height });
     }
     
     return regions;

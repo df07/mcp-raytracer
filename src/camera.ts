@@ -40,6 +40,13 @@ export interface CameraOptions {
   backgroundBottom?: Color;      // Bottom color for background gradient (default: blue)
 }
 
+export type RenderRegion = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 export class Camera {
     static defaultOptions: Required<CameraOptions> = {
         imageWidth: 400,
@@ -375,26 +382,20 @@ export class Camera {
      * @param height The height of the region
      * @returns Statistics about the rendering process
      */
-    renderRegion(
-        buffer: Uint8ClampedArray,
-        startX: number,
-        startY: number,
-        width: number,
-        height: number
-    ): RenderStats {
+    renderRegion(buffer: Uint8ClampedArray, region: RenderRegion): RenderStats {
+        const { x, y, width, height } = region;
+        const endX = Math.min(x + width, this.imageWidth);
+        const endY = Math.min(y + height, this.imageHeight);
+
         // Create a vector pool for rendering
         const pool = new VectorPool(64000);
         Vec3.usePool(pool);
         
         const renderStats = new RenderStats();
-        
-        // Ensure the region is within the image bounds
-        const endX = Math.min(startX + width, this.imageWidth);
-        const endY = Math.min(startY + height, this.imageHeight);
 
         // Render loop for the region
-        for (let j = startY; j < endY; ++j) {            
-            for (let i = startX; i < endX; ++i) {
+        for (let j = y; j < endY; ++j) {            
+            for (let i = x; i < endX; ++i) {
                 const offsetPixel = pool.offset;
                 const pixel = new PixelStats();
                 
@@ -433,7 +434,12 @@ export class Camera {
      * @returns Statistics about the rendering process
      */ 
     render(pixelData: Uint8ClampedArray): RenderStats {
-        return this.renderRegion(pixelData, 0, 0, this.imageWidth, this.imageHeight);
+        return this.renderRegion(pixelData, {
+            x: 0,
+            y: 0,
+            width: this.imageWidth,
+            height: this.imageHeight
+        });
     }
 
     /**
