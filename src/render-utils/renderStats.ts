@@ -73,7 +73,8 @@ export class PixelStats {
     public sumIll = 0;
     public sumIll2 = 0;
 
-    public addSample(rayColor: Color, bounces: number, calcIlluminance: boolean = true): void {
+    public add(rayColor: Color, bounces: number, calcIlluminance: boolean = true): void {
+        this.color = this.color.add(rayColor); // accumulate color
         this.samples++;
         this.bounces += bounces;
         this.minBounces = Math.min(this.minBounces, bounces);

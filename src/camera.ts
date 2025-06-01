@@ -83,6 +83,7 @@ export class Camera {
     private readonly russianRouletteDepth: number; // Minimum bounces before applying Russian Roulette
     private readonly backgroundTop: Color; // Top color for background gradient
     private readonly backgroundBottom: Color; // Bottom color for background gradient
+    private readonly useAdaptiveSampling: boolean;
     
     // Defocus blur properties
     private readonly aperture: number;
@@ -150,6 +151,8 @@ export class Camera {
         // Initialize defocus disk vectors
         this.defocusDiskU = this.u.multiply(this.aperture / 2);
         this.defocusDiskV = this.v.multiply(this.aperture / 2);
+
+        this.useAdaptiveSampling = this.adaptiveTolerance > 0 && this.maxSamples > 1;
     }    
     
     /**
@@ -307,33 +310,22 @@ export class Camera {
 
     /**
      * Determines the final pixel color based on the render mode.
-     * @param renderMode The current render mode
-     * @param pixelColor Accumulated color from ray tracing
-     * @param pixelBounces Total bounces for this pixel
-     * @param sampleCount Number of samples taken for this pixel
+     * @param pixel The pixel stats object
      * @returns The final color to write to the buffer
      */
-    private specialRenderModeColor(
-        pixelColor: Color, 
-        pixelBounces: number, 
-        sampleCount: number
-    ): Color {
+    private finalColor(pixel: PixelStats): Color {
         switch (this.renderMode) {
             case RenderMode.Bounces:
-                // Visualize average bounces per ray for this pixel (bluescale)
-                const avgBounces = sampleCount > 0 ? pixelBounces / sampleCount : 0;
+                const avgBounces = pixel.samples > 0 ? pixel.bounces / pixel.samples : 0;
                 const bounceIntensity = Math.min(avgBounces / this.maxDepth, 1.0); // Normalize to [0,1]
                 return Color.create(0, 0, bounceIntensity); // Blue scale
-            
             case RenderMode.Samples:
-                // Visualize sample count for this pixel (redscale)
-                const sampleIntensity = Math.min(sampleCount / this.maxSamples, 1.0); // Normalize to [0,1]
+                const sampleIntensity = Math.min(pixel.samples / this.maxSamples, 1.0); // Normalize to [0,1]
                 return Color.create(sampleIntensity, 0, 0); // Red scale
-            
             case RenderMode.Default:
             default:
                 // Normal color rendering
-                return pixelColor;
+                return pixel.color.divide(pixel.samples);;
         }
     }
 
@@ -365,6 +357,13 @@ export class Camera {
         return confidenceInterval <= this.adaptiveTolerance * mean;
     }
 
+    private samplePixel(i: number, j: number): { rayColor: Color, bounces: number } {
+        const r = this.getRay(i,j);
+        const rayStats = { bounces: 0 };
+        const rayColor = this.rayColor(r, Color.WHITE, rayStats);
+        return { rayColor, bounces: rayStats.bounces };
+    }
+
     /**
      * Renders a specific region of the scene and writes the pixel data to the buffer.
      * Uses adaptive sampling if enabled to optimize rendering by focusing samples on complex areas.
@@ -393,8 +392,6 @@ export class Camera {
         const endX = Math.min(startX + width, this.imageWidth);
         const endY = Math.min(startY + height, this.imageHeight);
 
-        const useAdaptiveSampling = this.adaptiveTolerance > 0 && this.maxSamples > 1;
-
         // Render loop for the region
         for (let j = startY; j < endY; ++j) {            
             for (let i = startX; i < endX; ++i) {
@@ -403,35 +400,22 @@ export class Camera {
                 
                 // Sampling loop - continue until max samples or convergence
                 while (pixel.samples < this.maxSamples && !this.pixelConverged(pixel)) {
-                    const offsetSample = pool.offset;
                     
                     // Get and trace a ray through this pixel
-                    const r = this.getRay(i,j);
-                    const rayStats = { bounces: 0 };
-                    const rayColor = this.rayColor(r, Color.WHITE, rayStats);
-                    pixel.addSample(rayColor, rayStats.bounces, useAdaptiveSampling);
-                    
-                    // Reset the vector pool offset
+                    const offsetSample = pool.offset;
+                    const { rayColor, bounces } = this.samplePixel(i, j);
                     pool.reset(offsetSample);
 
-                    pixel.color = pixel.color.add(rayColor);
+                    // Accumulate color and bounce statistics
+                    pixel.add(rayColor, bounces, this.useAdaptiveSampling);
                 }
                 
                 // Compute final pixel color by averaging all samples
-                pixel.color = pixel.color.divide(pixel.samples);
+                pixel.color = this.finalColor(pixel);
+                this.writeColorToBuffer(buffer, i, j, pixel.color);
 
-                // Determine final pixel color based on render mode
-                if (this.renderMode !== RenderMode.Default) {
-                    pixel.color = this.specialRenderModeColor(pixel.color, pixel.bounces, pixel.samples);
-                }
-                
-                // Update statistics
+                // Accumulate statistics
                 renderStats.addPixel(pixel);
-                
-                // Write directly to the full image buffer at the correct position
-                const bufferIndex = (j * this.imageWidth + i) * this.channels;
-                this.writeColorToBuffer(buffer, bufferIndex, pixel.color);
-
                 pool.reset(offsetPixel);
             }
         }
@@ -461,9 +445,12 @@ export class Camera {
      */
     private writeColorToBuffer(
       buffer: Uint8ClampedArray,
-      offset: number,
+      i: number,
+      j: number,
       pixelColor: Color,
     ): void {
+        const offset = (j * this.imageWidth + i) * this.channels;
+
         // Apply gamma correction by taking the square root of each color component
         const r = Math.sqrt(pixelColor.x);
         const g = Math.sqrt(pixelColor.y);
