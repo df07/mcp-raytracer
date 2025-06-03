@@ -35,15 +35,15 @@ export interface CameraOptions {
  * Render quality and performance settings
  */
 export interface RenderOptions {
-  imageWidth?: number;           // Width of the rendered image (default: 400)
-  aspectRatio?: number;          // Aspect ratio of the rendered image (default: 16/9)
+  width?: number;                // Width of the rendered image (default: 400)
+  aspect?: number;               // Aspect ratio of the rendered image (default: 16/9)
   samples?: number;              // Anti-aliasing samples per pixel (default: 100)
-  maxDepth?: number;             // Maximum recursion depth for ray bounces (default: 100)
-  adaptiveTolerance?: number;    // Tolerance for convergence in adaptive sampling (default: 0.05)
-  adaptiveBatchSize?: number;    // Number of samples to batch for adaptive sampling (default: 10)
-  russianRouletteEnabled?: boolean;  // Enable Russian Roulette ray termination (default: true)
-  russianRouletteDepth?: number;     // Minimum bounces before applying Russian Roulette (default: 3)
-  renderMode?: RenderMode;       // Render mode for visualization (default: Color)
+  depth?: number;                // Maximum recursion depth for ray bounces (default: 100)
+  aTolerance?: number;             // Tolerance for convergence in adaptive sampling (default: 0.05)
+  aBatch?: number;           // Number of samples to batch for adaptive sampling (default: 10)
+  roulette?: boolean;            // Enable Russian Roulette ray termination (default: true)
+  rouletteDepth?: number;        // Minimum bounces before applying Russian Roulette (default: 3)
+  mode?: RenderMode;             // Render mode for visualization (default: Default)
 }
 
 export type RenderRegion = {
@@ -66,16 +66,16 @@ export class Camera {
         lights: [],
     }
 
-    static defaultRenderOptions: Required<RenderOptions> = {
-        imageWidth: 400,
-        aspectRatio: 16 / 9,
+    static defaultRenderData: Required<RenderOptions> = {
+        width: 400,
+        aspect: 16 / 9,
         samples: 100,
-        adaptiveTolerance: 0.05,
-        adaptiveBatchSize: 10,
-        renderMode: RenderMode.Default,
-        maxDepth: 100,
-        russianRouletteEnabled: true,
-        russianRouletteDepth: 3,
+        aTolerance: 0.05,
+        aBatch: 10,
+        mode: RenderMode.Default,
+        depth: 100,
+        roulette: true,
+        rouletteDepth: 3,
     }
 
     public readonly imageWidth: number;
@@ -111,25 +111,25 @@ export class Camera {
     constructor(        
         world: Hittable,
         cameraOptions: CameraOptions = {},
-        renderOptions: RenderOptions = {}
+        renderData: RenderOptions = {}
     ) {
         this.world = world;
 
         // Merge with defaults
         const finalCameraOptions = { ...Camera.defaultCameraOptions, ...cameraOptions };
-        const finalRenderOptions = { ...Camera.defaultRenderOptions, ...renderOptions };
+        const finalRenderData = { ...Camera.defaultRenderData, ...renderData };
 
         // Set render properties
-        this.imageWidth = finalRenderOptions.imageWidth;
-        this.imageHeight = Math.ceil(this.imageWidth / finalRenderOptions.aspectRatio);
-        this.aspectRatio = finalRenderOptions.aspectRatio;
-        this.maxDepth = finalRenderOptions.maxDepth;
-        this.maxSamples = finalRenderOptions.samples;
-        this.adaptiveTolerance = finalRenderOptions.adaptiveTolerance;
-        this.adaptiveSampleBatchSize = finalRenderOptions.adaptiveBatchSize;
-        this.renderMode = finalRenderOptions.renderMode;
-        this.russianRouletteEnabled = finalRenderOptions.russianRouletteEnabled;
-        this.russianRouletteDepth = finalRenderOptions.russianRouletteDepth;
+        this.imageWidth = finalRenderData.width;
+        this.imageHeight = Math.ceil(this.imageWidth / finalRenderData.aspect);
+        this.aspectRatio = finalRenderData.aspect;
+        this.maxDepth = finalRenderData.depth;
+        this.maxSamples = finalRenderData.samples;
+        this.adaptiveTolerance = finalRenderData.aTolerance;
+        this.adaptiveSampleBatchSize = finalRenderData.aBatch;
+        this.renderMode = finalRenderData.mode;
+        this.russianRouletteEnabled = finalRenderData.roulette;
+        this.russianRouletteDepth = finalRenderData.rouletteDepth;
 
         // Set camera properties
         this.center = finalCameraOptions.lookFrom;

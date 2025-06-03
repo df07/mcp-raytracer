@@ -1,21 +1,15 @@
 /* Specs: scene-generator.md */
+import { RenderOptions } from '../camera.js';
 
 // Type alias for 3D vectors/points/colors
 export type Vec3Array = [number, number, number];
 
 // Scene data structure
 export type SceneData = {
-  // Camera configuration (positioning and visual settings)
   camera: CameraData;
-  
-  // Render quality settings
-  render?: RenderData;
-  
-  // Scene objects and materials as arrays
+  render?: RenderOptions;
   objects: SceneObject[];
-  materials?: MaterialObject[];  // Optional array of named materials
-  
-  // Optional metadata
+  materials?: MaterialObject[];
   metadata?: {
     name?: string;
     description?: string;
@@ -24,6 +18,7 @@ export type SceneData = {
   };
 }
 
+// Camera data for scene serialization (uses arrays for compactness)
 export type CameraData = {
   vfov?: number;
   from?: Vec3Array;      // lookFrom position
@@ -34,25 +29,11 @@ export type CameraData = {
   background?: BackgroundData;
 }
 
-export type RenderData = {
-  width?: number;        // imageWidth
-  aspect?: number;       // aspectRatio
-  samples?: number;
-  depth?: number;        // maxDepth
-  adaptTol?: number;     // adaptiveTolerance
-  adaptBatch?: number;   // adaptiveBatchSize
-  roulette?: boolean;    // russianRouletteEnabled
-  rouletteDepth?: number; // russianRouletteDepth
-  mode?: string;         // renderMode
-}
-
 // Background configuration
-export type BackgroundData = GradientBackground;  // More types can be added later
-
-export type GradientBackground = {
+export type BackgroundData = {
   type: 'gradient';
-  top: Vec3Array;      // Top color
-  bottom: Vec3Array;   // Bottom color
+  top: Vec3Array;        // Top color for background gradient
+  bottom: Vec3Array;     // Bottom color for background gradient
 }
 
 // Material with ID

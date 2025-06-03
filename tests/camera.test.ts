@@ -134,7 +134,7 @@ function createTestSceneData(): SceneData {
 describe('Camera', () => {
     let world: HittableList;
     let defaultCameraOptions: CameraOptions;
-    let defaultRenderOptions: RenderOptions;
+    let defaultRenderData: RenderOptions;
 
     beforeEach(() => {
         // Create a simple world with one sphere
@@ -150,9 +150,9 @@ describe('Camera', () => {
             vUp: Vec3.create(0, 1, 0),
         };
 
-        defaultRenderOptions = {
-            imageWidth: 100,
-            aspectRatio: 1.0,
+        defaultRenderData = {
+            width: 100,
+            aspect: 1.0,
             samples: 1,
         };
     });
@@ -167,7 +167,7 @@ describe('Camera', () => {
         });
 
         it('should create camera with custom options', () => {
-            const camera = new Camera(world, defaultCameraOptions, defaultRenderOptions);
+            const camera = new Camera(world, defaultCameraOptions, defaultRenderData);
             
             expect(camera.imageWidth).toBe(100);
             expect(camera.imageHeight).toBe(100);
@@ -181,7 +181,7 @@ describe('Camera', () => {
                 aperture: 1.0,
             };
             
-            const camera = new Camera(world, cameraOptions, defaultRenderOptions);
+            const camera = new Camera(world, cameraOptions, defaultRenderData);
             // Focus distance should be the distance from lookFrom to lookAt
             expect(camera).toBeDefined();
         });
@@ -193,7 +193,7 @@ describe('Camera', () => {
                 focusDistance: 5.0,
             };
             
-            const camera = new Camera(world, cameraOptions, defaultRenderOptions);
+            const camera = new Camera(world, cameraOptions, defaultRenderData);
             expect(camera).toBeDefined();
         });
     });
@@ -205,12 +205,12 @@ describe('Camera', () => {
                 aperture: 0,
             };
             
-            const renderOptions: RenderOptions = {
-                ...defaultRenderOptions,
+            const renderData: RenderOptions = {
+                ...defaultRenderData,
                 samples: 1,
             };
             
-            const camera = new Camera(world, cameraOptions, renderOptions);
+            const camera = new Camera(world, cameraOptions, renderData);
             
             // Generate multiple rays for the same pixel
             const ray1 = camera.getRay(50, 50);
@@ -228,12 +228,12 @@ describe('Camera', () => {
                 focusDistance: 1.0,
             };
             
-            const renderOptions: RenderOptions = {
-                ...defaultRenderOptions,
+            const renderData: RenderOptions = {
+                ...defaultRenderData,
                 samples: 10, // Enable anti-aliasing to get random rays
             };
             
-            const camera = new Camera(world, cameraOptions, renderOptions);
+            const camera = new Camera(world, cameraOptions, renderData);
             
             // Generate multiple rays for the same pixel
             const rays: Ray[] = [];
@@ -254,12 +254,12 @@ describe('Camera', () => {
                 focusDistance: 2.0,
             };
             
-            const renderOptions: RenderOptions = {
-                ...defaultRenderOptions,
+            const renderData: RenderOptions = {
+                ...defaultRenderData,
                 samples: 10,
             };
             
-            const camera = new Camera(world, cameraOptions, renderOptions);
+            const camera = new Camera(world, cameraOptions, renderData);
             
             // Generate rays and check they converge at the focus plane
             const rays: Ray[] = [];
@@ -283,7 +283,7 @@ describe('Camera', () => {
                 focusDistance: 1.0,
             };
             
-            const smallApertureCamera = new Camera(world, smallApertureOptions, defaultRenderOptions);
+            const smallApertureCamera = new Camera(world, smallApertureOptions, defaultRenderData);
             const ray1 = smallApertureCamera.getRay(50, 50);
             expect(ray1).toBeDefined();
 
@@ -294,7 +294,7 @@ describe('Camera', () => {
                 focusDistance: 1.0,
             };
             
-            const largeApertureCamera = new Camera(world, largeApertureOptions, defaultRenderOptions);
+            const largeApertureCamera = new Camera(world, largeApertureOptions, defaultRenderData);
             const ray2 = largeApertureCamera.getRay(50, 50);
             expect(ray2).toBeDefined();
         });
@@ -302,7 +302,7 @@ describe('Camera', () => {
 
     describe('Ray Generation', () => {
         it('should generate rays within image bounds', () => {
-            const camera = new Camera(world, defaultCameraOptions, defaultRenderOptions);
+            const camera = new Camera(world, defaultCameraOptions, defaultRenderData);
             
             // Test corner pixels
             const topLeft = camera.getRay(0, 0);
@@ -318,7 +318,7 @@ describe('Camera', () => {
         });
 
         it('should generate different rays for different pixels', () => {
-            const camera = new Camera(world, defaultCameraOptions, defaultRenderOptions);
+            const camera = new Camera(world, defaultCameraOptions, defaultRenderData);
             
             const ray1 = camera.getRay(25, 25);
             const ray2 = camera.getRay(75, 75);
@@ -330,9 +330,9 @@ describe('Camera', () => {
 
     describe('Rendering', () => {
         it('should render without errors', () => {
-            const renderOptions: RenderOptions = {
-                imageWidth: 10,
-                aspectRatio: 1.0,
+            const renderData: RenderOptions = {
+                width: 10,
+                aspect: 1.0,
                 samples: 1,
             };
             
@@ -340,7 +340,7 @@ describe('Camera', () => {
                 aperture: 0,
             };
             
-            const camera = new Camera(world, cameraOptions, renderOptions);
+            const camera = new Camera(world, cameraOptions, renderData);
             const buffer = new Uint8ClampedArray(10 * 10 * 3);
             
             const stats = camera.render(buffer);
@@ -357,9 +357,9 @@ describe('Camera', () => {
         });
 
         it('should render with defocus blur without errors', () => {
-            const renderOptions: RenderOptions = {
-                imageWidth: 10,
-                aspectRatio: 1.0,
+            const renderData: RenderOptions = {
+                width: 10,
+                aspect: 1.0,
                 samples: 2,
             };
             
@@ -368,7 +368,7 @@ describe('Camera', () => {
                 focusDistance: 1.0,
             };
             
-            const camera = new Camera(world, cameraOptions, renderOptions);
+            const camera = new Camera(world, cameraOptions, renderData);
             const buffer = new Uint8ClampedArray(10 * 10 * 3);
             
             const stats = camera.render(buffer);
@@ -379,13 +379,13 @@ describe('Camera', () => {
         });
 
         it('should render region correctly', () => {
-            const renderOptions: RenderOptions = {
-                imageWidth: 20,
-                aspectRatio: 1.0,
+            const renderData: RenderOptions = {
+                width: 20,
+                aspect: 1.0,
                 samples: 1,
             };
             
-            const camera = new Camera(world, defaultCameraOptions, renderOptions);
+            const camera = new Camera(world, defaultCameraOptions, renderData);
             const buffer = new Uint8ClampedArray(20 * 20 * 3);
             
             const region = { x: 5, y: 5, width: 10, height: 10 };
@@ -410,7 +410,7 @@ describe('Camera', () => {
                     focusDistance,
                 };
                 
-                expect(() => new Camera(world, cameraOptions, defaultRenderOptions)).not.toThrow();
+                expect(() => new Camera(world, cameraOptions, defaultRenderData)).not.toThrow();
             });
         });
 
@@ -430,7 +430,7 @@ describe('Camera', () => {
                     aperture: 1.0,
                 };
                 
-                const camera = new Camera(world, cameraOptions, defaultRenderOptions);
+                const camera = new Camera(world, cameraOptions, defaultRenderData);
                 const ray = camera.getRay(50, 50);
                 expect(ray).toBeDefined();
                 expect(ray.direction.length()).toBeGreaterThan(0);
@@ -446,7 +446,7 @@ describe('Camera', () => {
         pdfWorld.add(sphere);
         
         // Create camera (no lights)
-        const camera = new Camera(pdfWorld, defaultCameraOptions, defaultRenderOptions);
+        const camera = new Camera(pdfWorld, defaultCameraOptions, defaultRenderData);
         
         // Create a ray that hits the diffuse sphere
         const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
@@ -463,7 +463,7 @@ describe('Camera', () => {
 describe('Camera Russian Roulette', () => {
     let world: HittableList;
     let defaultCameraOptions: CameraOptions;
-    let defaultRenderOptions: RenderOptions;
+    let defaultRenderData: RenderOptions;
 
     beforeEach(() => {
         // Create a simple world with one sphere
@@ -479,50 +479,50 @@ describe('Camera Russian Roulette', () => {
             vUp: Vec3.create(0, 1, 0),
         };
 
-        defaultRenderOptions = {
-            imageWidth: 10,
-            aspectRatio: 1.0,
+        defaultRenderData = {
+            width: 10,
+            aspect: 1.0,
             samples: 1,
         };
     });
 
     describe('Configuration', () => {
         it('should enable Russian Roulette by default', () => {
-            const camera = new Camera(world, defaultCameraOptions, defaultRenderOptions);
+            const camera = new Camera(world, defaultCameraOptions, defaultRenderData);
             // Russian Roulette should be enabled by default
             expect(camera).toBeDefined();
         });
 
         it('should allow disabling Russian Roulette', () => {
-            const renderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteEnabled: false,
+            const renderData: RenderOptions = {
+                ...defaultRenderData,
+                roulette: false,
             };
             
-            const camera = new Camera(world, defaultCameraOptions, renderOptions);
+            const camera = new Camera(world, defaultCameraOptions, renderData);
             expect(camera).toBeDefined();
         });
 
         it('should allow custom Russian Roulette depth', () => {
-            const renderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteDepth: 5,
+            const renderData: RenderOptions = {
+                ...defaultRenderData,
+                rouletteDepth: 5,
             };
             
-            const camera = new Camera(world, defaultCameraOptions, renderOptions);
+            const camera = new Camera(world, defaultCameraOptions, renderData);
             expect(camera).toBeDefined();
         });
     });
 
     describe('Ray Termination', () => {
         it('should not apply Russian Roulette before minimum depth', () => {
-            const renderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteEnabled: true,
-                russianRouletteDepth: 5,
+            const renderData: RenderOptions = {
+                ...defaultRenderData,
+                roulette: true,
+                rouletteDepth: 5,
             };
             
-            const camera = new Camera(world, defaultCameraOptions, renderOptions);
+            const camera = new Camera(world, defaultCameraOptions, renderData);
             
             // Create a ray that will hit the sphere
             const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
@@ -542,13 +542,13 @@ describe('Camera Russian Roulette', () => {
             };
 
             try {
-                const renderOptions: RenderOptions = {
-                    ...defaultRenderOptions,
-                    russianRouletteEnabled: true,
-                    russianRouletteDepth: 1, // Low threshold for testing
+                const renderData: RenderOptions = {
+                    ...defaultRenderData,
+                    roulette: true,
+                    rouletteDepth: 1, // Low threshold for testing
                 };
                 
-                const camera = new Camera(world, defaultCameraOptions, renderOptions);
+                const camera = new Camera(world, defaultCameraOptions, renderData);
                 
                 // Create a ray that will hit the sphere
                 const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
@@ -568,13 +568,13 @@ describe('Camera Russian Roulette', () => {
             Math.random = () => 0.01; // Low value to continue ray
 
             try {
-                const renderOptions: RenderOptions = {
-                    ...defaultRenderOptions,
-                    russianRouletteEnabled: true,
-                    russianRouletteDepth: 1,
+                const renderData: RenderOptions = {
+                    ...defaultRenderData,
+                    roulette: true,
+                    rouletteDepth: 1,
                 };
                 
-                const camera = new Camera(world, defaultCameraOptions, renderOptions);
+                const camera = new Camera(world, defaultCameraOptions, renderData);
                 
                 // Create a ray that will hit the sphere
                 const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
@@ -591,21 +591,21 @@ describe('Camera Russian Roulette', () => {
     describe('Energy Conservation', () => {
         it('should maintain energy conservation with Russian Roulette disabled vs enabled', () => {
             // This test verifies that Russian Roulette maintains the same expected energy
-            const disabledRenderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteEnabled: false,
+            const disabledRenderData: RenderOptions = {
+                ...defaultRenderData,
+                roulette: false,
                 samples: 100, // More samples for statistical accuracy
             };
             
-            const enabledRenderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteEnabled: true,
-                russianRouletteDepth: 3, // Use a more reasonable depth to avoid early termination
+            const enabledRenderData: RenderOptions = {
+                ...defaultRenderData,
+                roulette: true,
+                rouletteDepth: 3, // Use a more reasonable depth to avoid early termination
                 samples: 100,
             };
             
-            const disabledCamera = new Camera(world, defaultCameraOptions, disabledRenderOptions);
-            const enabledCamera = new Camera(world, defaultCameraOptions, enabledRenderOptions);
+            const disabledCamera = new Camera(world, defaultCameraOptions, disabledRenderData);
+            const enabledCamera = new Camera(world, defaultCameraOptions, enabledRenderData);
             
             const buffer1 = new Uint8ClampedArray(10 * 10 * 3);
             const buffer2 = new Uint8ClampedArray(10 * 10 * 3);
@@ -626,21 +626,21 @@ describe('Camera Russian Roulette', () => {
 
     describe('Performance Impact', () => {
         it('should reduce bounce count with Russian Roulette enabled', () => {
-            const disabledRenderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteEnabled: false,
+            const disabledRenderData: RenderOptions = {
+                ...defaultRenderData,
+                roulette: false,
                 samples: 50,
             };
             
-            const enabledRenderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteEnabled: true,
-                russianRouletteDepth: 2,
+            const enabledRenderData: RenderOptions = {
+                ...defaultRenderData,
+                roulette: true,
+                rouletteDepth: 2,
                 samples: 50,
             };
             
-            const disabledCamera = new Camera(world, defaultCameraOptions, disabledRenderOptions);
-            const enabledCamera = new Camera(world, defaultCameraOptions, enabledRenderOptions);
+            const disabledCamera = new Camera(world, defaultCameraOptions, disabledRenderData);
+            const enabledCamera = new Camera(world, defaultCameraOptions, enabledRenderData);
             
             const buffer1 = new Uint8ClampedArray(10 * 10 * 3);
             const buffer2 = new Uint8ClampedArray(10 * 10 * 3);
@@ -662,13 +662,13 @@ describe('Camera Russian Roulette', () => {
             const zeroWorld = new HittableList();
             zeroWorld.add(zeroSphere);
             
-            const renderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteEnabled: true,
-                russianRouletteDepth: 1,
+            const renderData: RenderOptions = {
+                ...defaultRenderData,
+                roulette: true,
+                rouletteDepth: 1,
             };
             
-            const camera = new Camera(zeroWorld, defaultCameraOptions, renderOptions);
+            const camera = new Camera(zeroWorld, defaultCameraOptions, renderData);
             const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
             const stats = { bounces: 2 };
             
@@ -683,13 +683,13 @@ describe('Camera Russian Roulette', () => {
             const highWorld = new HittableList();
             highWorld.add(highSphere);
             
-            const renderOptions: RenderOptions = {
-                ...defaultRenderOptions,
-                russianRouletteEnabled: true,
-                russianRouletteDepth: 1,
+            const renderData: RenderOptions = {
+                ...defaultRenderData,
+                roulette: true,
+                rouletteDepth: 1,
             };
             
-            const camera = new Camera(highWorld, defaultCameraOptions, renderOptions);
+            const camera = new Camera(highWorld, defaultCameraOptions, renderData);
             const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0, -1));
             const stats = { bounces: 2 };
             
@@ -702,7 +702,7 @@ describe('Camera Russian Roulette', () => {
 describe('Camera Background Colors', () => {
     let emptyWorld: HittableList;
     let defaultCameraOptions: CameraOptions;
-    let defaultRenderOptions: RenderOptions;
+    let defaultRenderData: RenderOptions;
 
     beforeEach(() => {
         // Create an empty world to test background colors
@@ -715,16 +715,16 @@ describe('Camera Background Colors', () => {
             vUp: Vec3.create(0, 1, 0),
         };
 
-        defaultRenderOptions = {
-            imageWidth: 10,
-            aspectRatio: 1.0,
+        defaultRenderData = {
+            width: 10,
+            aspect: 1.0,
             samples: 1,
         };
     });
 
     describe('Default Background', () => {
         it('should use white-to-blue gradient by default', () => {
-            const camera = new Camera(emptyWorld, defaultCameraOptions, defaultRenderOptions);
+            const camera = new Camera(emptyWorld, defaultCameraOptions, defaultRenderData);
             
             // Create rays pointing in different directions to test gradient
             const rayUp = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 1, 0)); // Should be more blue (bottom color)
@@ -746,7 +746,7 @@ describe('Camera Background Colors', () => {
         });
 
         it('should interpolate background colors based on ray direction', () => {
-            const camera = new Camera(emptyWorld, defaultCameraOptions, defaultRenderOptions);
+            const camera = new Camera(emptyWorld, defaultCameraOptions, defaultRenderData);
             
             // Test horizontal ray (should be middle of gradient)
             const rayHorizontal = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
@@ -770,7 +770,7 @@ describe('Camera Background Colors', () => {
                 backgroundBottom: greenBottom,
             };
             
-            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderOptions);
+            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
             
             // Test ray pointing up (should be green - gets bottom color)
             const rayUp = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 1, 0));
@@ -796,7 +796,7 @@ describe('Camera Background Colors', () => {
                 backgroundBottom: Color.BLACK,
             };
             
-            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderOptions);
+            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
             
             // Test rays in various directions
             const directions = [
@@ -828,7 +828,7 @@ describe('Camera Background Colors', () => {
                 backgroundBottom: purple,
             };
             
-            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderOptions);
+            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
             
             // Test rays in different directions - all should be purple
             const rayUp = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 1, 0));
@@ -859,7 +859,7 @@ describe('Camera Background Colors', () => {
                 backgroundBottom: black,
             };
             
-            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderOptions);
+            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
             
             // Test horizontal ray (y = 0, should be middle gray)
             const rayHorizontal = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
@@ -881,7 +881,7 @@ describe('Camera Background Colors', () => {
                 backgroundBottom: darkBlue,
             };
             
-            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderOptions);
+            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
             
             // Should not throw errors with extreme values
             const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0.5, 0));
@@ -897,13 +897,13 @@ describe('Camera Background Colors', () => {
                 backgroundBottom: Color.create(0, 0, 1),
             };
             
-            const renderOptions: RenderOptions = {
-                imageWidth: 5,
-                aspectRatio: 1.0,
+            const renderData: RenderOptions = {
+                width: 5,
+                aspect: 1.0,
                 samples: 1,
             };
             
-            const camera = new Camera(emptyWorld, cameraOptions, renderOptions);
+            const camera = new Camera(emptyWorld, cameraOptions, renderData);
             const buffer = new Uint8ClampedArray(5 * 5 * 3);
             
             const stats = camera.render(buffer);
@@ -923,13 +923,13 @@ describe('Camera Background Colors', () => {
                 backgroundBottom: Color.BLACK,
             };
             
-            const renderOptions: RenderOptions = {
-                imageWidth: 3,
-                aspectRatio: 1.0,
+            const renderData: RenderOptions = {
+                width: 3,
+                aspect: 1.0,
                 samples: 1,
             };
             
-            const camera = new Camera(emptyWorld, cameraOptions, renderOptions);
+            const camera = new Camera(emptyWorld, cameraOptions, renderData);
             const buffer = new Uint8ClampedArray(3 * 3 * 3);
             
             const stats = camera.render(buffer);
@@ -946,12 +946,12 @@ describe('Camera Background Colors', () => {
 describe('Scene Data Aspect Ratios', () => {
     it('should generate square images when aspect ratio is 1:1', () => {
         const sceneData = createTestSceneData();
-        const renderOptions: RenderOptions = {
-            imageWidth: 400,
-            aspectRatio: 1.0
+        const renderData: RenderOptions = {
+            width: 400,
+            aspect: 1.0
         };
         
-        const camera = createCameraFromSceneData(sceneData, renderOptions);
+        const camera = createCameraFromSceneData(sceneData, renderData);
         
         expect(camera.imageWidth).toBe(400);
         expect(camera.imageHeight).toBe(400); // Should be square (1:1 ratio)
@@ -959,12 +959,12 @@ describe('Scene Data Aspect Ratios', () => {
 
     it('should generate 16:9 images when aspect ratio is 16:9', () => {
         const sceneData = createTestSceneData();
-        const renderOptions: RenderOptions = {
-            imageWidth: 400,
-            aspectRatio: 16/9
+        const renderData: RenderOptions = {
+            width: 400,
+            aspect: 16/9
         };
         
-        const camera = createCameraFromSceneData(sceneData, renderOptions);
+        const camera = createCameraFromSceneData(sceneData, renderData);
         
         expect(camera.imageWidth).toBe(400);
         expect(camera.imageHeight).toBe(Math.ceil(400 / (16 / 9))); // Should be 16:9 ratio
@@ -972,11 +972,11 @@ describe('Scene Data Aspect Ratios', () => {
 
     it('should use default aspect ratio when not specified', () => {
         const sceneData = createTestSceneData();
-        const renderOptions: RenderOptions = {
-            imageWidth: 400
+        const renderData: RenderOptions = {
+            width: 400
         };
         
-        const camera = createCameraFromSceneData(sceneData, renderOptions);
+        const camera = createCameraFromSceneData(sceneData, renderData);
         
         expect(camera.imageWidth).toBe(400);
         expect(camera.imageHeight).toBe(Math.ceil(400 / (16 / 9))); // Should use default 16:9 ratio
@@ -984,12 +984,12 @@ describe('Scene Data Aspect Ratios', () => {
 
     it('should respect custom aspect ratio', () => {
         const sceneData = createTestSceneData();
-        const renderOptions: RenderOptions = {
-            imageWidth: 400,
-            aspectRatio: 4/3
+        const renderData: RenderOptions = {
+            width: 400,
+            aspect: 4/3
         };
         
-        const camera = createCameraFromSceneData(sceneData, renderOptions);
+        const camera = createCameraFromSceneData(sceneData, renderData);
         
         expect(camera.imageWidth).toBe(400);
         expect(camera.imageHeight).toBe(300); // Should use 4:3 aspect ratio

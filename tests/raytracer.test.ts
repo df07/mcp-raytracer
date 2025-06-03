@@ -40,8 +40,8 @@ describe('Raytracer', () => {
             type: 'custom',
             data: createTestSceneData(),
             render: {
-                imageWidth: 10,
-                aspectRatio: 1.0,
+                width: 10,
+                aspect: 1.0,
                 samples: 1
             }
         };
@@ -61,8 +61,8 @@ describe('Raytracer', () => {
         const sceneConfig: SceneConfig = {
             type: 'spheres',
             render: {
-                imageWidth: 8,
-                aspectRatio: 2.0,
+                width: 8,
+                aspect: 2.0,
                 samples: 1
             },
             options: {
@@ -93,8 +93,8 @@ describe('Raytracer', () => {
                 type: 'custom',
                 data: createTestSceneData(),
                 render: {
-                    imageWidth: width,
-                    aspectRatio: aspect,
+                    width: width,
+                    aspect: aspect,
                     samples: 1
                 }
             };
@@ -113,16 +113,16 @@ describe('Raytracer', () => {
                 type: 'custom',
                 data: createTestSceneData(),
                 render: {
-                    imageWidth: 6,
-                    aspectRatio: 1.0,
+                    width: 6,
+                    aspect: 1.0,
                     samples: 1
                 }
             },
             {
                 type: 'spheres',
                 render: {
-                    imageWidth: 6,
-                    aspectRatio: 1.0,
+                    width: 6,
+                    aspect: 1.0,
                     samples: 1
                 },
                 options: {
@@ -148,8 +148,8 @@ describe('Raytracer', () => {
         const sceneConfig: SceneConfig = {
             type: 'spheres',
             render: {
-                imageWidth: 12,
-                aspectRatio: 1.0,
+                width: 12,
+                aspect: 1.0,
                 samples: 2
             },
             options: {
@@ -177,11 +177,11 @@ describe('Raytracer', () => {
             type: 'custom',
             data: createTestSceneData(),
             render: {
-                imageWidth: 8,
-                aspectRatio: 1.0,
+                width: 8,
+                aspect: 1.0,
                 samples: 50,
-                adaptiveTolerance: 0.1,
-                adaptiveBatchSize: 5
+                aTolerance: 0.1,
+                aBatch: 5
             }
         };
 

@@ -9,7 +9,7 @@ import fs from 'fs/promises';
 export async function runRaytracerBenchmark() {
   // Parse command line arguments
   const args = process.argv.slice(2);
-  const renderOptions: RenderOptions = {};
+  const renderData: RenderOptions = {};
   const spheresSceneOptions: SpheresSceneOptions = {};
   const rainSceneOptions: RainSceneOptions = {};
   const cornellSceneOptions: CornellSceneOptions = {};
@@ -26,9 +26,9 @@ export async function runRaytracerBenchmark() {
     const arg = args[i];
     
     if (arg === '--width' || arg === '-w') {
-      renderOptions.imageWidth = parseInt(args[++i], 10);
+      renderData.width = parseInt(args[++i], 10);
     } else if (arg === '--samples' || arg === '-s') {
-      renderOptions.samples = parseInt(args[++i], 10);
+      renderData.samples = parseInt(args[++i], 10);
     } else if (arg === '--output' || arg === '-o') {
       generationOptions.output = args[++i];
     } else if (arg === '--iterations' || arg === '-i') {
@@ -41,9 +41,9 @@ export async function runRaytracerBenchmark() {
       spheresSceneOptions.seed = seedValue;
       rainSceneOptions.seed = seedValue;
     } else if (arg === '--adaptive-tolerance' || arg === '--at') {
-      renderOptions.adaptiveTolerance = parseFloat(args[++i]);
+      renderData.aTolerance = parseFloat(args[++i]);
     } else if (arg === '--adaptive-batch' || arg === '--ab') {
-      renderOptions.adaptiveBatchSize = parseInt(args[++i], 10);
+      renderData.aBatch = parseInt(args[++i], 10);
     } else if (arg === '--parallel' || arg === '-p') {
       generationOptions.parallel = true;
     } else if (arg === '--threads' || arg === '-t') {
@@ -54,7 +54,7 @@ export async function runRaytracerBenchmark() {
         console.error(`Invalid render mode: ${mode}`);
         process.exit(1);
       }
-      renderOptions.renderMode = mode;
+      renderData.mode = mode;
     } 
     // Rain scene - just the number of spheres
     else if (arg === '--rain') {
@@ -96,8 +96,8 @@ Options:
     }
   }
   console.error(`Running raytracer with options:`);
-  console.error(`  Dimensions: ${renderOptions.imageWidth}`);
-  console.error(`  Samples: ${renderOptions.samples}`);
+  console.error(`  Dimensions: ${renderData.width}`);
+  console.error(`  Samples: ${renderData.samples}`);
   console.error(`  Scene type: ${generationOptions.sceneType}`);
   if (generationOptions.sceneType === 'cornell') {
     console.error(`  Cornell variant: ${cornellSceneOptions.variant}`);
@@ -129,25 +129,25 @@ Options:
         if (generationOptions.sceneType === 'spheres' && Object.keys(spheresSceneOptions).length > 0) {
           sceneConfig = { 
             type: 'spheres',
-            render: Object.keys(renderOptions).length > 0 ? renderOptions : undefined,
+            render: Object.keys(renderData).length > 0 ? renderData : undefined,
             options: spheresSceneOptions
           };
         } else if (generationOptions.sceneType === 'rain') {
           sceneConfig = {
             type: 'rain',
-            render: Object.keys(renderOptions).length > 0 ? renderOptions : undefined,
+            render: Object.keys(renderData).length > 0 ? renderData : undefined,
             options: rainSceneOptions
           };
         } else if (generationOptions.sceneType === 'cornell') {
           sceneConfig = {
             type: 'cornell',
-            render: Object.keys(renderOptions).length > 0 ? renderOptions : undefined,
+            render: Object.keys(renderData).length > 0 ? renderData : undefined,
             options: cornellSceneOptions
           };
         } else {
           sceneConfig = { 
             type: 'default',
-            render: Object.keys(renderOptions).length > 0 ? renderOptions : undefined
+            render: Object.keys(renderData).length > 0 ? renderData : undefined
           };
         }
 

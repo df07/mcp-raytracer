@@ -1,6 +1,6 @@
 /* Specs: spheres-scene.md, rain-scene.md, cornell-scene.md, scene-generator.md */
 
-import { Camera, CameraOptions, RenderMode, RenderOptions } from '../camera.js';
+import { Camera, CameraOptions, RenderOptions } from '../camera.js';
 import { DielectricData, MaterialData, SceneData, SceneObject } from './sceneData.js';
 import { generateSpheresSceneData, SpheresSceneOptions } from './scenes-spheres.js';
 import { generateRainSceneData, RainSceneOptions } from './scenes-rain.js';
@@ -81,46 +81,29 @@ export function createCameraFromSceneData(sceneData: SceneData, renderOptions?: 
         }
     });
 
-    // Convert scene data to camera options
-    const cameraOptions: CameraOptions = {
+    // Convert scene data to camera data
+    const cameraData: CameraOptions = {
         vfov: sceneData.camera.vfov,
         lookFrom: sceneData.camera.from ? Vec3.create(...sceneData.camera.from) : undefined,
         lookAt: sceneData.camera.at ? Vec3.create(...sceneData.camera.at) : undefined,
         vUp: sceneData.camera.up ? Vec3.create(...sceneData.camera.up) : undefined,
         aperture: sceneData.camera.aperture,
         focusDistance: sceneData.camera.focus,
-        backgroundTop: sceneData.camera.background?.type === 'gradient' 
-        ? Color.create(...sceneData.camera.background.top)
-        : undefined,
-        backgroundBottom: sceneData.camera.background?.type === 'gradient'
-        ? Color.create(...sceneData.camera.background.bottom)
-        : undefined,
-        lights
+        backgroundTop: sceneData.camera.background ? Color.create(...sceneData.camera.background.top) : undefined,
+        backgroundBottom: sceneData.camera.background ? Color.create(...sceneData.camera.background.bottom) : undefined,
+        lights: lights
     };
 
-    // Convert scene render data to render options
-    const sceneRenderOptions: RenderOptions = {};
-    if (sceneData.render?.width !== undefined) sceneRenderOptions.imageWidth = sceneData.render.width;
-    if (sceneData.render?.aspect !== undefined) sceneRenderOptions.aspectRatio = sceneData.render.aspect;
-    if (sceneData.render?.samples !== undefined) sceneRenderOptions.samples = sceneData.render.samples;
-    if (sceneData.render?.depth !== undefined) sceneRenderOptions.maxDepth = sceneData.render.depth;
-    if (sceneData.render?.adaptTol !== undefined) sceneRenderOptions.adaptiveTolerance = sceneData.render.adaptTol;
-    if (sceneData.render?.adaptBatch !== undefined) sceneRenderOptions.adaptiveBatchSize = sceneData.render.adaptBatch;
-    if (sceneData.render?.roulette !== undefined) sceneRenderOptions.russianRouletteEnabled = sceneData.render.roulette;
-    if (sceneData.render?.rouletteDepth !== undefined) sceneRenderOptions.russianRouletteDepth = sceneData.render.rouletteDepth;
-    if (sceneData.render?.mode !== undefined) sceneRenderOptions.renderMode = sceneData.render.mode as RenderMode;
-
-    // Merge with provided render options (provided options take precedence)
+    // Merge scene render data with provided render data (provided data takes precedence)
     const finalRenderOptions: RenderOptions = {
-        ...sceneRenderOptions,
+        ...sceneData.render,
         ...renderOptions
     };
 
-    // Create camera
-    return new Camera(world, cameraOptions, finalRenderOptions);
-} 
+    // Create camera with separate lights parameter
+    return new Camera(world, cameraData, finalRenderOptions);
+}
 
-    
 /**
  * Creates a scene object from plain data
  */
