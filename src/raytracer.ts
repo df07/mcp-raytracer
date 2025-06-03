@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import { fileURLToPath } from 'url';
-import { generateScene, SceneConfig } from './scenes/scenes.js';
+import { generateScene, generateSceneData, SceneConfig } from './scenes/scenes.js';
 import { RenderStats } from './render-utils/renderStats.js';
 import { RenderRegion } from './camera.js';
 import { RenderWorkerData } from './render-utils/renderWorker.js';
@@ -64,6 +64,9 @@ export async function generateImageBuffer(
             console.error(`Starting parallel render with ${threadCount} worker threads`);
         }
 
+        // Generate scene data once for all workers
+        const sceneData = generateSceneData(sceneConfig);
+
         // Create a shared buffer for all workers
         const sharedBuffer = new SharedArrayBuffer(byteLength);
         pixelData = new Uint8ClampedArray(sharedBuffer);
@@ -71,7 +74,13 @@ export async function generateImageBuffer(
         // Divide into regions, and run worker on each region
         const regions = divideIntoRegions(imageWidth, imageHeight, threadCount);
         const workerPromises = regions.map((region, index) => {
-            return runWorker({ sceneConfig, region, workerId: index, sharedBuffer }, verbose);
+            return runWorker({ 
+                sceneData, 
+                renderOptions: sceneConfig.render,
+                region, 
+                workerId: index, 
+                sharedBuffer 
+            }, verbose);
         });
         
         const results = await Promise.all(workerPromises);

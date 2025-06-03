@@ -1,20 +1,23 @@
 import { parentPort, workerData } from 'worker_threads';
-import { generateScene, SceneConfig } from '../scenes/scenes.js';
+import { createCameraFromSceneData } from '../scenes/scenes.js';
 import { WorkerResponse } from '../raytracer.js';
 import { RenderRegion } from '../camera.js';
+import { SceneData } from '../scenes/sceneData.js';
+import { RenderOptions } from '../camera.js';
 
 export type RenderWorkerData = {
-  sceneConfig: SceneConfig;
+  sceneData: SceneData;
+  renderOptions?: RenderOptions;
   region: RenderRegion;
   workerId: number;
   sharedBuffer: SharedArrayBuffer;
 };
 
-// Worker receives: scene config, region to render, thread ID, and shared buffer
-const { sceneConfig, region, workerId, sharedBuffer } = workerData as RenderWorkerData
+// Worker receives: scene data, render options, region to render, thread ID, and shared buffer
+const { sceneData, renderOptions, region, workerId, sharedBuffer } = workerData as RenderWorkerData
 
-// Create scene and camera 
-const camera = generateScene(sceneConfig);
+// Create scene and camera from scene data
+const camera = createCameraFromSceneData(sceneData, renderOptions);
 
 // Use the shared buffer for pixel data
 const pixelData = new Uint8ClampedArray(sharedBuffer);
