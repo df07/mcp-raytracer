@@ -84,7 +84,6 @@ export class Camera {
 
     public readonly imageWidth: number;
     public readonly imageHeight: number;
-    public readonly aspectRatio: number;
     public readonly channels = 3;
     public readonly center: Vec3;
     public readonly pixel00Loc: Vec3;
@@ -95,13 +94,7 @@ export class Camera {
     public readonly w: Vec3;
     public readonly world: Hittable;
     public readonly lights: PDFHittable[];
-    public readonly maxDepth: number; // Maximum recursion depth for ray bounces
-    public readonly maxSamples: number; // Maximum number of samples per pixel
-    public readonly adaptiveTolerance: number; // Tolerance for convergence
-    public readonly adaptiveSampleBatchSize: number; // Number of samples to process in one batch
-    public readonly renderMode: RenderMode; // Render mode for visualization
-    public readonly russianRouletteEnabled: boolean; // Whether Russian Roulette is enabled
-    public readonly russianRouletteDepth: number; // Minimum bounces before applying Russian Roulette
+    public readonly options: Readonly<Required<RenderOptions>>  
     public readonly background: BackgroundOptions; // Top color for background gradient
     public readonly useAdaptiveSampling: boolean;
     
@@ -120,19 +113,11 @@ export class Camera {
 
         // Merge with defaults
         const finalCameraOptions = { ...Camera.defaultCameraOptions, ...cameraOptions };
-        const finalRenderData = { ...Camera.defaultRenderData, ...renderData };
+        this.options = { ...Camera.defaultRenderData, ...renderData };
 
         // Set render properties
-        this.imageWidth = finalRenderData.width;
-        this.imageHeight = Math.ceil(this.imageWidth / finalRenderData.aspect);
-        this.aspectRatio = finalRenderData.aspect;
-        this.maxDepth = finalRenderData.depth;
-        this.maxSamples = finalRenderData.samples;
-        this.adaptiveTolerance = finalRenderData.aTolerance;
-        this.adaptiveSampleBatchSize = finalRenderData.aBatch;
-        this.renderMode = finalRenderData.mode;
-        this.russianRouletteEnabled = finalRenderData.roulette;
-        this.russianRouletteDepth = finalRenderData.rouletteDepth;
+        this.imageWidth = this.options.width;
+        this.imageHeight = Math.ceil(this.imageWidth / this.options.aspect);
 
         // Set camera properties
         this.center = finalCameraOptions.from;
@@ -177,7 +162,7 @@ export class Camera {
         this.defocusDiskU = this.u.multiply(this.aperture / 2);
         this.defocusDiskV = this.v.multiply(this.aperture / 2);
 
-        this.useAdaptiveSampling = this.adaptiveTolerance > 0 && this.maxSamples > 1;
+        this.useAdaptiveSampling = this.options.aTolerance > 0 && this.options.samples > 1;
     }    
     
     /**
@@ -196,7 +181,7 @@ export class Camera {
         // If samplesPerPixel is 1, we'll use the pixel center (no randomization)
         let pixelSample = pixelCenter;
         
-        if (this.maxSamples > 1) {
+        if (this.options.samples > 1) {
             // Calculate random offset within the pixel
             const px = -0.5 + Math.random(); // Random between -0.5 and 0.5
             const py = -0.5 + Math.random(); 
@@ -240,12 +225,12 @@ export class Camera {
         }
 
         // If we've exceeded the ray bounce limit, no more light is gathered
-        if (stats.bounces >= this.maxDepth) {
+        if (stats.bounces >= this.options.depth) {
             return Color.BLACK;
         }
 
         // Apply Russian Roulette termination if enabled and after minimum depth
-        if (this.russianRouletteEnabled && stats.bounces >= this.russianRouletteDepth) {
+        if (this.options.roulette && stats.bounces >= this.options.rouletteDepth) {
             // Use throughput to determine continuation probability
             const maxComponent = Math.max(throughput.x, throughput.y, throughput.z);
             const continueProbability = Math.min(maxComponent, 0.95); // Cap at 95%
@@ -339,13 +324,13 @@ export class Camera {
      * @returns The final color to write to the buffer
      */
     private finalColor(pixel: PixelStats): Color {
-        switch (this.renderMode) {
+        switch (this.options.mode) {
             case RenderMode.Bounces:
                 const avgBounces = pixel.samples > 0 ? pixel.bounces / pixel.samples : 0;
-                const bounceIntensity = Math.min(avgBounces / this.maxDepth, 1.0); // Normalize to [0,1]
+                const bounceIntensity = Math.min(avgBounces / this.options.depth, 1.0); // Normalize to [0,1]
                 return Color.create(0, 0, bounceIntensity); // Blue scale
             case RenderMode.Samples:
-                const sampleIntensity = Math.min(pixel.samples / this.maxSamples, 1.0); // Normalize to [0,1]
+                const sampleIntensity = Math.min(pixel.samples / this.options.samples, 1.0); // Normalize to [0,1]
                 return Color.create(sampleIntensity, 0, 0); // Red scale
             case RenderMode.Default:
             default:
@@ -362,10 +347,10 @@ export class Camera {
      */
     private pixelConverged(pixel: { samples: number, sumIll: number, sumIll2: number }): boolean {
         // Only check convergence if adaptive sampling is enabled and we have enough samples
-        if (this.adaptiveTolerance <= 0 || this.maxSamples <= 1 || pixel.samples < 2) return false;
+        if (this.options.aTolerance <= 0 || this.options.samples <= 1 || pixel.samples < 2) return false;
         
         // Only check convergence at batch intervals
-        if (pixel.samples % this.adaptiveSampleBatchSize !== 0) return false;
+        if (pixel.samples % this.options.aBatch !== 0) return false;
 
         // Calculate mean and variance
         const mean = pixel.sumIll / pixel.samples;
@@ -379,7 +364,7 @@ export class Camera {
         const confidenceInterval = 1.96 * stdDev / Math.sqrt(pixel.samples);
         
         // Check if confidence interval is within tolerance of the mean
-        return confidenceInterval <= this.adaptiveTolerance * mean;
+        return confidenceInterval <= this.options.aTolerance * mean;
     }
 
     private samplePixel(i: number, j: number): { rayColor: Color, bounces: number } {
@@ -418,7 +403,7 @@ export class Camera {
                 const pixel = new PixelStats();
                 
                 // Sampling loop - continue until max samples or convergence
-                while (pixel.samples < this.maxSamples && !this.pixelConverged(pixel)) {
+                while (pixel.samples < this.options.samples && !this.pixelConverged(pixel)) {
                     
                     // Get and trace a ray through this pixel
                     const offsetSample = pool.offset;
