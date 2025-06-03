@@ -21,11 +21,11 @@ export type SceneData = {
 // Camera data for scene serialization (uses arrays for compactness)
 export type CameraData = {
   vfov?: number;
-  from?: Vec3Array;      // lookFrom position
-  at?: Vec3Array;        // lookAt target
-  up?: Vec3Array;        // vUp direction
+  from?: Vec3Array;      // Camera position
+  at?: Vec3Array;        // Look-at target
+  up?: Vec3Array;        // Camera's up direction
   aperture?: number;
-  focus?: number;        // focusDistance
+  focus?: number;        // Distance to focus plane
   background?: BackgroundData;
 }
 

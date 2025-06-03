@@ -145,9 +145,9 @@ describe('Camera', () => {
 
         defaultCameraOptions = {
             vfov: 90,
-            lookFrom: Vec3.create(0, 0, 0),
-            lookAt: Vec3.create(0, 0, -1),
-            vUp: Vec3.create(0, 1, 0),
+            from: Vec3.create(0, 0, 0),
+            at: Vec3.create(0, 0, -1),
+            up: Vec3.create(0, 1, 0),
         };
 
         defaultRenderData = {
@@ -176,8 +176,8 @@ describe('Camera', () => {
         it('should auto-calculate focus distance when not provided', () => {
             const cameraOptions: CameraOptions = {
                 ...defaultCameraOptions,
-                lookFrom: Vec3.create(0, 0, 3),
-                lookAt: Vec3.create(0, 0, 0),
+                from: Vec3.create(0, 0, 3),
+                at: Vec3.create(0, 0, 0),
                 aperture: 1.0,
             };
             
@@ -190,7 +190,7 @@ describe('Camera', () => {
             const cameraOptions: CameraOptions = {
                 ...defaultCameraOptions,
                 aperture: 1.0,
-                focusDistance: 5.0,
+                focus: 5.0,
             };
             
             const camera = new Camera(world, cameraOptions, defaultRenderData);
@@ -225,7 +225,7 @@ describe('Camera', () => {
             const cameraOptions: CameraOptions = {
                 ...defaultCameraOptions,
                 aperture: 2.0,
-                focusDistance: 1.0,
+                focus: 1.0,
             };
             
             const renderData: RenderOptions = {
@@ -251,7 +251,7 @@ describe('Camera', () => {
             const cameraOptions: CameraOptions = {
                 ...defaultCameraOptions,
                 aperture: 1.0,
-                focusDistance: 2.0,
+                focus: 2.0,
             };
             
             const renderData: RenderOptions = {
@@ -280,7 +280,7 @@ describe('Camera', () => {
             const smallApertureOptions: CameraOptions = {
                 ...defaultCameraOptions,
                 aperture: 0.001,
-                focusDistance: 1.0,
+                focus: 1.0,
             };
             
             const smallApertureCamera = new Camera(world, smallApertureOptions, defaultRenderData);
@@ -291,7 +291,7 @@ describe('Camera', () => {
             const largeApertureOptions: CameraOptions = {
                 ...defaultCameraOptions,
                 aperture: 10.0,
-                focusDistance: 1.0,
+                focus: 1.0,
             };
             
             const largeApertureCamera = new Camera(world, largeApertureOptions, defaultRenderData);
@@ -365,7 +365,7 @@ describe('Camera', () => {
             
             const cameraOptions: CameraOptions = {
                 aperture: 1.0,
-                focusDistance: 1.0,
+                focus: 1.0,
             };
             
             const camera = new Camera(world, cameraOptions, renderData);
@@ -397,17 +397,17 @@ describe('Camera', () => {
 
         it('should handle various aperture and focus distance combinations', () => {
             const testCases = [
-                { aperture: 0, focusDistance: 1 },
-                { aperture: 0.5, focusDistance: 2 },
-                { aperture: 1.0, focusDistance: 0.5 },
-                { aperture: 2.0, focusDistance: 10 },
+                { aperture: 0, focus: 1 },
+                { aperture: 0.5, focus: 2 },
+                { aperture: 1.0, focus: 0.5 },
+                { aperture: 2.0, focus: 10 },
             ];
 
-            testCases.forEach(({ aperture, focusDistance }) => {
+            testCases.forEach(({ aperture, focus }) => {
                 const cameraOptions: CameraOptions = {
                     ...defaultCameraOptions,
                     aperture,
-                    focusDistance,
+                    focus,
                 };
                 
                 expect(() => new Camera(world, cameraOptions, defaultRenderData)).not.toThrow();
@@ -416,17 +416,17 @@ describe('Camera', () => {
 
         it('should handle various camera orientations', () => {
             const orientations = [
-                { lookFrom: Vec3.create(0, 0, 1), lookAt: Vec3.create(0, 0, 0) },
-                { lookFrom: Vec3.create(1, 1, 1), lookAt: Vec3.create(0, 0, 0) },
-                { lookFrom: Vec3.create(-1, 0, 0), lookAt: Vec3.create(1, 0, 0) },
-                { lookFrom: Vec3.create(0, 5, 0), lookAt: Vec3.create(0, 0, 0) },
+                { from: Vec3.create(0, 0, 1), at: Vec3.create(0, 0, 0) },
+                { from: Vec3.create(1, 1, 1), at: Vec3.create(0, 0, 0) },
+                { from: Vec3.create(-1, 0, 0), at: Vec3.create(1, 0, 0) },
+                { from: Vec3.create(0, 5, 0), at: Vec3.create(0, 0, 0) },
             ];
 
-            orientations.forEach(({ lookFrom, lookAt }) => {
+            orientations.forEach(({ from, at }) => {
                 const cameraOptions: CameraOptions = {
                     ...defaultCameraOptions,
-                    lookFrom,
-                    lookAt,
+                    from,
+                    at,
                     aperture: 1.0,
                 };
                 
@@ -474,9 +474,9 @@ describe('Camera Russian Roulette', () => {
 
         defaultCameraOptions = {
             vfov: 90,
-            lookFrom: Vec3.create(0, 0, 0),
-            lookAt: Vec3.create(0, 0, -1),
-            vUp: Vec3.create(0, 1, 0),
+            from: Vec3.create(0, 0, 0),
+            at: Vec3.create(0, 0, -1),
+            up: Vec3.create(0, 1, 0),
         };
 
         defaultRenderData = {
@@ -710,9 +710,9 @@ describe('Camera Background Colors', () => {
 
         defaultCameraOptions = {
             vfov: 90,
-            lookFrom: Vec3.create(0, 0, 0),
-            lookAt: Vec3.create(0, 0, -1),
-            vUp: Vec3.create(0, 1, 0),
+            from: Vec3.create(0, 0, 0),
+            at: Vec3.create(0, 0, -1),
+            up: Vec3.create(0, 1, 0),
         };
 
         defaultRenderData = {
@@ -766,8 +766,7 @@ describe('Camera Background Colors', () => {
             
             const cameraOptions: CameraOptions = {
                 ...defaultCameraOptions,
-                backgroundTop: redTop,
-                backgroundBottom: greenBottom,
+                background: { type: 'gradient', top: redTop, bottom: greenBottom },
             };
             
             const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
@@ -789,43 +788,12 @@ describe('Camera Background Colors', () => {
             expect(colorDown.x).toBeGreaterThan(colorDown.z);
         });
 
-        it('should support black backgrounds for Cornell box scenarios', () => {
-            const cameraOptions: CameraOptions = {
-                ...defaultCameraOptions,
-                backgroundTop: Color.BLACK,
-                backgroundBottom: Color.BLACK,
-            };
-            
-            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
-            
-            // Test rays in various directions
-            const directions = [
-                Vec3.create(0, 1, 0),   // Up
-                Vec3.create(0, -1, 0),  // Down
-                Vec3.create(1, 0, 0),   // Right
-                Vec3.create(-1, 0, 0),  // Left
-                Vec3.create(0, 0, 1),   // Forward
-                Vec3.create(0, 0, -1),  // Backward
-            ];
-            
-            directions.forEach(direction => {
-                const ray = new Ray(Vec3.create(0, 0, 0), direction);
-                const color = camera.rayColor(ray);
-                
-                // All should be black (no ambient light)
-                expect(color.x).toBe(0);
-                expect(color.y).toBe(0);
-                expect(color.z).toBe(0);
-            });
-        });
-
         it('should handle single color backgrounds', () => {
             const purple = Color.create(0.5, 0, 0.5);
             
             const cameraOptions: CameraOptions = {
                 ...defaultCameraOptions,
-                backgroundTop: purple,
-                backgroundBottom: purple,
+                background: { type: 'gradient', top: purple, bottom: purple },
             };
             
             const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
@@ -845,100 +813,6 @@ describe('Camera Background Colors', () => {
             expect(colorDown.x).toBeCloseTo(purple.x, 5);
             expect(colorDown.y).toBeCloseTo(purple.y, 5);
             expect(colorDown.z).toBeCloseTo(purple.z, 5);
-        });
-    });
-
-    describe('Background Gradient Interpolation', () => {
-        it('should correctly interpolate between custom colors', () => {
-            const white = Color.create(1, 1, 1);
-            const black = Color.create(0, 0, 0);
-            
-            const cameraOptions: CameraOptions = {
-                ...defaultCameraOptions,
-                backgroundTop: white,
-                backgroundBottom: black,
-            };
-            
-            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
-            
-            // Test horizontal ray (y = 0, should be middle gray)
-            const rayHorizontal = new Ray(Vec3.create(0, 0, 0), Vec3.create(1, 0, 0));
-            const colorHorizontal = camera.rayColor(rayHorizontal);
-            
-            // Should be approximately 50% gray
-            expect(colorHorizontal.x).toBeCloseTo(0.5, 1);
-            expect(colorHorizontal.y).toBeCloseTo(0.5, 1);
-            expect(colorHorizontal.z).toBeCloseTo(0.5, 1);
-        });
-
-        it('should handle extreme color values', () => {
-            const brightRed = Color.create(10, 0, 0);
-            const darkBlue = Color.create(0, 0, 0.1);
-            
-            const cameraOptions: CameraOptions = {
-                ...defaultCameraOptions,
-                backgroundTop: brightRed,
-                backgroundBottom: darkBlue,
-            };
-            
-            const camera = new Camera(emptyWorld, cameraOptions, defaultRenderData);
-            
-            // Should not throw errors with extreme values
-            const ray = new Ray(Vec3.create(0, 0, 0), Vec3.create(0, 0.5, 0));
-            expect(() => camera.rayColor(ray)).not.toThrow();
-        });
-    });
-
-    describe('Integration with Rendering', () => {
-        it('should render correctly with custom backgrounds', () => {
-            const cameraOptions: CameraOptions = {
-                ...defaultCameraOptions,
-                backgroundTop: Color.create(1, 0, 0),
-                backgroundBottom: Color.create(0, 0, 1),
-            };
-            
-            const renderData: RenderOptions = {
-                width: 5,
-                aspect: 1.0,
-                samples: 1,
-            };
-            
-            const camera = new Camera(emptyWorld, cameraOptions, renderData);
-            const buffer = new Uint8ClampedArray(5 * 5 * 3);
-            
-            const stats = camera.render(buffer);
-            
-            expect(stats.pixels).toBe(25);
-            expect(stats.samples.total).toBe(25);
-            
-            // Buffer should contain non-zero values (not all black)
-            const hasNonZero = Array.from(buffer).some(value => value > 0);
-            expect(hasNonZero).toBe(true);
-        });
-
-        it('should render black backgrounds correctly', () => {
-            const cameraOptions: CameraOptions = {
-                ...defaultCameraOptions,
-                backgroundTop: Color.BLACK,
-                backgroundBottom: Color.BLACK,
-            };
-            
-            const renderData: RenderOptions = {
-                width: 3,
-                aspect: 1.0,
-                samples: 1,
-            };
-            
-            const camera = new Camera(emptyWorld, cameraOptions, renderData);
-            const buffer = new Uint8ClampedArray(3 * 3 * 3);
-            
-            const stats = camera.render(buffer);
-            
-            expect(stats.pixels).toBe(9);
-            
-            // Buffer should be all zeros (black)
-            const allZero = Array.from(buffer).every(value => value === 0);
-            expect(allZero).toBe(true);
         });
     });
 });

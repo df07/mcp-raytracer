@@ -21,14 +21,19 @@ export enum RenderMode {
  */
 export interface CameraOptions {
   vfov?: number;                 // Vertical field of view in degrees (default: 90)
-  lookFrom?: Point3;             // Camera position (default: origin)
-  lookAt?: Point3;               // Look-at position (default: 0,0,-1)
-  vUp?: Vec3;                    // Camera's up direction (default: 0,1,0)
+  from?: Point3;                 // Camera position (default: origin)
+  at?: Point3;                   // Look-at target (default: 0,0,-1)
+  up?: Vec3;                     // Camera's up direction (default: 0,1,0)
   aperture?: number;             // Camera aperture size for defocus blur (default: 0, no blur)
-  focusDistance?: number;        // Distance to focus plane (default: auto-calculated)
-  backgroundTop?: Color;         // Top color for background gradient (default: white)
-  backgroundBottom?: Color;      // Bottom color for background gradient (default: blue)
+  focus?: number;                // Distance to focus plane (default: auto-calculated)
+  background?: BackgroundOptions      // Bottom color for background gradient (default: blue)
   lights?: PDFHittable[];        // Light sources for importance sampling (default: [])
+}
+
+export type BackgroundOptions = {
+  type: 'gradient';
+  top: Vec3;        // Top color for background gradient
+  bottom: Vec3;     // Bottom color for background gradient
 }
 
 /**
@@ -56,13 +61,12 @@ export type RenderRegion = {
 export class Camera {
     static defaultCameraOptions: Required<CameraOptions> = {
         vfov: 90,
-        lookFrom: Vec3.create(0, 0, 0),
-        lookAt: Vec3.create(0, 0, -1),
-        vUp: Vec3.create(0, 1, 0),
+        from: Vec3.create(0, 0, 0),
+        at: Vec3.create(0, 0, -1),
+        up: Vec3.create(0, 1, 0),
         aperture: 0,                 // No defocus blur by default
-        focusDistance: 1.0,          // Default focus distance
-        backgroundTop: Color.WHITE,
-        backgroundBottom: Color.BLUE,
+        focus: 1.0,          // Default focus distance
+        background: { type: 'gradient', top: Color.WHITE, bottom: Color.BLUE },
         lights: [],
     }
 
@@ -98,8 +102,7 @@ export class Camera {
     public readonly renderMode: RenderMode; // Render mode for visualization
     public readonly russianRouletteEnabled: boolean; // Whether Russian Roulette is enabled
     public readonly russianRouletteDepth: number; // Minimum bounces before applying Russian Roulette
-    public readonly backgroundTop: Color; // Top color for background gradient
-    public readonly backgroundBottom: Color; // Bottom color for background gradient
+    public readonly background: BackgroundOptions; // Top color for background gradient
     public readonly useAdaptiveSampling: boolean;
     
     // Defocus blur properties
@@ -132,14 +135,13 @@ export class Camera {
         this.russianRouletteDepth = finalRenderData.rouletteDepth;
 
         // Set camera properties
-        this.center = finalCameraOptions.lookFrom;
+        this.center = finalCameraOptions.from;
         this.lights = finalCameraOptions.lights;
-        this.backgroundTop = finalCameraOptions.backgroundTop;
-        this.backgroundBottom = finalCameraOptions.backgroundBottom;
+        this.background = finalCameraOptions.background;
         this.aperture = finalCameraOptions.aperture;
         
         // Auto-calculate focus distance if not provided
-        this.focusDistance = finalCameraOptions.focusDistance || finalCameraOptions.lookFrom.subtract(finalCameraOptions.lookAt).length();
+        this.focusDistance = finalCameraOptions.focus || finalCameraOptions.from.subtract(finalCameraOptions.at).length();
 
         // Determine viewport dimensions.
         const theta = finalCameraOptions.vfov * (Math.PI / 180); // Convert vfov to radians
@@ -150,8 +152,8 @@ export class Camera {
 
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
         // Use vec3 methods instead of standalone functions
-        this.w = finalCameraOptions.lookFrom.subtract(finalCameraOptions.lookAt).unitVector();
-        this.u = finalCameraOptions.vUp.cross(this.w).unitVector();
+        this.w = finalCameraOptions.from.subtract(finalCameraOptions.at).unitVector();
+        this.u = finalCameraOptions.up.cross(this.w).unitVector();
         this.v = this.w.cross(this.u);
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
@@ -267,7 +269,7 @@ export class Camera {
             const unitDirection = r.direction.unitVector();
             const a = 0.5 * (unitDirection.y + 1.0);
             // Linear interpolation (lerp) between white and blue based on y-coordinate
-            return this.backgroundTop.multiply(1.0 - a).add(this.backgroundBottom.multiply(a)).multiplyVec(throughput);
+            return this.background.top.multiply(1.0 - a).add(this.background.bottom.multiply(a)).multiplyVec(throughput);
         }
 
         // Get emitted light from the hit material

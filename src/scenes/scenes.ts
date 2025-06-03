@@ -1,6 +1,6 @@
 /* Specs: spheres-scene.md, rain-scene.md, cornell-scene.md, scene-generator.md */
 
-import { Camera, CameraOptions, RenderOptions } from '../camera.js';
+import { Camera, CameraOptions, RenderMode, RenderOptions } from '../camera.js';
 import { DielectricData, MaterialData, SceneData, SceneObject } from './sceneData.js';
 import { generateSpheresSceneData, SpheresSceneOptions } from './scenes-spheres.js';
 import { generateRainSceneData, RainSceneOptions } from './scenes-rain.js';
@@ -73,25 +73,24 @@ export function createCameraFromSceneData(sceneData: SceneData, renderOptions?: 
     // Extract light objects for importance sampling
     const lights: PDFHittable[] = [];
     sceneData.objects.forEach((objData, index) => {
-        if (objData.light) {
-        const obj = objects[index];
-        if ('pdf' in obj) {
-            lights.push(obj as PDFHittable);
-        }
+        if (objData.light && 'pdf' in objects[index]) {
+            lights.push(objects[index] as PDFHittable);
         }
     });
 
-    // Convert scene data to camera data
-    const cameraData: CameraOptions = {
-        vfov: sceneData.camera.vfov,
-        lookFrom: sceneData.camera.from ? Vec3.create(...sceneData.camera.from) : undefined,
-        lookAt: sceneData.camera.at ? Vec3.create(...sceneData.camera.at) : undefined,
-        vUp: sceneData.camera.up ? Vec3.create(...sceneData.camera.up) : undefined,
-        aperture: sceneData.camera.aperture,
-        focusDistance: sceneData.camera.focus,
-        backgroundTop: sceneData.camera.background ? Color.create(...sceneData.camera.background.top) : undefined,
-        backgroundBottom: sceneData.camera.background ? Color.create(...sceneData.camera.background.bottom) : undefined,
-        lights: lights
+    // Convert scene camera data (arrays) to camera options (objects)
+    const camera = sceneData.camera;
+    const cameraOptions: CameraOptions = {
+        vfov: camera.vfov,
+        from: camera.from ? Vec3.create(...camera.from) : undefined,
+        at: camera.at ? Vec3.create(...camera.at) : undefined,
+        up: camera.up ? Vec3.create(...camera.up) : undefined,
+        aperture: camera.aperture,
+        focus: camera.focus,
+        background: camera.background
+            ? { type: 'gradient', top: Color.create(...camera.background.top), bottom: Color.create(...camera.background.bottom) }
+            : undefined,
+        lights
     };
 
     // Merge scene render data with provided render data (provided data takes precedence)
@@ -100,8 +99,8 @@ export function createCameraFromSceneData(sceneData: SceneData, renderOptions?: 
         ...renderOptions
     };
 
-    // Create camera with separate lights parameter
-    return new Camera(world, cameraData, finalRenderOptions);
+    // Create camera
+    return new Camera(world, cameraOptions, finalRenderOptions);
 }
 
 /**
